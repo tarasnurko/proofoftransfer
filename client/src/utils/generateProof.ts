@@ -165,6 +165,10 @@ export async function generateProof(
 
     log('Initializing Noir... ⏳')
     const noir = new Noir(circuit as CompiledCircuit)
+
+    // Initialize ACVM backend for Node.js
+    await noir.init()
+
     const backend = new UltraHonkBackend(circuit.bytecode, { threads: 1 })
     log('Noir initialized ✅')
 
