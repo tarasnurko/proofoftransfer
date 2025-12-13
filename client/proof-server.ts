@@ -51,7 +51,9 @@ app.post('/generate-proof', async (req, res) => {
     if (proverTransfers?.length > 0) {
       console.log(`   Transfer amounts:`, proverTransfers.map((t: any) => t.value))
     }
-    console.log(`   Min/Max amounts: ${minAmount || '0'} / ${maxAmount || '1e30'}`)
+    console.log(`   Raw minAmount from request:`, minAmount, typeof minAmount)
+    console.log(`   Raw maxAmount from request:`, maxAmount, typeof maxAmount)
+    console.log(`   Will use maxAmount:`, maxAmount || '1000000000000000000000000000000')
 
     const logs: string[] = []
     const addLog = (msg: string) => {
