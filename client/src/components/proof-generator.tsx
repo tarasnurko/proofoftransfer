@@ -1,29 +1,37 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useSignMessage } from 'wagmi'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import axios from 'axios'
 import type { ERC20Transfer } from '@/services/etherscan'
+import { keccak256, toUtf8Bytes } from 'ethers'
 
 export function ProofGenerator() {
   const { address, isConnected } = useAccount()
+  const { signMessageAsync } = useSignMessage()
   const [recipient, setRecipient] = useState('')
   const [tokenAddress, setTokenAddress] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [fromBlock, setFromBlock] = useState<string>('')
   const [toBlock, setToBlock] = useState<string>('')
+  const [minAmount, setMinAmount] = useState('')
+  const [maxAmount, setMaxAmount] = useState('')
+  const [message, setMessage] = useState('')
   const [transfers, setTransfers] = useState<ERC20Transfer[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchingBlocks, setFetchingBlocks] = useState(false)
+  const [generatingProof, setGeneratingProof] = useState(false)
+  const [proofLogs, setProofLogs] = useState<string[]>([])
+  const [generatedProofId, setGeneratedProofId] = useState<number | null>(null)
 
   // Fetch block numbers when dates change
   useEffect(() => {
     const fetchBlockNumbers = async () => {
-      if (!fromDate || !toDate) return
+      if (!fromDate) return
 
       setFetchingBlocks(true)
       try {
@@ -32,19 +40,25 @@ export function ProofGenerator() {
         fromDateObj.setHours(0, 0, 0, 0)
         const fromTimestamp = Math.floor(fromDateObj.getTime() / 1000)
 
-        // To date: check if it's today
-        const toDateObj = new Date(toDate)
-        const today = new Date()
-        const isToday = toDateObj.toDateString() === today.toDateString()
-
+        // To date: if not provided, use current time
         let toTimestamp: number
-        if (isToday) {
-          // If "to" is today, use current time
+        if (!toDate) {
+          // No "to" date specified - use current time
           toTimestamp = Math.floor(Date.now() / 1000)
         } else {
-          // Otherwise, use end of day (23:59:59)
-          toDateObj.setHours(23, 59, 59, 999)
-          toTimestamp = Math.floor(toDateObj.getTime() / 1000)
+          // Check if it's today
+          const toDateObj = new Date(toDate)
+          const today = new Date()
+          const isToday = toDateObj.toDateString() === today.toDateString()
+
+          if (isToday) {
+            // If "to" is today, use current time
+            toTimestamp = Math.floor(Date.now() / 1000)
+          } else {
+            // Otherwise, use end of day (23:59:59)
+            toDateObj.setHours(23, 59, 59, 999)
+            toTimestamp = Math.floor(toDateObj.getTime() / 1000)
+          }
         }
 
         const [fromBlockRes, toBlockRes] = await Promise.all([
@@ -106,6 +120,77 @@ export function ProofGenerator() {
     }
   }
 
+  const handleGenerateProof = async () => {
+    if (!address || !recipient || !tokenAddress || !fromDate || transfers.length === 0) {
+      alert('Please fill all required fields and fetch transfers first')
+      return
+    }
+
+    setGeneratingProof(true)
+    setProofLogs([])
+    setGeneratedProofId(null)
+
+    const showLog = (log: string) => {
+      setProofLogs((prev) => [...prev, log])
+    }
+
+    try {
+      // Step 1: Sign message
+      showLog('Please sign the message in your wallet... ⏳')
+      const messageText = message || `Proof of transfer to ${recipient}`
+      const signature = await signMessageAsync({ message: messageText })
+      const messageHash = keccak256(toUtf8Bytes(messageText))
+      showLog('Message signed ✅')
+
+      // Step 2: Generate random salt for address commitment
+      const salt = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+
+      // Step 3: Extract public key from signature (simplified - in production use proper recovery)
+      // For now, using placeholder values - need proper implementation
+      const pubKeyX = '0x' + '0'.repeat(64)
+      const pubKeyY = '0x' + '0'.repeat(64)
+
+      // Step 4: Send to server for proof generation
+      showLog('Sending data to server for proof generation... ⏳')
+      const response = await axios.post('/api/generate-proof', {
+        senderAddress: address,
+        salt,
+        publicKeyX: pubKeyX,
+        publicKeyY: pubKeyY,
+        signature,
+        messageHash,
+        message: messageText,
+        allTransfers: transfers,
+        proverTransfers: transfers,
+        tokenAddress,
+        receiverAddress: recipient,
+        startDate: Math.floor(new Date(fromDate).getTime() / 1000),
+        endDate: toDate
+          ? Math.floor(new Date(toDate).getTime() / 1000)
+          : Math.floor(Date.now() / 1000),
+        minAmount: minAmount || '0',
+        maxAmount: maxAmount || '999999999999999999',
+      })
+
+      // Display server logs
+      if (response.data.logs) {
+        response.data.logs.forEach((log: string) => showLog(log))
+      }
+
+      setGeneratedProofId(response.data.proofId)
+      showLog(`Proof stored with ID: ${response.data.proofId} ✅`)
+      showLog('Proof generation complete! 🎉')
+    } catch (error: any) {
+      console.error('Error generating proof:', error)
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to generate proof'
+      showLog(`Error: ${errorMsg} ❌`)
+    } finally {
+      setGeneratingProof(false)
+    }
+  }
+
   if (!isConnected) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -152,6 +237,45 @@ export function ProofGenerator() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="minAmount">Min Amount (optional)</Label>
+              <Input
+                id="minAmount"
+                type="number"
+                step="any"
+                placeholder="0.0"
+                value={minAmount}
+                onChange={(e) => setMinAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="maxAmount">Max Amount (optional)</Label>
+              <Input
+                id="maxAmount"
+                type="number"
+                step="any"
+                placeholder="0.0"
+                value={maxAmount}
+                onChange={(e) => setMaxAmount(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message">Message (optional)</Label>
+            <Input
+              id="message"
+              placeholder="e.g., Proof for charity donation"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              This message will be signed to bind the proof to a context
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="fromDate">From Date</Label>
               <Input
                 id="fromDate"
@@ -167,32 +291,76 @@ export function ProofGenerator() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="toDate">To Date</Label>
+              <Label htmlFor="toDate">To Date (optional)</Label>
               <Input
                 id="toDate"
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
+                placeholder="Leave empty for current time"
               />
               {toBlock && (
-                <p className="text-xs text-muted-foreground">Block: {toBlock}</p>
+                <p className="text-xs text-muted-foreground">
+                  Block: {toBlock}
+                  {!toDate && ' (current)'}
+                </p>
               )}
             </div>
           </div>
 
-          <Button
-            onClick={handleFetchTransfers}
-            disabled={!fromBlock || !toBlock || loading || fetchingBlocks}
-            className="w-full"
-          >
-            {loading
-              ? 'Fetching Transfers...'
-              : fetchingBlocks
-              ? 'Fetching Block Numbers...'
-              : 'Fetch Transfers'}
-          </Button>
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              onClick={handleFetchTransfers}
+              disabled={!fromBlock || !toBlock || loading || fetchingBlocks}
+              className="w-full"
+            >
+              {loading
+                ? 'Fetching Transfers...'
+                : fetchingBlocks
+                ? 'Fetching Block Numbers...'
+                : 'Fetch Transfers'}
+            </Button>
+
+            <Button
+              onClick={handleGenerateProof}
+              disabled={
+                !recipient ||
+                !tokenAddress ||
+                !fromDate ||
+                transfers.length === 0 ||
+                generatingProof
+              }
+              className="w-full"
+              variant="default"
+            >
+              {generatingProof ? 'Generating Proof...' : 'Generate Proof'}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {proofLogs.length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border p-6 space-y-4">
+          <h2 className="text-xl font-semibold">Proof Generation Logs</h2>
+          <div className="space-y-1 font-mono text-sm">
+            {proofLogs.map((log, index) => (
+              <div key={index} className="text-muted-foreground">
+                {log}
+              </div>
+            ))}
+          </div>
+          {generatedProofId && (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-green-800 dark:text-green-200 font-semibold">
+                Proof ID: {generatedProofId}
+              </p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                Your proof has been generated and stored successfully!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {transfers.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-lg border p-6 space-y-4">
