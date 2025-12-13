@@ -1,2 +1,102 @@
-x = "1"
-y = "2"
+# Example Prover inputs for testing the circuit
+# This file contains placeholder values that demonstrate the expected structure
+
+# ===== Public Inputs =====
+[pub_inputs]
+# Merkle root of ALL transfers in scope (computed off-chain)
+global_transfers_root = "0"
+
+# Address commitment: keccak256(sender_address || salt)
+addr_commit = "0"
+
+# ERC20 token address (e.g., DAI on Ethereum)
+token_address = "0"
+
+# Recipient address
+receiver_address = "0"
+
+# Unix timestamps for date range
+start_date = "1640000000"  # Jan 1, 2022
+end_date = "1650000000"    # Apr 15, 2022
+
+# Amount range (in wei or smallest token unit)
+min_amount = "1000000000000000000"    # 1 token (18 decimals)
+max_amount = "10000000000000000000"   # 10 tokens
+
+# Message hash: keccak256(user's message)
+# Example: keccak256("Donation proof for Bob's present")
+message_hash = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+
+# ===== Private Witness =====
+[priv_witness]
+# Prover's Ethereum address (160-bit as Field)
+sender_address = "0"
+
+# Random salt for address commitment
+salt = "0"
+
+# Public key x-coordinate (32 bytes)
+pub_key_x = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+
+# Public key y-coordinate (32 bytes)
+pub_key_y = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+
+# ECDSA signature (64 bytes: r + s)
+signature = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+
+# Array of transfers (MAX_TRANSFERS = 50)
+# Only the first transfer is marked as valid for this example
+[[priv_witness.transfers]]
+amount = "2000000000000000000"  # 2 tokens
+timestamp = "1645000000"
+tx_hash = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+merkle_path = [
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0",
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
+]
+path_indices = [
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0",
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
+]
+is_valid = true
+
+# Remaining 49 transfers (all marked as invalid)
+# In a real proof, you would only populate the transfers you're proving
+# and leave the rest as invalid
+[[priv_witness.transfers]]
+amount = "0"
+timestamp = "0"
+tx_hash = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+merkle_path = [
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0",
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
+]
+path_indices = [
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0",
+    "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"
+]
+is_valid = false
+
+# Note: You need to add 48 more transfer entries here for a total of 50
+# All should have is_valid = false for this example
+# This is just demonstrating the structure
