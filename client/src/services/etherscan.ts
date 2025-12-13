@@ -71,6 +71,8 @@ export class EtherscanService {
       ...params,
     };
 
+    console.log(requestParams);
+
     const response = await axios.get<EtherscanResponse<ERC20Transfer[]>>(
       EtherscanService.etherscanApiUrl,
       {
