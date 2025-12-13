@@ -1,80 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/db'
-import { proofs } from '@/db/schema'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+const PROOF_SERVER_URL = process.env.PROOF_SERVER_URL || 'http://localhost:3001'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const {
-      message,
-      tokenAddress,
-      receiverAddress,
-      startDate,
-      endDate,
-      minAmount,
-      maxAmount,
-    } = body
+    // Forward request to proof generation server
+    const response = await fetch(`${PROOF_SERVER_URL}/generate-proof`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
 
-    // Validate required fields
-    if (
-      !tokenAddress ||
-      !receiverAddress ||
-      !startDate ||
-      !endDate
-    ) {
+    const data = await response.json()
+
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+        { error: data.error || 'Proof generation failed' },
+        { status: response.status }
       )
     }
 
-    const logs: string[] = []
-    logs.push('Preparing proof data... ⏳')
-
-    // For now, store a placeholder proof
-    // Actual proof generation will be done via standalone script
-    const placeholderProof = '0x' + '0'.repeat(128)
-    const placeholderPublicInputs = ['0x' + '0'.repeat(64), '0x' + '0'.repeat(64)]
-    const placeholderMessageHash = '0x' + '0'.repeat(64)
-
-    logs.push('⚠️  Note: Proof generation via standalone script required')
-    logs.push('Storing proof data in database... ⏳')
-
-    // Store proof in database
-    const [newProof] = await db
-      .insert(proofs)
-      .values({
-        recipient: receiverAddress,
-        tokenAddress,
-        startDate: new Date(startDate * 1000),
-        endDate: new Date(endDate * 1000),
-        minAmount: minAmount || '0',
-        maxAmount: maxAmount || '999999999999999999',
-        proof: placeholderProof,
-        publicInputs: JSON.stringify(placeholderPublicInputs),
-        globalTransfersRoot: placeholderPublicInputs[0],
-        addressCommitment: placeholderPublicInputs[1],
-        messageHash: placeholderMessageHash,
-        message: message || null,
-      })
-      .returning()
-
-    logs.push(`Proof record created with ID: ${newProof.id} ✅`)
-    logs.push('To generate actual proof, run: yarn generate-proof --id=' + newProof.id)
-
-    return NextResponse.json({
-      success: true,
-      proofId: newProof.id,
-      logs,
-      note: 'Proof placeholder created. Run standalone script to generate actual proof.',
-    })
+    return NextResponse.json(data)
   } catch (error: any) {
-    console.error('Error storing proof data:', error)
+    console.error('Error communicating with proof server:', error)
+
+    // Check if proof server is running
+    if (error.cause?.code === 'ECONNREFUSED') {
+      return NextResponse.json(
+        {
+          error: 'Proof generation server is not running. Please start it with: yarn proof-server',
+          details: 'The proof server must be running on port 3001 to generate proofs.'
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
-      { error: error.message || 'Failed to store proof data' },
+      { error: error.message || 'Failed to generate proof' },
       { status: 500 }
     )
   }

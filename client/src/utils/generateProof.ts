@@ -12,6 +12,7 @@ const MERKLE_DEPTH = 20
 export interface ProofInputs {
   senderAddress: string
   salt: string
+  addressCommitment: string
   publicKeyX: string
   publicKeyY: string
   signature: string
@@ -73,13 +74,13 @@ function buildMerkleTree(
 // Format transfer for circuit input
 function formatTransfer(
   transfer: ERC20Transfer,
-  merkleProof: { path: string[]; indices: number[] }
+  merkleProof: { path: bigint[]; indices: number[] }
 ) {
   return {
     amount: transfer.value,
     timestamp: transfer.timeStamp,
     tx_hash: hexToBytes(transfer.hash),
-    merkle_path: merkleProof.path.map((p) => p),
+    merkle_path: merkleProof.path.map((p) => p.toString()),
     path_indices: merkleProof.indices.map((i) => i.toString()),
     is_valid: true,
   }
@@ -135,16 +136,14 @@ export async function generateProof(
     )
     log('Merkle proofs generated ✅')
 
-    // Compute address commitment
-    const addrCommit = keccak256(
-      Buffer.from(inputs.senderAddress + inputs.salt)
-    )
+    // Use the address commitment sent from client (already taken modulo field)
+    // Don't recompute it here to avoid field overflow issues
 
     // Format circuit inputs
     const circuitInputs = {
       pub_inputs: {
-        global_transfers_root: globalTransfersRoot,
-        addr_commit: addrCommit,
+        global_transfers_root: globalTransfersRoot.toString(),
+        addr_commit: inputs.addressCommitment,
         token_address: inputs.tokenAddress,
         receiver_address: inputs.receiverAddress,
         start_date: inputs.startDate.toString(),
@@ -158,7 +157,7 @@ export async function generateProof(
         salt: inputs.salt,
         pub_key_x: hexToBytes(inputs.publicKeyX),
         pub_key_y: hexToBytes(inputs.publicKeyY),
-        signature: hexToBytes(inputs.signature),
+        signature: hexToBytes(inputs.signature).slice(0, 64), // Remove recovery byte (v)
         transfers: paddedTransfers,
       },
     }

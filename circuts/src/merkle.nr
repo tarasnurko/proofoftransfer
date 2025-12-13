@@ -1,8 +1,8 @@
-use std::hash::pedersen_hash;
+use dep::poseidon::poseidon2::Poseidon2;
 use crate::types::MERKLE_DEPTH;
 
 // Compute Merkle leaf hash for a transfer
-// Note: Using Pedersen hash instead of Poseidon due to library compatibility issues
+// Using Poseidon2 hash (ZK-friendly and efficient)
 pub fn compute_transfer_leaf(
     sender_address: Field,
     receiver_address: Field,
@@ -14,16 +14,16 @@ pub fn compute_transfer_leaf(
     // Convert tx_hash to Field
     let tx_hash_field = field_from_bytes_32(tx_hash);
 
-    // Use Pedersen hash with all transfer parameters
+    // Use Poseidon2 hash with all transfer parameters
     // This ensures the leaf uniquely identifies the transfer
-    pedersen_hash([
+    Poseidon2::hash([
         sender_address,
         receiver_address,
         token_address,
         amount,
         timestamp,
         tx_hash_field
-    ])
+    ], 6)
 }
 
 // Verify Merkle inclusion proof
@@ -46,8 +46,8 @@ pub fn verify_merkle_proof(
             (sibling, current)  // Current is right child
         };
 
-        // Hash parent node
-        current = pedersen_hash([hash_left, hash_right]);
+        // Hash parent node using Poseidon2
+        current = Poseidon2::hash([hash_left, hash_right], 2);
     }
 
     // Final hash should equal the root

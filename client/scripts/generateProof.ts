@@ -9,6 +9,7 @@
  *   yarn generate-proof --id=<proof_id>
  */
 
+import 'dotenv/config'
 import { generateProof, proofToHex } from '../src/utils/generateProof'
 import { db } from '../src/db'
 import { proofs } from '../src/db/schema'

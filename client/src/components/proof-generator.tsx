@@ -16,8 +16,8 @@ export function ProofGenerator() {
   const [tokenAddress, setTokenAddress] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [fromBlock, setFromBlock] = useState<string>('')
-  const [toBlock, setToBlock] = useState<string>('')
+  const [fromBlock, setFromBlock] = useState<string>('39350527')
+  const [toBlock, setToBlock] = useState<string>('39426500')
   const [minAmount, setMinAmount] = useState('')
   const [maxAmount, setMaxAmount] = useState('')
   const [message, setMessage] = useState('')
@@ -121,7 +121,7 @@ export function ProofGenerator() {
   }
 
   const handleGenerateProof = async () => {
-    if (!address || !recipient || !tokenAddress || !fromDate || transfers.length === 0) {
+    if (!address || !recipient || !tokenAddress || transfers.length === 0) {
       alert('Please fill all required fields and fetch transfers first')
       return
     }
@@ -139,39 +139,71 @@ export function ProofGenerator() {
       showLog('Please sign the message in your wallet... ⏳')
       const messageText = message || `Proof of transfer to ${recipient}`
       const signature = await signMessageAsync({ message: messageText })
-      const messageHash = keccak256(toUtf8Bytes(messageText))
+      // Use hashMessage to get Ethereum prefixed message hash (what MetaMask actually signs)
+      const { hashMessage } = await import('ethers')
+      const messageHash = hashMessage(messageText)
       showLog('Message signed ✅')
 
       // Step 2: Generate random salt for address commitment
-      const salt = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
+      // Must fit within BN254 field modulus
+      const BN254_FIELD_MODULUS = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617')
+      const randomBytes = crypto.getRandomValues(new Uint8Array(32))
+      const randomBigInt = BigInt('0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join(''))
+      const saltBigInt = randomBigInt % BN254_FIELD_MODULUS
+      const salt = '0x' + saltBigInt.toString(16).padStart(64, '0')
 
-      // Step 3: Extract public key from signature (simplified - in production use proper recovery)
-      // For now, using placeholder values - need proper implementation
-      const pubKeyX = '0x' + '0'.repeat(64)
-      const pubKeyY = '0x' + '0'.repeat(64)
+      // Step 3: Compute address commitment
+      showLog('Computing address commitment... ⏳')
+      const addressCommitmentHash = keccak256(
+        Buffer.from(address.slice(2) + salt.slice(2), 'hex')
+      )
+      // Take modulo to fit within BN254 field
+      const addressCommitmentBigInt = BigInt(addressCommitmentHash) % BN254_FIELD_MODULUS
+      const addressCommitment = '0x' + addressCommitmentBigInt.toString(16).padStart(64, '0')
+      showLog('Address commitment computed ✅')
 
-      // Step 4: Send to server for proof generation
-      showLog('Sending data to server for proof generation... ⏳')
+      // Step 4: Recover public key from signature
+      showLog('Recovering public key from signature... ⏳')
+      const { verifyMessage, SigningKey } = await import('ethers')
+
+      // Verify signature is valid
+      const recoveredAddress = verifyMessage(messageText, signature)
+      if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+        throw new Error('Signature verification failed')
+      }
+
+      // Recover public key from signature
+      const recoveredPubKey = SigningKey.recoverPublicKey(messageHash, signature)
+
+      // Extract x and y coordinates from uncompressed public key
+      // Format: 0x04 + x (32 bytes) + y (32 bytes)
+      const pubKeyBytes = recoveredPubKey.slice(4) // Remove '0x04' prefix
+      const pubKeyX = '0x' + pubKeyBytes.slice(0, 64) // First 32 bytes (64 hex chars)
+      const pubKeyY = '0x' + pubKeyBytes.slice(64, 128) // Last 32 bytes (64 hex chars)
+
+      showLog(`Public key recovered ✅`)
+
+      // Step 5: Send to server for ZK proof generation
+      showLog('Sending data to proof server for ZK proof generation... ⏳')
       const response = await axios.post('/api/generate-proof', {
+        addressCommitment,
+        message: messageText,
+        signature,
+        messageHash,
         senderAddress: address,
         salt,
         publicKeyX: pubKeyX,
         publicKeyY: pubKeyY,
-        signature,
-        messageHash,
-        message: messageText,
         allTransfers: transfers,
         proverTransfers: transfers,
         tokenAddress,
         receiverAddress: recipient,
-        startDate: Math.floor(new Date(fromDate).getTime() / 1000),
+        startDate: fromDate ? Math.floor(new Date(fromDate).getTime() / 1000) : 0,
         endDate: toDate
           ? Math.floor(new Date(toDate).getTime() / 1000)
           : Math.floor(Date.now() / 1000),
         minAmount: minAmount || '0',
-        maxAmount: maxAmount || '999999999999999999',
+        maxAmount: maxAmount || '1000000000000000000000000000000', // 1e30 - very safe for u128
       })
 
       // Display server logs
@@ -326,7 +358,6 @@ export function ProofGenerator() {
               disabled={
                 !recipient ||
                 !tokenAddress ||
-                !fromDate ||
                 transfers.length === 0 ||
                 generatingProof
               }

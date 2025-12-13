@@ -88,6 +88,9 @@ export class EtherscanService {
       );
     }
 
+    console.log(requestParams);
+    console.log(response.data.result);
+
     return response.data.result;
   }
 

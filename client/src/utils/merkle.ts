@@ -1,4 +1,5 @@
-import { keccak256, toBeHex, zeroPadValue } from 'ethers'
+import { poseidon2Hash } from '@zkpassport/poseidon2'
+import { IMT, IMTNode } from '@zk-kit/imt'
 
 export interface TransferLeaf {
   sender: string
@@ -9,95 +10,89 @@ export interface TransferLeaf {
   txHash: string
 }
 
-// Convert Ethereum address to Field (remove 0x and pad)
-function addressToField(address: string): string {
-  return BigInt(address).toString()
+// Convert hex string to Field element (bigint)
+function hexToField(hex: string): bigint {
+  return BigInt(hex)
+}
+
+// Convert bytes32 (tx hash) to Field element
+function txHashToField(txHash: string): bigint {
+  // Remove 0x prefix if present
+  const hex = txHash.startsWith('0x') ? txHash.slice(2) : txHash
+
+  // Convert hex string to bigint
+  let result = BigInt(0)
+  for (let i = 0; i < hex.length; i += 2) {
+    const byte = parseInt(hex.slice(i, i + 2), 16)
+    result = result * BigInt(256) + BigInt(byte)
+  }
+
+  return result
 }
 
 // Compute leaf hash for a transfer
-// Note: This should match the compute_transfer_leaf function in the circuit
-// Using keccak256 as a placeholder - should use Pedersen in production
-export function computeTransferLeaf(transfer: TransferLeaf): string {
-  const data = [
-    addressToField(transfer.sender),
-    addressToField(transfer.receiver),
-    addressToField(transfer.token),
-    transfer.amount,
-    transfer.timestamp,
-    transfer.txHash,
-  ].join('')
+// MUST match compute_transfer_leaf in circuit (using Poseidon2 with 6 inputs)
+export function computeTransferLeaf(transfer: TransferLeaf): bigint {
+  const inputs = [
+    hexToField(transfer.sender),
+    hexToField(transfer.receiver),
+    hexToField(transfer.token),
+    BigInt(transfer.amount),
+    BigInt(transfer.timestamp),
+    txHashToField(transfer.txHash),
+  ]
 
-  return keccak256(Buffer.from(data))
+  return poseidon2Hash(inputs)
 }
 
-// Simple Merkle tree implementation
+// Poseidon2 hash function for Merkle tree nodes
+// MUST match Poseidon2::hash([left, right], 2) in circuit
+// IMT expects a function that takes an array of IMTNode (string | bigint)
+function hashNode(nodes: IMTNode[]): bigint {
+  // Convert IMTNode[] to bigint[] for poseidon2Hash
+  const bigintNodes: bigint[] = nodes.map((node) =>
+    typeof node === 'string' ? BigInt(node) : (node as bigint)
+  )
+  // For binary tree, nodes array will have 2 elements [left, right]
+  return poseidon2Hash(bigintNodes)
+}
+
+// Merkle tree using Poseidon2 hash
 export class MerkleTree {
-  private leaves: string[]
-  private layers: string[][] = []
+  private tree: IMT
 
-  constructor(leaves: string[]) {
-    this.leaves = leaves
-    this.buildTree()
+  constructor(leaves: bigint[]) {
+    // Create IMT with Poseidon2 hash, depth 20, zero value 0, arity 2 (binary tree)
+    this.tree = new IMT(hashNode, 20, BigInt(0), 2, leaves)
   }
 
-  private hashPair(left: string, right: string): string {
-    // Sort to ensure deterministic ordering
-    const [a, b] = left < right ? [left, right] : [right, left]
-    return keccak256(Buffer.from(a + b))
+  getRoot(): bigint {
+    const root = this.tree.root
+    return typeof root === 'string' ? BigInt(root) : (root as bigint)
   }
 
-  private buildTree(): void {
-    this.layers.push(this.leaves)
+  getProof(leafIndex: number): { path: bigint[]; indices: number[] } {
+    const proof = this.tree.createProof(leafIndex)
 
-    while (this.layers[this.layers.length - 1].length > 1) {
-      const currentLayer = this.layers[this.layers.length - 1]
-      const nextLayer: string[] = []
+    // Convert proof to circuit format
+    const path = proof.siblings.map((sibling) =>
+      Array.isArray(sibling) ? sibling[0] : sibling
+    )
 
-      for (let i = 0; i < currentLayer.length; i += 2) {
-        if (i + 1 < currentLayer.length) {
-          nextLayer.push(this.hashPair(currentLayer[i], currentLayer[i + 1]))
-        } else {
-          // If odd number of elements, hash with itself
-          nextLayer.push(this.hashPair(currentLayer[i], currentLayer[i]))
-        }
-      }
+    // Path indices: 0 if current node is left child, 1 if right child
+    const indices = proof.pathIndices
 
-      this.layers.push(nextLayer)
+    // Ensure we have exactly 20 elements (MERKLE_DEPTH)
+    while (path.length < 20) {
+      path.push(BigInt(0))
     }
-  }
-
-  getRoot(): string {
-    return this.layers[this.layers.length - 1][0]
-  }
-
-  getProof(leafIndex: number): { path: string[]; indices: number[] } {
-    const path: string[] = []
-    const indices: number[] = []
-    let index = leafIndex
-
-    for (let i = 0; i < this.layers.length - 1; i++) {
-      const layer = this.layers[i]
-      const isRightNode = index % 2 === 1
-      const siblingIndex = isRightNode ? index - 1 : index + 1
-
-      if (siblingIndex < layer.length) {
-        path.push(layer[siblingIndex])
-      } else {
-        // If no sibling, use the same node
-        path.push(layer[index])
-      }
-
-      indices.push(isRightNode ? 1 : 0)
-      index = Math.floor(index / 2)
-    }
-
-    // Pad to MERKLE_DEPTH (20)
-    const MERKLE_DEPTH = 20
-    while (path.length < MERKLE_DEPTH) {
-      path.push('0x' + '0'.repeat(64))
+    while (indices.length < 20) {
       indices.push(0)
     }
 
-    return { path, indices }
+    return {
+      path: path.slice(0, 20),
+      indices: indices.slice(0, 20)
+    }
   }
 }
