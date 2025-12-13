@@ -185,6 +185,18 @@ export function ProofGenerator() {
 
       // Step 5: Send to server for ZK proof generation
       showLog('Sending data to proof server for ZK proof generation... ⏳')
+
+      // ALWAYS use very large max amount to avoid u128 overflow
+      const safeMaxAmount = '1000000000000000000000000000000' // 1e30 - very safe for u128
+      const safeMinAmount = minAmount || '0'
+
+      console.log('CLIENT DEBUG - About to send:', {
+        minAmount: safeMinAmount,
+        maxAmount: safeMaxAmount,
+        minAmountState: minAmount,
+        maxAmountState: maxAmount,
+      })
+
       const response = await axios.post('/api/generate-proof', {
         addressCommitment,
         message: messageText,
@@ -202,8 +214,8 @@ export function ProofGenerator() {
         endDate: toDate
           ? Math.floor(new Date(toDate).getTime() / 1000)
           : Math.floor(Date.now() / 1000),
-        minAmount: minAmount || '0',
-        maxAmount: maxAmount || '1000000000000000000000000000000', // 1e30 - very safe for u128
+        minAmount: safeMinAmount,
+        maxAmount: safeMaxAmount,
       })
 
       // Display server logs
