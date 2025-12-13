@@ -1,6 +1,6 @@
 [package]
 name = "circuts"
 type = "bin"
-authors = [""]
+authors = ["Taras Nurko"]
 
 [dependencies]
