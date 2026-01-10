@@ -1,5 +1,7 @@
 # Circut
 
+## Circut input
+
 1. Group constraints
 
 - Token address
@@ -27,6 +29,10 @@
 5. Data to return
 
 - hash(signed by user group id + group title, groupId, groupTitle)
+
+## Transfer merkle tree
+
+Each leaf is poseidon hash of (from, to, token, amount)
 
 # Backend
 

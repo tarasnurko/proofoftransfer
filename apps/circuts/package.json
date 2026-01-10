@@ -7,7 +7,8 @@
     "compile": "nargo compile",
     "prove": "tsx scripts/prove.ts",
     "verify": "tsx scripts/verify.ts",
-    "test": "nargo test"
+    "test": "nargo test",
+    "test:integration": "tsx scripts/test.ts"
   },
   "dependencies": {
     "@aztec/bb.js": "^3.0.1",
