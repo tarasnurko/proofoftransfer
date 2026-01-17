@@ -78,7 +78,10 @@ fn main(
 
     let computed_nullifier = compute_nullifier(prover_signature);
 
-    assert(computed_nullifier == nullifier, "Nullifier mismatch");
+    assert(
+        computed_nullifier == nullifier,
+        f"Nullifier mismatch: expected {nullifier}, computed {computed_nullifier}",
+    );
     assert(
         transfers_amount <= MAX_TRANSFERS,
         f"Transfers amount ({transfers_amount}) exceeds MAX_TRANSFERS {MAX_TRANSFERS}",
@@ -95,9 +98,12 @@ fn main(
 
             assert(
                 (from_block_timestamp == 0) | (transfer_block_timestamp >= from_block_timestamp),
-                f"Transfer {i} fails from block timestamp validation ({transfer_block_timestamp} (transfer timestamp) >= {from_block_timestamp} (min from timestamp))",
+                f"Transfer {i} timestamp {transfer_block_timestamp} is before required minimum {from_block_timestamp}",
             );
-            assert((to_block_timestamp == 0) | (transfer_block_timestamp <= to_block_timestamp));
+            assert(
+                (to_block_timestamp == 0) | (transfer_block_timestamp <= to_block_timestamp),
+                f"Transfer {i} timestamp {transfer_block_timestamp} is after required maximum {to_block_timestamp}",
+            );
 
             let transfer_hash = hash_transfer(
                 sender_address,
@@ -117,13 +123,19 @@ fn main(
 
             assert(
                 computed_transfers_root == transfers_root_hash,
-                f"Computed transfers root hash is different from actual for transfer {i}",
+                f"Transfer {i} merkle proof invalid: computed root {computed_transfers_root} != expected root {transfers_root_hash}",
             )
         }
     }
 
-    assert((min_transfers_sum == 0) | (transfers_sum >= min_transfers_sum));
-    assert((max_transfers_sum == 0) | (transfers_sum <= max_transfers_sum));
+    assert(
+        (min_transfers_sum == 0) | (transfers_sum >= min_transfers_sum),
+        f"Transfers sum {transfers_sum} is below required minimum {min_transfers_sum}",
+    );
+    assert(
+        (max_transfers_sum == 0) | (transfers_sum <= max_transfers_sum),
+        f"Transfers sum {transfers_sum} exceeds required maximum {max_transfers_sum}",
+    );
 }
 
 fn hash_transfer(

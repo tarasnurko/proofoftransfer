@@ -34,9 +34,9 @@ pub fn compute_nullifier(signature: [u8; 64]) -> Field {
     let mut sig_fields: [Field; 8] = [0; 8];
 
     for i in 0..8 {
-        let mut chunk: u64 = 0;
+        let mut chunk: Field = 0;
         for j in 0..8 {
-            chunk = chunk * 256 + (signature[i * 8 + j] as u64);
+            chunk = chunk * 256 + (signature[i * 8 + j] as Field);
         }
         sig_fields[i] = chunk as Field;
     }
