@@ -10,6 +10,6 @@
     "allowSyntheticDefaultImports": true,
     "outDir": "./dist"
   },
-  "include": ["scripts/**/*"],
+  "include": ["scripts/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }
