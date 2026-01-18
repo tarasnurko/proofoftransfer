@@ -1,0 +1,24 @@
+{
+  "name": "@proofoftransfer/circuts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "nargo compile",
+    "prove": "tsx scripts/prove.ts",
+    "verify": "tsx scripts/verify.ts",
+    "test": "nargo test",
+    "test:integration": "tsx scripts/test.ts",
+    "test:node": "node --import tsx --test tests/test.ts"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "^3.0.1",
+    "@noir-lang/noir_js": "^1.0.0-beta.17",
+    "viem": "^2.44.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.2"
+  }
+}
