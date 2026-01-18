@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Proof of Transfer",
-  description: "Proof of Transfer Application",
+  description: "Create verifiable on-chain transfer claims for EVM chains",
 };
 
 export default async function RootLayout({
@@ -31,13 +31,12 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <Web3Provider cookies={cookies}>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            forcedTheme="light"
             disableTransitionOnChange
           >
             {children}
