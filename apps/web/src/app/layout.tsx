@@ -36,7 +36,8 @@ export default async function RootLayout({
         <Web3Provider cookies={cookies}>
           <ThemeProvider
             attribute="class"
-            forcedTheme="light"
+            defaultTheme="system"
+            enableSystem
             disableTransitionOnChange
           >
             {children}
