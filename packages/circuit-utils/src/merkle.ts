@@ -1,20 +1,17 @@
+import type { MerkleProof, HashFn, HashFnField } from "./types.js";
+
 /**
  * Async Merkle Tree implementation
  * Matches the circuit's merkle tree structure
  */
-
 export class MerkleTree {
   private levels: number;
   private storage: Map<string, string>;
   private zeros: string[];
   private totalLeaves: number;
-  private hashFn: (left: string, right: string) => Promise<string>;
+  private hashFn: HashFn;
 
-  constructor(
-    levels: number,
-    zeros: string[],
-    hashFn: (left: string, right: string) => Promise<string>
-  ) {
+  constructor(levels: number, zeros: string[], hashFn: HashFn) {
     if (zeros.length < levels + 1) {
       throw new Error("Not enough zero values for the tree height");
     }
@@ -118,7 +115,7 @@ export class MerkleTree {
   root(): string {
     return (
       this.storage.get(this.indexToKey(this.levels, 0)) ||
-      this.zeros[this.levels]
+      this.zeros[this.levels]!
     );
   }
 
@@ -128,7 +125,7 @@ export class MerkleTree {
   indexOf(leaf: string): number {
     for (const [key, value] of this.storage.entries()) {
       if (value === leaf && key.startsWith("0-")) {
-        return parseInt(key.split("-")[1]);
+        return parseInt(key.split("-")[1]!);
       }
     }
     return -1;
@@ -138,7 +135,9 @@ export class MerkleTree {
    * Get node at level and index, returns zero value if not found
    */
   private getNode(level: number, index: number): string {
-    return this.storage.get(this.indexToKey(level, index)) || this.zeros[level];
+    return (
+      this.storage.get(this.indexToKey(level, index)) || this.zeros[level]!
+    );
   }
 
   /**
@@ -170,46 +169,41 @@ export class MerkleTree {
   }
 }
 
-export interface MerkleProof {
-  root: string;
-  pathElements: string[];
-  pathIndices: number[];
-  leaf: string;
-}
+/**
+ * Generate zero values for Merkle tree (Uint8Array/Field version)
+ * Each level's zero is hash(previousZero, previousZero)
+ */
+export const generateZeroValuesField = async (
+  initialValue: Uint8Array,
+  height: number,
+  hashFn: HashFnField,
+): Promise<Uint8Array[]> => {
+  const zeroValues: Uint8Array[] = [initialValue];
+
+  for (let i = 1; i <= height; i++) {
+    const prevZeroValue = zeroValues[i - 1]!;
+    const currentLevelHash = await hashFn(prevZeroValue, prevZeroValue);
+    zeroValues[i] = currentLevelHash;
+  }
+
+  return zeroValues;
+};
 
 /**
- * Generate zero values for Merkle tree
+ * Generate zero values for Merkle tree (string version)
  * Each level's zero is hash(previousZero, previousZero)
- *
- * @param initialZero - The initial zero value at level 0
- * @param height - Height of the Merkle tree
- * @param hashFn - Hash function to use
- * @returns Array of zero values for each level (length = height + 1)
  */
 export async function generateZeroValues(
   initialZero: string,
   height: number,
-  hashFn: (left: string, right: string) => Promise<string>
+  hashFn: HashFn,
 ): Promise<string[]> {
   const zeros: string[] = [initialZero];
 
   for (let i = 1; i <= height; i++) {
-    const previousZero = zeros[i - 1];
+    const previousZero = zeros[i - 1]!;
     zeros[i] = await hashFn(previousZero, previousZero);
   }
 
   return zeros;
 }
-
-// /**
-//  * Create a Merkle tree with given leaves
-//  */
-// export function createMerkleTree(
-//   leaves: string[],
-//   hashFn: (left: string, right: string) => string,
-//   treeHeight: number = 20
-// ): MerkleTree {
-//   const tree = new MerkleTree(treeHeight, ZERO_VALUES, hashFn);
-//   tree.init(leaves);
-//   return tree;
-// }
