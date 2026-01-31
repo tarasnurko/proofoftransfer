@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { getClaimsAction } from '@/actions/claims'
 import { toast } from 'sonner'
+import { ChainId } from '@repo/types'
 
 type Claim = {
   id: string
@@ -19,9 +20,13 @@ type Claim = {
   from_block_timestamp: number
   to_block_timestamp: number
   chain_id: number
-  creator_address: string
   created_at: string
   proofCount: number
+  token: {
+    name: string
+    symbol: string
+    decimals: number
+  } | null
 }
 
 function formatAddress(address: string): string {
@@ -32,6 +37,27 @@ function formatAddress(address: string): string {
 function formatTimestamp(timestamp: number): string {
   if (timestamp === 0) return 'No limit'
   return format(new Date(timestamp * 1000), 'MMM d, yyyy')
+}
+
+function getChainName(chainId: number): string {
+  switch (chainId) {
+    case ChainId.ETHEREUM:
+      return 'Ethereum'
+    case ChainId.OPTIMISM:
+      return 'Optimism'
+    case ChainId.BNB:
+      return 'BNB Chain'
+    case ChainId.POLYGON:
+      return 'Polygon'
+    case ChainId.BASE:
+      return 'Base'
+    case ChainId.ARBITRUM:
+      return 'Arbitrum'
+    case ChainId.SCROLL:
+      return 'Scroll'
+    default:
+      return `Chain ${chainId}`
+  }
 }
 
 export function ClaimsList() {
@@ -97,7 +123,7 @@ export function ClaimsList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6 md:grid-cols-2">
       {claims.map((claim) => (
         <div
           key={claim.id}
@@ -120,20 +146,28 @@ export function ClaimsList() {
             </div>
           </div>
 
-          <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-3">
+            <div>
+              <div className="font-bold uppercase tracking-wide text-muted-foreground">Chain</div>
+              <div className="mt-1 text-foreground">{getChainName(claim.chain_id)}</div>
+            </div>
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">Token</div>
-              <div className="mt-1 text-foreground">{formatAddress(claim.token_address)}</div>
+              <div className="mt-1 text-foreground">
+                {claim.token ? (
+                  <>
+                    {claim.token.name} ({claim.token.symbol})
+                  </>
+                ) : (
+                  formatAddress(claim.token_address)
+                )}
+              </div>
             </div>
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">
                 Recipient
               </div>
               <div className="mt-1 text-foreground">{formatAddress(claim.recipient_address)}</div>
-            </div>
-            <div>
-              <div className="font-bold uppercase tracking-wide text-muted-foreground">Creator</div>
-              <div className="mt-1 text-foreground">{formatAddress(claim.creator_address)}</div>
             </div>
           </div>
 
@@ -158,18 +192,10 @@ export function ClaimsList() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Link href={`/proof?claim=${claim.id}`} className="flex-1">
-              <Button className="w-full border-2 border-foreground bg-foreground px-6 py-4 font-bold uppercase text-background hover:bg-accent hover:text-accent-foreground">
-                Generate Proof <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href={`/claims/${claim.id}`}>
-              <Button
-                variant="outline"
-                className="border-2 border-foreground bg-background px-6 py-4 font-bold uppercase hover:bg-foreground hover:text-background"
-              >
-                View Details
+          <div>
+            <Link href={`/claims/${claim.id}`} className="block">
+              <Button className="w-full border-2 border-foreground bg-accent px-6 py-4 font-bold uppercase text-accent-foreground hover:bg-foreground hover:text-background">
+                View Details <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>

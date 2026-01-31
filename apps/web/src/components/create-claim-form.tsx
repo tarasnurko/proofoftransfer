@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { createClaimSchema, type CreateClaimInput } from '@/lib/validations/claim'
 import { createClaimAction } from '@/actions/claims'
@@ -40,18 +47,10 @@ export function CreateClaimForm() {
   })
 
   const onSubmit = async (data: CreateClaimInput) => {
-    if (!isConnected || !address) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
-      const result = await createClaimAction({
-        ...data,
-        creatorAddress: address,
-      })
+      const result = await createClaimAction(data)
 
       if (result.success) {
         toast.success('Claim created successfully!')
@@ -68,20 +67,6 @@ export function CreateClaimForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {/* Wallet Connection Warning */}
-      {!isConnected && (
-        <div className="border-4 border-accent bg-accent/10 p-6">
-          <div className="text-center">
-            <h3 className="mb-2 text-xl font-bold uppercase text-foreground">
-              WALLET NOT CONNECTED
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Please connect your wallet to create a claim
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Claim Message */}
       <div className="border-4 border-foreground bg-background p-6">
         <div className="mb-6 border-b-2 border-foreground pb-2">
@@ -111,6 +96,37 @@ export function CreateClaimForm() {
             <h3 className="text-xl font-bold uppercase text-foreground">TOKEN</h3>
           </div>
           <div className="space-y-5">
+            <div className="space-y-3">
+              <Label htmlFor="chainId" className="text-sm font-bold uppercase tracking-wide">
+                Blockchain
+              </Label>
+              <Controller
+                name="chainId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  >
+                    <SelectTrigger className="border-2 border-foreground bg-background font-mono text-sm focus:border-accent focus:ring-0">
+                      <SelectValue placeholder="Select blockchain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ChainId.ETHEREUM.toString()}>Ethereum</SelectItem>
+                      <SelectItem value={ChainId.OPTIMISM.toString()}>Optimism</SelectItem>
+                      <SelectItem value={ChainId.BNB.toString()}>BNB Chain</SelectItem>
+                      <SelectItem value={ChainId.POLYGON.toString()}>Polygon</SelectItem>
+                      <SelectItem value={ChainId.BASE.toString()}>Base</SelectItem>
+                      <SelectItem value={ChainId.ARBITRUM.toString()}>Arbitrum</SelectItem>
+                      <SelectItem value={ChainId.SCROLL.toString()}>Scroll</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.chainId && (
+                <p className="text-sm text-red-500">{errors.chainId.message}</p>
+              )}
+            </div>
             <div className="space-y-3">
               <Label htmlFor="tokenAddress" className="text-sm font-bold uppercase tracking-wide">
                 Token Address
@@ -202,6 +218,7 @@ export function CreateClaimForm() {
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="Select start date"
+                  disableFuture
                 />
               )}
             />
@@ -221,6 +238,7 @@ export function CreateClaimForm() {
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="Select end date"
+                  disableFuture
                 />
               )}
             />
@@ -245,7 +263,7 @@ export function CreateClaimForm() {
         </Link>
         <Button
           type="submit"
-          disabled={isSubmitting || !isConnected}
+          disabled={isSubmitting}
           className="border-2 border-foreground bg-accent px-8 py-6 font-bold uppercase text-accent-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
         >
           {isSubmitting ? (

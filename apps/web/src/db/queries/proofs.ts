@@ -91,28 +91,3 @@ export async function checkNullifierExists(claimId: string, nullifier: string) {
     return { success: false, error: 'Failed to check nullifier' }
   }
 }
-
-export async function getProofsByProver(proverAddress: string) {
-  try {
-    const result = await db
-      .select({
-        proof: proofs,
-        claim: claims,
-      })
-      .from(proofs)
-      .innerJoin(claims, eq(proofs.claim_id, claims.id))
-      .where(eq(proofs.prover_address, proverAddress.toLowerCase()))
-      .orderBy(desc(proofs.created_at))
-
-    return {
-      success: true,
-      data: result.map((r) => ({
-        ...r.proof,
-        claim: r.claim,
-      })),
-    }
-  } catch (error) {
-    console.error('Error fetching proofs by prover:', error)
-    return { success: false, error: 'Failed to fetch proofs' }
-  }
-}

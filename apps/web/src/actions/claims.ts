@@ -3,10 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { keccak256, toBytes } from 'viem'
 import { createClaimSchema, transformClaimFormData, type CreateClaimInput } from '@/lib/validations/claim'
-import { createClaim, getClaims as getClaimsQuery, getClaimById as getClaimByIdQuery, getClaimsByCreator as getClaimsByCreatorQuery } from '@/db/queries/claims'
+import { createClaim, getClaims as getClaimsQuery, getClaimById as getClaimByIdQuery } from '@/db/queries/claims'
 import type { NewClaim } from '@/db/schema'
+import { fetchAndStoreTokenDataAction } from './tokens'
 
-export async function createClaimAction(data: CreateClaimInput & { creatorAddress: string }) {
+export async function createClaimAction(data: CreateClaimInput) {
   try {
     // Validate input
     const validated = createClaimSchema.parse(data)
@@ -29,8 +30,16 @@ export async function createClaimAction(data: CreateClaimInput & { creatorAddres
       from_block_timestamp: transformed.from_block_timestamp,
       to_block_timestamp: transformed.to_block_timestamp,
       chain_id: transformed.chain_id,
-      creator_address: data.creatorAddress.toLowerCase(),
     }
+
+    // Fetch and store token data
+    await fetchAndStoreTokenDataAction(
+      transformed.token_address,
+      transformed.chain_id,
+      transformed.recipient_address,
+      transformed.from_block_timestamp || undefined,
+      transformed.to_block_timestamp || undefined
+    )
 
     // Create claim in database
     const result = await createClaim(claimData)
@@ -103,32 +112,5 @@ export async function getClaimByIdAction(id: string) {
   } catch (error: any) {
     console.error('Error in getClaimByIdAction:', error)
     return { success: false, error: 'Failed to fetch claim' }
-  }
-}
-
-export async function getClaimsByCreatorAction(address: string) {
-  try {
-    // Validate address format
-    const addressRegex = /^0x[a-fA-F0-9]{40}$/
-    if (!addressRegex.test(address)) {
-      return { success: false, error: 'Invalid Ethereum address' }
-    }
-
-    const result = await getClaimsByCreatorQuery(address)
-
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to fetch claims' }
-    }
-
-    // Serialize dates for client
-    const serialized = result.data.map((claim) => ({
-      ...claim,
-      created_at: claim.created_at.toISOString(),
-    }))
-
-    return { success: true, data: serialized }
-  } catch (error: any) {
-    console.error('Error in getClaimsByCreatorAction:', error)
-    return { success: false, error: 'Failed to fetch claims' }
   }
 }

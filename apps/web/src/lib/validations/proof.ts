@@ -18,12 +18,6 @@ export const submitProofSchema = z.object({
   transfersRootHash: z
     .string()
     .regex(/^(0x)?[a-fA-F0-9]{1,66}$/, 'Invalid root hash format'),
-
-  proverAddress: z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-    .optional()
-    .transform((val) => val?.toLowerCase()),
 })
 
 export type SubmitProofInput = z.infer<typeof submitProofSchema>

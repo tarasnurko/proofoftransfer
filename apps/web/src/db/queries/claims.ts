@@ -1,7 +1,7 @@
 import { db } from '../index'
-import { claims, proofs } from '../schema'
+import { claims, proofs, tokens } from '../schema'
 import type { NewClaim, Claim } from '../schema'
-import { eq, desc, count, sql } from 'drizzle-orm'
+import { eq, desc, count, sql, and } from 'drizzle-orm'
 
 export async function createClaim(data: NewClaim) {
   try {
@@ -18,15 +18,20 @@ export async function getClaims(options?: { limit?: number; offset?: number }) {
     const limit = options?.limit ?? 50
     const offset = options?.offset ?? 0
 
-    // Get claims with proof count
+    // Get claims with proof count and token data
     const result = await db
       .select({
         claim: claims,
         proofCount: count(proofs.id).as('proof_count'),
+        token: tokens,
       })
       .from(claims)
       .leftJoin(proofs, eq(claims.id, proofs.claim_id))
-      .groupBy(claims.id)
+      .leftJoin(
+        tokens,
+        and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+      )
+      .groupBy(claims.id, tokens.id)
       .orderBy(desc(claims.created_at))
       .limit(limit)
       .offset(offset)
@@ -44,6 +49,7 @@ export async function getClaims(options?: { limit?: number; offset?: number }) {
         claims: result.map((r) => ({
           ...r.claim,
           proofCount: Number(r.proofCount),
+          token: r.token,
         })),
         total: Number(total),
       },
@@ -60,11 +66,16 @@ export async function getClaimById(id: string) {
       .select({
         claim: claims,
         proofCount: count(proofs.id).as('proof_count'),
+        token: tokens,
       })
       .from(claims)
       .leftJoin(proofs, eq(claims.id, proofs.claim_id))
+      .leftJoin(
+        tokens,
+        and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+      )
       .where(eq(claims.id, id))
-      .groupBy(claims.id)
+      .groupBy(claims.id, tokens.id)
       .limit(1)
 
     if (result.length === 0) {
@@ -81,6 +92,7 @@ export async function getClaimById(id: string) {
       data: {
         ...firstResult.claim,
         proofCount: Number(firstResult.proofCount),
+        token: firstResult.token,
       },
     }
   } catch (error) {
@@ -101,31 +113,5 @@ export async function getClaimByMessageHash(messageHash: string) {
   } catch (error) {
     console.error('Error fetching claim by message hash:', error)
     return { success: false, error: 'Failed to fetch claim' }
-  }
-}
-
-export async function getClaimsByCreator(creatorAddress: string) {
-  try {
-    const result = await db
-      .select({
-        claim: claims,
-        proofCount: count(proofs.id).as('proof_count'),
-      })
-      .from(claims)
-      .leftJoin(proofs, eq(claims.id, proofs.claim_id))
-      .where(eq(claims.creator_address, creatorAddress.toLowerCase()))
-      .groupBy(claims.id)
-      .orderBy(desc(claims.created_at))
-
-    return {
-      success: true,
-      data: result.map((r) => ({
-        ...r.claim,
-        proofCount: Number(r.proofCount),
-      })),
-    }
-  } catch (error) {
-    console.error('Error fetching claims by creator:', error)
-    return { success: false, error: 'Failed to fetch claims' }
   }
 }

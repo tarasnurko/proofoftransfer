@@ -1,6 +1,23 @@
 import { pgTable, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
+// Tokens table
+export const tokens = pgTable(
+  'tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    address: varchar('address', { length: 42 }).notNull(),
+    chain_id: integer('chain_id').notNull(),
+    name: text('name').notNull(),
+    symbol: varchar('symbol', { length: 20 }).notNull(),
+    decimals: integer('decimals').notNull(),
+    created_at: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    addressChainIdx: unique('address_chain_idx').on(table.address, table.chain_id),
+  })
+)
+
 // Claims table
 export const claims = pgTable(
   'claims',
@@ -15,7 +32,6 @@ export const claims = pgTable(
     from_block_timestamp: bigint('from_block_timestamp', { mode: 'number' }).notNull().default(0),
     to_block_timestamp: bigint('to_block_timestamp', { mode: 'number' }).notNull().default(0),
     chain_id: integer('chain_id').notNull(),
-    creator_address: varchar('creator_address', { length: 42 }).notNull(),
     created_at: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
@@ -25,7 +41,6 @@ export const claims = pgTable(
       table.recipient_address,
       table.chain_id
     ),
-    creatorIdx: index('creator_idx').on(table.creator_address),
   })
 )
 
@@ -41,13 +56,11 @@ export const proofs = pgTable(
     proof_data: text('proof_data').notNull(),
     public_inputs: jsonb('public_inputs').notNull(),
     transfers_root_hash: varchar('transfers_root_hash', { length: 78 }).notNull(),
-    prover_address: varchar('prover_address', { length: 42 }),
     created_at: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
     claimIdIdx: index('claim_id_idx').on(table.claim_id),
     nullifierIdx: index('nullifier_idx').on(table.nullifier),
-    proverAddressIdx: index('prover_address_idx').on(table.prover_address),
     claimNullifierUnique: unique('claim_nullifier_unique').on(table.claim_id, table.nullifier),
   })
 )
@@ -60,7 +73,6 @@ export const proof_verifications = pgTable(
     proof_id: uuid('proof_id')
       .notNull()
       .references(() => proofs.id, { onDelete: 'cascade' }),
-    verifier_address: varchar('verifier_address', { length: 42 }),
     is_valid: boolean('is_valid').notNull(),
     verified_at: timestamp('verified_at').notNull().defaultNow(),
     error_message: text('error_message'),
@@ -92,6 +104,9 @@ export const proofVerificationsRelations = relations(proof_verifications, ({ one
 }))
 
 // TypeScript types
+export type Token = typeof tokens.$inferSelect
+export type NewToken = typeof tokens.$inferInsert
+
 export type Claim = typeof claims.$inferSelect
 export type NewClaim = typeof claims.$inferInsert
 

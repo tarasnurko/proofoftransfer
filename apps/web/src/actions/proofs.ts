@@ -5,7 +5,7 @@ import { submitProofSchema, type SubmitProofInput } from '@/lib/validations/proo
 import { getClaimById } from '@/db/queries/claims'
 import { createProof, checkNullifierExists, getProofsByClaimId as getProofsByClaimIdQuery, getProofById as getProofByIdQuery } from '@/db/queries/proofs'
 import { createVerification, getVerificationStats as getVerificationStatsQuery } from '@/db/queries/verifications'
-import { baseScanClient } from '@/lib/etherscan'
+import { EtherscanClient } from '@/lib/etherscan'
 import type { NewProof } from '@/db/schema'
 
 export async function fetchTransfersAction(claimId: string) {
@@ -26,7 +26,9 @@ export async function fetchTransfersAction(claimId: string) {
     const claim = claimResult.data
 
     // Fetch transfers from Etherscan
-    const transfers = await baseScanClient.fetchERC20Transfers({
+    const etherscanClient = new EtherscanClient()
+    const transfers = await etherscanClient.fetchERC20Transfers({
+      chainId: claim.chain_id,
       tokenAddress: claim.token_address,
       recipientAddress: claim.recipient_address,
       fromTimestamp: claim.from_block_timestamp || undefined,
@@ -68,7 +70,6 @@ export async function submitProofAction(data: SubmitProofInput) {
       proof_data: validated.proofData,
       public_inputs: validated.publicInputs,
       transfers_root_hash: validated.transfersRootHash,
-      prover_address: validated.proverAddress || null,
     }
 
     // Create proof in database
@@ -117,7 +118,6 @@ export async function verifyProofAction(proofId: string) {
     // Record verification result
     await createVerification({
       proof_id: proofId,
-      verifier_address: null, // Can be set if user is logged in
       is_valid: isValid,
       error_message: isValid ? null : 'Verification failed',
     })
@@ -130,7 +130,6 @@ export async function verifyProofAction(proofId: string) {
     try {
       await createVerification({
         proof_id: proofId,
-        verifier_address: null,
         is_valid: false,
         error_message: error.message || 'Verification error',
       })

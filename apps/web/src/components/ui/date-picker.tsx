@@ -17,6 +17,7 @@ interface DatePickerProps {
   onChange: (date: Date | undefined) => void
   placeholder?: string
   disabled?: boolean
+  disableFuture?: boolean
 }
 
 export function DatePicker({
@@ -24,9 +25,17 @@ export function DatePicker({
   onChange,
   placeholder = "Pick a date",
   disabled = false,
+  disableFuture = false,
 }: DatePickerProps) {
+  const [open, setOpen] = React.useState(false)
+
+  const handleSelect = (date: Date | undefined) => {
+    onChange(date)
+    setOpen(false)
+  }
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -53,7 +62,8 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={value}
-          onSelect={onChange}
+          onSelect={handleSelect}
+          disabled={disableFuture ? { after: new Date() } : undefined}
           initialFocus
         />
       </PopoverContent>

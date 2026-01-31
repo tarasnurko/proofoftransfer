@@ -33,9 +33,9 @@ function Calendar({
         head_row: "flex",
         head_cell: "text-foreground uppercase rounded-md w-9 font-bold text-[0.8rem]",
         row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative",
+        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-foreground",
         day: cn(
-          "h-9 w-9 p-0 font-normal border-2 border-foreground hover:bg-accent hover:text-accent-foreground"
+          "h-full w-full p-0 font-normal border-2 border-foreground hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center"
         ),
         day_range_end: "day-range-end",
         day_selected:

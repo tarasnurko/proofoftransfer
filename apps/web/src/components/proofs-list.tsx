@@ -14,7 +14,6 @@ type Proof = {
   proof_data: string
   public_inputs: any
   transfers_root_hash: string
-  prover_address: string | null
   created_at: string
   verificationCount: number
 }
@@ -87,11 +86,7 @@ function ProofCard({ proof }: { proof: Proof }) {
         </div>
       </div>
 
-      <div className="mb-3 grid gap-3 font-mono text-sm md:grid-cols-2">
-        <div>
-          <div className="text-muted-foreground">Prover</div>
-          <div className="mt-1 text-foreground">{formatAddress(proof.prover_address)}</div>
-        </div>
+      <div className="mb-3 font-mono text-sm">
         <div>
           <div className="text-muted-foreground">Nullifier</div>
           <div className="mt-1 break-all text-foreground">
