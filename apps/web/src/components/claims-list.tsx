@@ -1,55 +1,89 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { getClaimsAction } from '@/actions/claims'
+import { toast } from 'sonner'
 
 type Claim = {
   id: string
   message: string
-  tokenAddress: string
-  recipientAddress: string
-  minAmount: string
+  message_hash: string
+  token_address: string
+  recipient_address: string
+  min_transfers_sum: string
+  max_transfers_sum: string
+  from_block_timestamp: number
+  to_block_timestamp: number
+  chain_id: number
+  creator_address: string
+  created_at: string
   proofCount: number
 }
 
-// Mock claims data - replace with actual data fetching
-const mockClaims: Claim[] = [
-  {
-    id: '0x1234...5678',
-    message: 'Have you transferred at least 100 USDC to Alice in the previous week?',
-    tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    recipientAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-    minAmount: '100',
-    proofCount: 5,
-  },
-  {
-    id: '0x5678...1234',
-    message: 'Prove you donated more than 0.1 ETH to the charity address',
-    tokenAddress: '0x0000000000000000000000000000000000000000',
-    recipientAddress: '0x123d35Cc6634C0532925a3b844Bc9e7595f0xyz',
-    minAmount: '0.1',
-    proofCount: 12,
-  },
-  {
-    id: '0xabcd...efgh',
-    message: 'Verify transfer of 500+ DAI tokens within January 2024',
-    tokenAddress: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    recipientAddress: '0xabc35Cc6634C0532925a3b844Bc9e7595f0def',
-    minAmount: '500',
-    proofCount: 3,
-  },
-]
+function formatAddress(address: string): string {
+  if (!address) return ''
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+function formatTimestamp(timestamp: number): string {
+  if (timestamp === 0) return 'No limit'
+  return format(new Date(timestamp * 1000), 'MMM d, yyyy')
+}
 
 export function ClaimsList() {
-  const claims = mockClaims
+  const [claims, setClaims] = useState<Claim[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadClaims() {
+      try {
+        setLoading(true)
+        const result = await getClaimsAction()
+
+        if (result.success && result.data) {
+          setClaims(result.data)
+        } else {
+          setError(result.error || 'Failed to load claims')
+          toast.error('Failed to load claims')
+        }
+      } catch (err: any) {
+        setError(err.message || 'An unexpected error occurred')
+        toast.error('Failed to load claims')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadClaims()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="border-4 border-foreground bg-background p-12 text-center">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
+        <p className="mt-4 font-bold uppercase text-muted-foreground">Loading claims...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="border-4 border-red-500 bg-red-500/10 p-12 text-center">
+        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">ERROR</h3>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    )
+  }
 
   if (claims.length === 0) {
     return (
       <div className="border-4 border-foreground bg-background p-12 text-center">
-        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">
-          NO CLAIMS YET
-        </h3>
+        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">NO CLAIMS YET</h3>
         <p className="mb-6 text-sm text-muted-foreground">
           Be the first to create a transfer claim
         </p>
@@ -71,8 +105,10 @@ export function ClaimsList() {
         >
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="flex-1">
-              <div className="mb-2 font-mono text-sm text-muted-foreground">
-                ID: {claim.id}
+              <div className="mb-2 flex items-center gap-4 font-mono text-sm text-muted-foreground">
+                <span>ID: {formatAddress(claim.id)}</span>
+                <span>•</span>
+                <span>{format(new Date(claim.created_at), 'MMM d, yyyy')}</span>
               </div>
               <h3 className="text-xl font-bold text-foreground">{claim.message}</h3>
             </div>
@@ -84,24 +120,41 @@ export function ClaimsList() {
             </div>
           </div>
 
-          <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-2">
+          <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-2 lg:grid-cols-3">
             <div>
-              <div className="font-bold uppercase tracking-wide text-muted-foreground">
-                Token
-              </div>
-              <div className="mt-1 break-all text-foreground">{claim.tokenAddress}</div>
+              <div className="font-bold uppercase tracking-wide text-muted-foreground">Token</div>
+              <div className="mt-1 text-foreground">{formatAddress(claim.token_address)}</div>
             </div>
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">
                 Recipient
               </div>
-              <div className="mt-1 break-all text-foreground">{claim.recipientAddress}</div>
+              <div className="mt-1 text-foreground">{formatAddress(claim.recipient_address)}</div>
+            </div>
+            <div>
+              <div className="font-bold uppercase tracking-wide text-muted-foreground">Creator</div>
+              <div className="mt-1 text-foreground">{formatAddress(claim.creator_address)}</div>
+            </div>
+          </div>
+
+          <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-2">
+            <div>
+              <div className="font-bold uppercase tracking-wide text-muted-foreground">
+                Amount Range
+              </div>
+              <div className="mt-1 text-foreground">
+                {claim.min_transfers_sum === '0' ? 'No min' : claim.min_transfers_sum} -{' '}
+                {claim.max_transfers_sum === '0' ? 'No max' : claim.max_transfers_sum}
+              </div>
             </div>
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">
-                Min Amount
+                Time Range
               </div>
-              <div className="mt-1 text-foreground">{claim.minAmount}</div>
+              <div className="mt-1 text-foreground">
+                {formatTimestamp(claim.from_block_timestamp)} →{' '}
+                {formatTimestamp(claim.to_block_timestamp)}
+              </div>
             </div>
           </div>
 
