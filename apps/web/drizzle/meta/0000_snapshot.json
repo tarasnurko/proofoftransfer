@@ -1,0 +1,396 @@
+{
+  "id": "26f9db11-2d5a-4e65-a945-c743b0b143dc",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.claims": {
+      "name": "claims",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message_hash": {
+          "name": "message_hash",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_address": {
+          "name": "token_address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_address": {
+          "name": "recipient_address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_transfers_sum": {
+          "name": "min_transfers_sum",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "max_transfers_sum": {
+          "name": "max_transfers_sum",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "from_block_timestamp": {
+          "name": "from_block_timestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "to_block_timestamp": {
+          "name": "to_block_timestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "chain_id": {
+          "name": "chain_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creator_address": {
+          "name": "creator_address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "message_hash_idx": {
+          "name": "message_hash_idx",
+          "columns": [
+            {
+              "expression": "message_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "token_recipient_chain_idx": {
+          "name": "token_recipient_chain_idx",
+          "columns": [
+            {
+              "expression": "token_address",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recipient_address",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chain_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "creator_idx": {
+          "name": "creator_idx",
+          "columns": [
+            {
+              "expression": "creator_address",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.proof_verifications": {
+      "name": "proof_verifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "proof_id": {
+          "name": "proof_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verifier_address": {
+          "name": "verifier_address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_valid": {
+          "name": "is_valid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "proof_id_idx": {
+          "name": "proof_id_idx",
+          "columns": [
+            {
+              "expression": "proof_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "is_valid_idx": {
+          "name": "is_valid_idx",
+          "columns": [
+            {
+              "expression": "is_valid",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "proof_verifications_proof_id_proofs_id_fk": {
+          "name": "proof_verifications_proof_id_proofs_id_fk",
+          "tableFrom": "proof_verifications",
+          "tableTo": "proofs",
+          "columnsFrom": [
+            "proof_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.proofs": {
+      "name": "proofs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nullifier": {
+          "name": "nullifier",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proof_data": {
+          "name": "proof_data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_inputs": {
+          "name": "public_inputs",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transfers_root_hash": {
+          "name": "transfers_root_hash",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prover_address": {
+          "name": "prover_address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "claim_id_idx": {
+          "name": "claim_id_idx",
+          "columns": [
+            {
+              "expression": "claim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "nullifier_idx": {
+          "name": "nullifier_idx",
+          "columns": [
+            {
+              "expression": "nullifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "prover_address_idx": {
+          "name": "prover_address_idx",
+          "columns": [
+            {
+              "expression": "prover_address",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "proofs_claim_id_claims_id_fk": {
+          "name": "proofs_claim_id_claims_id_fk",
+          "tableFrom": "proofs",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "claim_nullifier_unique": {
+          "name": "claim_nullifier_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claim_id",
+            "nullifier"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
