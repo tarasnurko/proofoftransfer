@@ -141,14 +141,9 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
       toast.info('Verifying proof...')
 
       const proofBytes = hexToUint8Array(result.proofData)
-      const publicInputsArray = [
-        result.publicInputs.claim_id,
-        result.publicInputs.token_address,
-        result.publicInputs.recipient_address,
-        result.publicInputs.transfers_count.toString(),
-      ]
 
-      const isValid = await verifyProofClient(proofBytes, publicInputsArray)
+      // Use the actual public inputs from Noir (all 11 of them)
+      const isValid = await verifyProofClient(proofBytes, result.publicInputs)
 
       if (!isValid) {
         toast.error('Proof verification failed! Please try again.')
