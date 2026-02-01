@@ -3,62 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Loader2 } from 'lucide-react'
-import { getClaimsAction } from '@/actions/claims'
+import { Button, LoadingState, ErrorState, EmptyState } from '@/components/ui'
+import { ArrowRight } from 'lucide-react'
+import { getClaimsAction } from '@/actions'
+import { formatAddress, formatTimestamp } from '@/utils/format'
+import { getChainName } from '@/utils/blockchain.utils'
 import { toast } from 'sonner'
-import { ChainId } from '@repo/types'
+import type { SerializedClaimWithMeta } from '@/types/claims'
 
-type Claim = {
-  id: string
-  message: string
-  message_hash: string
-  token_address: string
-  recipient_address: string
-  min_transfers_sum: string
-  max_transfers_sum: string
-  from_block_timestamp: number
-  to_block_timestamp: number
-  chain_id: number
-  created_at: string
-  proofCount: number
-  token: {
-    name: string
-    symbol: string
-    decimals: number
-  } | null
-}
-
-function formatAddress(address: string): string {
-  if (!address) return ''
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
-
-function formatTimestamp(timestamp: number): string {
-  if (timestamp === 0) return 'No limit'
-  return format(new Date(timestamp * 1000), 'MMM d, yyyy')
-}
-
-function getChainName(chainId: number): string {
-  switch (chainId) {
-    case ChainId.ETHEREUM:
-      return 'Ethereum'
-    case ChainId.OPTIMISM:
-      return 'Optimism'
-    case ChainId.BNB:
-      return 'BNB Chain'
-    case ChainId.POLYGON:
-      return 'Polygon'
-    case ChainId.BASE:
-      return 'Base'
-    case ChainId.ARBITRUM:
-      return 'Arbitrum'
-    case ChainId.SCROLL:
-      return 'Scroll'
-    default:
-      return `Chain ${chainId}`
-  }
-}
+type Claim = SerializedClaimWithMeta
 
 export function ClaimsList() {
   const [claims, setClaims] = useState<Claim[]>([])
@@ -73,13 +26,16 @@ export function ClaimsList() {
 
         if (result.success && result.data) {
           setClaims(result.data)
+          setError(null)
         } else {
-          setError(result.error || 'Failed to load claims')
-          toast.error('Failed to load claims')
+          const errorMessage = result.error || 'Failed to load claims'
+          setError(errorMessage)
+          toast.error(errorMessage)
         }
-      } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred')
-        toast.error('Failed to load claims')
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+        setError(errorMessage)
+        toast.error(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -89,36 +45,26 @@ export function ClaimsList() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="border-4 border-foreground bg-background p-12 text-center">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
-        <p className="mt-4 font-bold uppercase text-muted-foreground">Loading claims...</p>
-      </div>
-    )
+    return <LoadingState message="Loading claims..." />
   }
 
   if (error) {
-    return (
-      <div className="border-4 border-red-500 bg-red-500/10 p-12 text-center">
-        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">ERROR</h3>
-        <p className="text-sm text-muted-foreground">{error}</p>
-      </div>
-    )
+    return <ErrorState error={error} />
   }
 
-  if (claims.length === 0) {
+  if (!claims || !claims.length) {
     return (
-      <div className="border-4 border-foreground bg-background p-12 text-center">
-        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">NO CLAIMS YET</h3>
-        <p className="mb-6 text-sm text-muted-foreground">
-          Be the first to create a transfer claim
-        </p>
-        <Link href="/create">
-          <Button className="border-2 border-foreground bg-accent px-8 py-4 font-bold uppercase text-accent-foreground hover:bg-foreground hover:text-background">
-            Create Claim <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
+      <EmptyState
+        title="NO CLAIMS YET"
+        message="Be the first to create a transfer claim"
+        action={
+          <Link href="/create">
+            <Button className="border-2 border-foreground bg-accent px-8 py-4 font-bold uppercase text-accent-foreground hover:bg-foreground hover:text-background">
+              Create Claim <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        }
+      />
     )
   }
 

@@ -1,5 +1,5 @@
-import AppHeader from '@/components/app-header'
-import { CreateClaimForm } from '@/components/create-claim-form'
+import { AppHeader } from '@/components/layout/app-header'
+import { CreateClaimForm } from '@/components/features/claims/create-claim-form'
 
 export default function CreateClaimPage() {
   return (

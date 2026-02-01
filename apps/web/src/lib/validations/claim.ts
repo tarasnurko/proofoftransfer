@@ -39,7 +39,6 @@ export const createClaimSchema = z
   })
   .refine(
     (data) => {
-      // If maxTransfersSum is set (not 0), it must be >= minTransfersSum
       const min = Number(data.minTransfersSum)
       const max = Number(data.maxTransfersSum)
       if (max > 0 && max < min) {
@@ -54,7 +53,6 @@ export const createClaimSchema = z
   )
   .refine(
     (data) => {
-      // If both dates are set, toDate must be >= fromDate
       if (data.fromDate && data.toDate && data.toDate < data.fromDate) {
         return false
       }
@@ -68,7 +66,6 @@ export const createClaimSchema = z
 
 export type CreateClaimInput = z.infer<typeof createClaimSchema>
 
-// Transform form data with dates to database format with timestamps
 export function transformClaimFormData(data: CreateClaimInput) {
   return {
     message: data.claimMessage,

@@ -1,7 +1,6 @@
 import { pgTable, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// Tokens table
 export const tokens = pgTable(
   'tokens',
   {
@@ -18,7 +17,6 @@ export const tokens = pgTable(
   })
 )
 
-// Claims table
 export const claims = pgTable(
   'claims',
   {
@@ -44,7 +42,6 @@ export const claims = pgTable(
   })
 )
 
-// Proofs table
 export const proofs = pgTable(
   'proofs',
   {
@@ -65,7 +62,6 @@ export const proofs = pgTable(
   })
 )
 
-// Proof verifications table
 export const proof_verifications = pgTable(
   'proof_verifications',
   {
@@ -83,7 +79,6 @@ export const proof_verifications = pgTable(
   })
 )
 
-// Relations
 export const claimsRelations = relations(claims, ({ many }) => ({
   proofs: many(proofs),
 }))
@@ -103,15 +98,3 @@ export const proofVerificationsRelations = relations(proof_verifications, ({ one
   }),
 }))
 
-// TypeScript types
-export type Token = typeof tokens.$inferSelect
-export type NewToken = typeof tokens.$inferInsert
-
-export type Claim = typeof claims.$inferSelect
-export type NewClaim = typeof claims.$inferInsert
-
-export type Proof = typeof proofs.$inferSelect
-export type NewProof = typeof proofs.$inferInsert
-
-export type ProofVerification = typeof proof_verifications.$inferSelect
-export type NewProofVerification = typeof proof_verifications.$inferInsert

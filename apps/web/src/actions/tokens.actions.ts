@@ -1,46 +1,17 @@
 'use server'
 
 import { createPublicClient, http, parseAbi } from 'viem'
-import {
-  mainnet,
-  optimism,
-  bsc,
-  polygon,
-  base,
-  arbitrum,
-  scroll,
-} from 'viem/chains'
-import { ChainId } from '@repo/types'
 import { createToken, getTokenByAddressAndChain } from '@/db/queries/tokens'
-import type { NewToken } from '@/db/schema'
+import type { InsertTokenEntity } from '@/db/index.types'
 import { EtherscanClient } from '@/lib/etherscan'
+import { getViemChain } from '@/utils/blockchain.utils'
+import { EntityNotFoundException } from '@/db/exceptions'
 
 const ERC20_ABI = parseAbi([
   'function name() view returns (string)',
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)',
 ])
-
-function getViemChain(chainId: number) {
-  switch (chainId) {
-    case ChainId.ETHEREUM:
-      return mainnet
-    case ChainId.OPTIMISM:
-      return optimism
-    case ChainId.BNB:
-      return bsc
-    case ChainId.POLYGON:
-      return polygon
-    case ChainId.BASE:
-      return base
-    case ChainId.ARBITRUM:
-      return arbitrum
-    case ChainId.SCROLL:
-      return scroll
-    default:
-      throw new Error(`Unsupported chain ID: ${chainId}`)
-  }
-}
 
 export async function fetchAndStoreTokenDataAction(
   tokenAddress: string,
@@ -52,8 +23,8 @@ export async function fetchAndStoreTokenDataAction(
   try {
     // Check if token data already exists
     const existingToken = await getTokenByAddressAndChain(tokenAddress, chainId)
-    if (existingToken.success && existingToken.data) {
-      return { success: true, data: existingToken.data }
+    if (existingToken) {
+      return { success: true, data: existingToken }
     }
 
     // Strategy 1: Try to fetch from Etherscan transfers (if recipientAddress provided)
@@ -71,7 +42,7 @@ export async function fetchAndStoreTokenDataAction(
         if (transfers.length > 0) {
           const firstTransfer = transfers[0]
           if (firstTransfer && firstTransfer.tokenName && firstTransfer.tokenSymbol && firstTransfer.tokenDecimal) {
-            const tokenData: NewToken = {
+            const tokenData: InsertTokenEntity = {
               address: tokenAddress.toLowerCase(),
               chain_id: chainId,
               name: firstTransfer.tokenName,
@@ -80,9 +51,7 @@ export async function fetchAndStoreTokenDataAction(
             }
 
             const result = await createToken(tokenData)
-            if (result.success && result.data) {
-              return { success: true, data: result.data }
-            }
+            return { success: true, data: result }
           }
         }
       } catch (error) {
@@ -116,7 +85,7 @@ export async function fetchAndStoreTokenDataAction(
         }),
       ])
 
-      const tokenData: NewToken = {
+      const tokenData: InsertTokenEntity = {
         address: tokenAddress.toLowerCase(),
         chain_id: chainId,
         name: name as string,
@@ -125,20 +94,20 @@ export async function fetchAndStoreTokenDataAction(
       }
 
       const result = await createToken(tokenData)
-      if (result.success && result.data) {
-        return { success: true, data: result.data }
-      }
-
-      return { success: false, error: 'Failed to store token data' }
-    } catch (error: any) {
+      return { success: true, data: result }
+    } catch (error: unknown) {
       console.error('Error fetching token data from contract:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch token data from contract',
+        error: error instanceof Error ? error.message : 'Failed to fetch token data from contract',
       }
     }
-  } catch (error: any) {
-    console.error('Error in fetchAndStoreTokenDataAction:', error)
-    return { success: false, error: error.message || 'Failed to fetch token data' }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to fetch token data'
+    return { success: false, error: message }
   }
 }

@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button, LoadingState } from '@/components/ui'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { fetchTransfersAction, submitProofAction } from '@/actions/proofs'
+import { fetchTransfersAction, submitProofAction } from '@/actions'
 import { format } from 'date-fns'
 import type { EtherscanERC20Transfer } from '@repo/types'
 import { useAccount, useWalletClient } from 'wagmi'
 import { generateClaimProof } from '@/lib/proof-generator'
 import { verifyProofClient, hexToUint8Array } from '@/lib/proof-verifier'
+import { formatAddress } from '@/utils/format'
+import { LABEL_UPPERCASE } from '@/constants/styles'
 
 type Claim = {
   id: string
@@ -29,11 +29,6 @@ type Claim = {
 }
 
 type TransferFilter = 'all' | 'mine'
-
-function formatAddress(address: string): string {
-  if (!address) return ''
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
 
 interface ProofGeneratorSectionProps {
   claim: Claim
@@ -74,8 +69,8 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
       } else {
         toast.error(result.error || 'Failed to fetch transfers')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to fetch transfers')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch transfers')
     } finally {
       setIsFetchingTransfers(false)
     }
@@ -156,9 +151,9 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
       setProofPublicInputs(result.publicInputs)
 
       toast.success('ZK proof generated and verified successfully!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Proof generation error:', error)
-      toast.error(error.message || 'Failed to generate proof')
+      toast.error(error instanceof Error ? error.message : 'Failed to generate proof')
     } finally {
       setIsGeneratingProof(false)
     }
@@ -188,8 +183,8 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
       } else {
         toast.error(result.error || 'Failed to submit proof')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     }
   }
 
@@ -278,24 +273,24 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
                 >
                   <div className="grid gap-3 md:grid-cols-4">
                     <div>
-                      <div className="font-bold uppercase text-muted-foreground">From</div>
+                      <div className={LABEL_UPPERCASE}>From</div>
                       <div className="mt-1 text-foreground">
                         {formatAddress(transfer.from)}
                         {isMine && <span className="ml-2 text-accent">(YOU)</span>}
                       </div>
                     </div>
                     <div>
-                      <div className="font-bold uppercase text-muted-foreground">Amount</div>
+                      <div className={LABEL_UPPERCASE}>Amount</div>
                       <div className="mt-1 text-foreground">{transfer.value}</div>
                     </div>
                     <div>
-                      <div className="font-bold uppercase text-muted-foreground">Date</div>
+                      <div className={LABEL_UPPERCASE}>Date</div>
                       <div className="mt-1 text-foreground">
                         {format(new Date(Number(transfer.timeStamp) * 1000), 'MMM d, yyyy')}
                       </div>
                     </div>
                     <div>
-                      <div className="font-bold uppercase text-muted-foreground">TX Hash</div>
+                      <div className={LABEL_UPPERCASE}>TX Hash</div>
                       <div className="mt-1 text-foreground">{formatAddress(transfer.hash)}</div>
                     </div>
                   </div>
@@ -333,7 +328,7 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
 
           <div className="mb-4 space-y-4">
             <div>
-              <div className="font-bold uppercase tracking-wide text-muted-foreground">
+              <div className={LABEL_UPPERCASE}>
                 ZK Proof Hash
               </div>
               <div className="mt-2 break-all border-2 border-accent bg-background p-4 font-mono text-sm text-foreground">

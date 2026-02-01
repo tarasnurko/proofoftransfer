@@ -2,31 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
+import { Button, LoadingState, ErrorState } from '@/components/ui'
 import { Loader2, CheckCircle2, XCircle, Eye } from 'lucide-react'
-import { getProofsByClaimIdAction, verifyProofAction, getVerificationStatsAction } from '@/actions/proofs'
+import { getProofsByClaimIdAction, verifyProofAction, getVerificationStatsAction } from '@/actions'
 import { toast } from 'sonner'
+import { formatAddress } from '@/utils/format'
+import type { SerializedProofWithMeta } from '@/types/proofs'
 
-type Proof = {
-  id: string
-  claim_id: string
-  nullifier: string
-  proof_data: string
-  public_inputs: any
-  transfers_root_hash: string
-  created_at: string
-  verificationCount: number
-}
+type Proof = SerializedProofWithMeta
 
 type VerificationStats = {
   total: number
   successful: number
   failed: number
-}
-
-function formatAddress(address: string | null): string {
-  if (!address) return 'Anonymous'
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 function ProofCard({ proof }: { proof: Proof }) {
@@ -64,8 +52,8 @@ function ProofCard({ proof }: { proof: Proof }) {
       } else {
         toast.error(result.error || 'Verification failed')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setIsVerifying(false)
     }
@@ -171,11 +159,14 @@ export function ProofsList({ claimId }: { claimId: string }) {
 
         if (result.success && result.data) {
           setProofs(result.data)
+          setError(null)
         } else {
-          setError(result.error || 'Failed to load proofs')
+          const errorMessage = result.error || 'Failed to load proofs'
+          setError(errorMessage)
         }
-      } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred')
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -185,32 +176,22 @@ export function ProofsList({ claimId }: { claimId: string }) {
   }, [claimId])
 
   if (loading) {
-    return (
-      <div className="border-4 border-foreground bg-background p-12 text-center">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-accent" />
-        <p className="mt-4 font-bold uppercase text-muted-foreground">Loading proofs...</p>
-      </div>
-    )
+    return <LoadingState message="Loading proofs..." />
   }
 
   if (error) {
-    return (
-      <div className="border-4 border-red-500 bg-red-500/10 p-12 text-center">
-        <h3 className="mb-2 text-xl font-bold uppercase text-foreground">ERROR</h3>
-        <p className="text-sm text-muted-foreground">{error}</p>
-      </div>
-    )
+    return <ErrorState error={error} />
   }
 
   return (
     <div className="border-4 border-foreground bg-background p-6">
       <div className="mb-6 flex items-center justify-between border-b-2 border-foreground pb-2">
         <h3 className="text-xl font-bold uppercase text-foreground">
-          PROOFS ({proofs.length})
+          PROOFS ({proofs?.length ?? 0})
         </h3>
       </div>
 
-      {proofs.length === 0 ? (
+      {!proofs || !proofs.length ? (
         <div className="py-8 text-center">
           <p className="text-sm text-muted-foreground">
             No proofs submitted yet for this claim

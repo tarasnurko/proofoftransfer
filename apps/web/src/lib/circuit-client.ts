@@ -1,11 +1,5 @@
-// Client-side circuit utilities with dynamic imports
-// to avoid Turbopack build-time analysis
-
 let cachedCircuit: any | null = null
 
-/**
- * Load the compiled circuit from the public directory (client-side)
- */
 export async function loadCircuitClient(): Promise<any> {
   if (cachedCircuit) {
     return cachedCircuit
@@ -20,12 +14,7 @@ export async function loadCircuitClient(): Promise<any> {
   return cachedCircuit
 }
 
-/**
- * Generate a ZK proof using the circuit (client-side)
- * Uses dynamic imports to avoid build-time dependency analysis
- */
 export async function generateProofClient(inputs: any, threads: number = 1) {
-  // Dynamic imports
   const [{ Barretenberg, UltraHonkBackend }, { Noir }] = await Promise.all([
     import('@aztec/bb.js'),
     import('@noir-lang/noir_js'),
@@ -36,10 +25,8 @@ export async function generateProofClient(inputs: any, threads: number = 1) {
   const noir = new Noir(circuit)
   const backend = new UltraHonkBackend(circuit.bytecode, api)
 
-  // Execute the circuit to get the witness
   const { witness } = await noir.execute(inputs)
 
-  // Generate the proof
   const proofData = await backend.generateProof(witness)
 
   return {
@@ -48,9 +35,6 @@ export async function generateProofClient(inputs: any, threads: number = 1) {
   }
 }
 
-/**
- * Convert Uint8Array to hex string
- */
 export function uint8ArrayToHex(bytes: Uint8Array): string {
   return '0x' + Array.from(bytes)
     .map(b => b.toString(16).padStart(2, '0'))

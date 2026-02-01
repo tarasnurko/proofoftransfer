@@ -68,7 +68,7 @@ export async function generateClaimProof(
     (t) => t.from.toLowerCase() === proverAddress.toLowerCase()
   )
 
-  if (proverTransfers.length === 0) {
+  if (!proverTransfers.length) {
     throw new Error('No transfers found for prover address')
   }
 
@@ -82,7 +82,7 @@ export async function generateClaimProof(
       t.to.toLowerCase() !== recipientAddress.toLowerCase() ||
       t.contractAddress.toLowerCase() !== tokenAddress.toLowerCase()
   )
-  if (invalidTransfers.length > 0) {
+  if (invalidTransfers.length) {
     throw new Error(`Found ${invalidTransfers.length} transfers that don't match claim parameters`)
   }
 

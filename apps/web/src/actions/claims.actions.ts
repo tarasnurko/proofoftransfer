@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { keccak256, toBytes } from 'viem'
 import { createClaimSchema, transformClaimFormData, type CreateClaimInput } from '@/lib/validations/claim'
 import { createClaim, getClaims as getClaimsQuery, getClaimById as getClaimByIdQuery } from '@/db/queries/claims'
-import type { NewClaim } from '@/db/schema'
-import { fetchAndStoreTokenDataAction } from './tokens'
+import type { InsertClaimEntity } from '@/db/index.types'
+import { fetchAndStoreTokenDataAction } from './tokens.actions'
+import { isValidUUID } from '@/utils/validation'
+import { EntityNotFoundException } from '@/db/exceptions'
 
 export async function createClaimAction(data: CreateClaimInput) {
   try {
@@ -20,7 +22,7 @@ export async function createClaimAction(data: CreateClaimInput) {
     const message_hash = keccak256(toBytes(validated.claimMessage))
 
     // Prepare claim data
-    const claimData: NewClaim = {
+    const claimData: InsertClaimEntity = {
       message: transformed.message,
       message_hash,
       token_address: transformed.token_address,
@@ -44,22 +46,21 @@ export async function createClaimAction(data: CreateClaimInput) {
     // Create claim in database
     const result = await createClaim(claimData)
 
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to create claim' }
-    }
-
     // Revalidate homepage to show new claim
     revalidatePath('/')
 
-    return { success: true, claimId: result.data.id }
-  } catch (error: any) {
-    console.error('Error in createClaimAction:', error)
+    return { success: true, claimId: result.id }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
 
-    if (error.name === 'ZodError') {
+    if (err instanceof Error && err.name === 'ZodError') {
       return { success: false, error: 'Invalid input data' }
     }
 
-    return { success: false, error: error.message || 'Failed to create claim' }
+    const message = err instanceof Error ? err.message : 'Failed to create claim'
+    return { success: false, error: message }
   }
 }
 
@@ -67,50 +68,48 @@ export async function getClaimsAction() {
   try {
     const result = await getClaimsQuery({ limit: 50, offset: 0 })
 
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to fetch claims' }
-    }
-
     // Serialize dates for client
-    const serialized = result.data.claims.map((claim) => ({
+    const serialized = result.claims.map((claim) => ({
       ...claim,
       created_at: claim.created_at.toISOString(),
     }))
 
-    return { success: true, data: serialized, total: result.data.total }
-  } catch (error: any) {
-    console.error('Error in getClaimsAction:', error)
-    return { success: false, error: 'Failed to fetch claims' }
+    return { success: true, data: serialized, total: result.total }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to fetch claims'
+    return { success: false, error: message }
   }
 }
 
 export async function getClaimByIdAction(id: string) {
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(id)) {
+    if (!isValidUUID(id)) {
       return { success: false, error: 'Invalid claim ID format' }
     }
 
     const result = await getClaimByIdQuery(id)
 
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to fetch claim' }
-    }
-
-    if (!result.data) {
+    if (!result) {
       return { success: true, data: null }
     }
 
     // Serialize date for client
     const serialized = {
-      ...result.data,
-      created_at: result.data.created_at.toISOString(),
+      ...result,
+      created_at: result.created_at.toISOString(),
     }
 
     return { success: true, data: serialized }
-  } catch (error: any) {
-    console.error('Error in getClaimByIdAction:', error)
-    return { success: false, error: 'Failed to fetch claim' }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to fetch claim'
+    return { success: false, error: message }
   }
 }

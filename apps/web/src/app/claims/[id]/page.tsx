@@ -3,16 +3,12 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getClaimByIdAction } from "@/actions/claims";
-import { ProofsList } from "@/components/proofs-list";
-import { ProofGeneratorSection } from "@/components/proof-generator-section";
-import AppHeader from "@/components/app-header";
-import { ChainId } from "@repo/types";
-
-function formatAddress(address: string): string {
-  if (!address) return "";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+import { getClaimByIdAction } from "@/actions";
+import { ProofsList } from "@/components/features/proofs/proofs-list";
+import { ProofGeneratorSection } from "@/components/features/proofs/proof-generator-section";
+import { AppHeader } from "@/components/layout/app-header";
+import { formatAddress } from "@/utils/format";
+import { getChainName, getBlockExplorerUrl } from "@/utils/blockchain.utils";
 
 function formatFullAddress(address: string): string {
   return address;
@@ -21,48 +17,6 @@ function formatFullAddress(address: string): string {
 function formatTimestamp(timestamp: number): string {
   if (timestamp === 0) return "No constraint";
   return format(new Date(timestamp * 1000), "PPpp");
-}
-
-function getChainName(chainId: number): string {
-  switch (chainId) {
-    case ChainId.ETHEREUM:
-      return 'Ethereum'
-    case ChainId.OPTIMISM:
-      return 'Optimism'
-    case ChainId.BNB:
-      return 'BNB Chain'
-    case ChainId.POLYGON:
-      return 'Polygon'
-    case ChainId.BASE:
-      return 'Base'
-    case ChainId.ARBITRUM:
-      return 'Arbitrum'
-    case ChainId.SCROLL:
-      return 'Scroll'
-    default:
-      return `Chain ${chainId}`
-  }
-}
-
-function getBlockExplorerUrl(chainId: number): string {
-  switch (chainId) {
-    case ChainId.ETHEREUM:
-      return 'https://etherscan.io'
-    case ChainId.OPTIMISM:
-      return 'https://optimistic.etherscan.io'
-    case ChainId.BNB:
-      return 'https://bscscan.com'
-    case ChainId.POLYGON:
-      return 'https://polygonscan.com'
-    case ChainId.BASE:
-      return 'https://basescan.org'
-    case ChainId.ARBITRUM:
-      return 'https://arbiscan.io'
-    case ChainId.SCROLL:
-      return 'https://scrollscan.com'
-    default:
-      return 'https://etherscan.io'
-  }
 }
 
 export default async function ClaimDetailPage({

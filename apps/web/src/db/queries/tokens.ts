@@ -1,11 +1,12 @@
 import { db } from '../index'
 import { tokens } from '../schema'
-import type { NewToken } from '../schema'
+import type { InsertTokenEntity, TokenEntity } from '../index.types'
 import { eq, and } from 'drizzle-orm'
+import { entityOrError, entityOrNull } from '../exceptions'
 
-export async function createToken(data: NewToken) {
-  try {
-    const [token] = await db
+export async function createToken(data: InsertTokenEntity): Promise<TokenEntity> {
+  return entityOrError(
+    await db
       .insert(tokens)
       .values(data)
       .onConflictDoUpdate({
@@ -16,25 +17,17 @@ export async function createToken(data: NewToken) {
           decimals: data.decimals,
         },
       })
-      .returning()
-    return { success: true, data: token }
-  } catch (error) {
-    console.error('Error creating token:', error)
-    return { success: false, error: 'Failed to create token' }
-  }
+      .returning(),
+    'Failed to create token'
+  )
 }
 
 export async function getTokenByAddressAndChain(address: string, chainId: number) {
-  try {
-    const [token] = await db
+  return entityOrNull(
+    await db
       .select()
       .from(tokens)
       .where(and(eq(tokens.address, address.toLowerCase()), eq(tokens.chain_id, chainId)))
       .limit(1)
-
-    return { success: true, data: token ?? null }
-  } catch (error) {
-    console.error('Error fetching token:', error)
-    return { success: false, error: 'Failed to fetch token' }
-  }
+  )
 }

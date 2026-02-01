@@ -6,24 +6,22 @@ import { getClaimById } from '@/db/queries/claims'
 import { createProof, checkNullifierExists, getProofsByClaimId as getProofsByClaimIdQuery, getProofById as getProofByIdQuery } from '@/db/queries/proofs'
 import { createVerification, getVerificationStats as getVerificationStatsQuery } from '@/db/queries/verifications'
 import { EtherscanClient } from '@/lib/etherscan'
-import type { NewProof } from '@/db/schema'
+import type { InsertProofEntity } from '@/db/index.types'
+import { isValidUUID } from '@/utils/validation'
+import { EntityNotFoundException } from '@/db/exceptions'
 
 export async function fetchTransfersAction(claimId: string) {
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(claimId)) {
+    if (!isValidUUID(claimId)) {
       return { success: false, error: 'Invalid claim ID format' }
     }
 
     // Fetch claim from database
-    const claimResult = await getClaimById(claimId)
+    const claim = await getClaimById(claimId)
 
-    if (!claimResult.success || !claimResult.data) {
+    if (!claim) {
       return { success: false, error: 'Claim not found' }
     }
-
-    const claim = claimResult.data
 
     // Fetch transfers from Etherscan
     const etherscanClient = new EtherscanClient()
@@ -36,9 +34,13 @@ export async function fetchTransfersAction(claimId: string) {
     })
 
     return { success: true, transfers }
-  } catch (error: any) {
-    console.error('Error in fetchTransfersAction:', error)
-    return { success: false, error: error.message || 'Failed to fetch transfers' }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to fetch transfers'
+    return { success: false, error: message }
   }
 }
 
@@ -48,23 +50,23 @@ export async function submitProofAction(data: SubmitProofInput) {
     const validated = submitProofSchema.parse(data)
 
     // Check if claim exists
-    const claimResult = await getClaimById(validated.claimId)
-    if (!claimResult.success || !claimResult.data) {
+    const claim = await getClaimById(validated.claimId)
+    if (!claim) {
       return { success: false, error: 'Claim not found' }
     }
 
     // Check nullifier uniqueness
-    const nullifierCheck = await checkNullifierExists(
+    const nullifierExists = await checkNullifierExists(
       validated.claimId,
       validated.nullifier
     )
 
-    if (nullifierCheck.success && nullifierCheck.data === true) {
+    if (nullifierExists) {
       return { success: false, error: 'This proof has already been submitted for this claim' }
     }
 
     // Prepare proof data
-    const proofData: NewProof = {
+    const proofData: InsertProofEntity = {
       claim_id: validated.claimId,
       nullifier: validated.nullifier,
       proof_data: validated.proofData,
@@ -75,38 +77,40 @@ export async function submitProofAction(data: SubmitProofInput) {
     // Create proof in database
     const result = await createProof(proofData)
 
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to submit proof' }
-    }
-
     // Revalidate claim detail page
     revalidatePath(`/claims/${validated.claimId}`)
     revalidatePath('/')
 
-    return { success: true, proofId: result.data.id }
-  } catch (error: any) {
-    console.error('Error in submitProofAction:', error)
+    return { success: true, proofId: result.id }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
 
-    if (error.name === 'ZodError') {
+    if (err instanceof Error && err.name === 'ZodError') {
       return { success: false, error: 'Invalid proof data' }
     }
 
-    return { success: false, error: error.message || 'Failed to submit proof' }
+    // Handle database constraint violation for nullifier
+    if (err && typeof err === 'object' && 'code' in err && 'constraint' in err && err.code === '23505' && err.constraint === 'claim_nullifier_unique') {
+      return { success: false, error: 'This nullifier has already been used for this claim' }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to submit proof'
+    return { success: false, error: message }
   }
 }
 
 export async function verifyProofAction(proofId: string) {
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(proofId)) {
+    if (!isValidUUID(proofId)) {
       return { success: false, error: 'Invalid proof ID format' }
     }
 
     // Fetch proof from database
-    const proofResult = await getProofByIdQuery(proofId)
+    const proof = await getProofByIdQuery(proofId)
 
-    if (!proofResult.success || !proofResult.data) {
+    if (!proof) {
       return { success: false, error: 'Proof not found' }
     }
 
@@ -123,68 +127,67 @@ export async function verifyProofAction(proofId: string) {
     })
 
     return { success: true, isValid }
-  } catch (error: any) {
-    console.error('Error in verifyProofAction:', error)
-
+  } catch (err: unknown) {
     // Still record the failed verification
     try {
       await createVerification({
         proof_id: proofId,
         is_valid: false,
-        error_message: error.message || 'Verification error',
+        error_message: err instanceof Error ? err.message : 'Verification error',
       })
     } catch (recordError) {
       console.error('Failed to record verification error:', recordError)
     }
 
-    return { success: false, error: error.message || 'Failed to verify proof' }
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to verify proof'
+    return { success: false, error: message }
   }
 }
 
 export async function getProofsByClaimIdAction(claimId: string) {
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(claimId)) {
+    if (!isValidUUID(claimId)) {
       return { success: false, error: 'Invalid claim ID format' }
     }
 
     const result = await getProofsByClaimIdQuery(claimId)
 
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to fetch proofs' }
-    }
-
     // Serialize dates for client
-    const serialized = result.data.map((proof) => ({
+    const serialized = result.map((proof) => ({
       ...proof,
       created_at: proof.created_at.toISOString(),
     }))
 
     return { success: true, data: serialized }
-  } catch (error: any) {
-    console.error('Error in getProofsByClaimIdAction:', error)
-    return { success: false, error: 'Failed to fetch proofs' }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
+    }
+
+    const message = err instanceof Error ? err.message : 'Failed to fetch proofs'
+    return { success: false, error: message }
   }
 }
 
 export async function getVerificationStatsAction(proofId: string) {
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(proofId)) {
+    if (!isValidUUID(proofId)) {
       return { success: false, error: 'Invalid proof ID format' }
     }
 
     const result = await getVerificationStatsQuery(proofId)
 
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to fetch verification stats' }
+    return { success: true, data: result }
+  } catch (err: unknown) {
+    if (err instanceof EntityNotFoundException) {
+      return { success: false, error: err.message }
     }
 
-    return { success: true, data: result.data }
-  } catch (error: any) {
-    console.error('Error in getVerificationStatsAction:', error)
-    return { success: false, error: 'Failed to fetch verification stats' }
+    const message = err instanceof Error ? err.message : 'Failed to fetch verification stats'
+    return { success: false, error: message }
   }
 }

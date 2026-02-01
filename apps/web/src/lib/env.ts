@@ -5,7 +5,6 @@ const envSchema = z.object({
   ETHERSCAN_API_KEY: z.string().min(1, 'ETHERSCAN_API_KEY is required'),
 })
 
-// Validate environment variables
 export function validateEnv() {
   try {
     return envSchema.parse({
@@ -21,7 +20,6 @@ export function validateEnv() {
   }
 }
 
-// Get environment variable safely
 export function getEnv(key: 'DATABASE_URL' | 'ETHERSCAN_API_KEY'): string {
   const value = process.env[key]
   if (!value) {

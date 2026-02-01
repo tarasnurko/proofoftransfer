@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ConnectButton } from '@/components/connect-button'
-import { ThemeSwitcher } from '@/components/theme-switcher'
+import { ConnectButton } from '@/components/layout/connect-button'
+import { ThemeSwitcher } from '@/components/layout/theme-switcher'
 
 export default function AppHeader() {
   return (

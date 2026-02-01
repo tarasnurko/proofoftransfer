@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { createClaimSchema, type CreateClaimInput } from '@/lib/validations/claim'
-import { createClaimAction } from '@/actions/claims'
+import { createClaimAction } from '@/actions'
 import { ChainId } from '@repo/types'
 import { useAccount } from 'wagmi'
 
@@ -58,8 +58,8 @@ export function CreateClaimForm() {
       } else {
         toast.error(result.error || 'Failed to create claim')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An unexpected error occurred')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred')
     } finally {
       setIsSubmitting(false)
     }

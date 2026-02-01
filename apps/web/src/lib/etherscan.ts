@@ -11,10 +11,10 @@ interface FetchTransfersParams {
   toTimestamp?: number
 }
 
-interface EtherscanResponse {
+interface EtherscanResponse<T> {
   status: string
   message: string
-  result: any
+  result: T
 }
 
 export class EtherscanClient {
@@ -29,7 +29,6 @@ export class EtherscanClient {
   ): Promise<EtherscanERC20Transfer[]> {
     const { chainId, tokenAddress, recipientAddress, fromTimestamp, toTimestamp } = params
 
-    // Validate timestamps are not in the future
     const now = Math.floor(Date.now() / 1000)
     if (fromTimestamp && fromTimestamp > now) {
       throw new Error('From timestamp cannot be in the future')
@@ -38,7 +37,6 @@ export class EtherscanClient {
       throw new Error('To timestamp cannot be in the future')
     }
 
-    // Convert timestamps to block numbers for API query
     const startBlock = fromTimestamp
       ? await this.getBlockByTimestamp(chainId, fromTimestamp, 'after')
       : 0
@@ -51,15 +49,14 @@ export class EtherscanClient {
     const maxRetries = 3
 
     while (true) {
-      const offset = 1000 // Max allowed by Etherscan
+      const offset = 1000
 
       let retries = 0
-      let data: EtherscanResponse | null = null
+      let data: EtherscanResponse<EtherscanERC20Transfer[]> | null = null
 
-      // Retry logic for rate limits
       while (retries < maxRetries) {
         try {
-          const response = await axios.get<EtherscanResponse>(ETHERSCAN_API_V2_BASE, {
+          const response = await axios.get<EtherscanResponse<EtherscanERC20Transfer[]>>(ETHERSCAN_API_V2_BASE, {
             params: {
               chainid: chainId,
               module: 'account',
@@ -79,7 +76,6 @@ export class EtherscanClient {
           break
         } catch (error) {
           if (axios.isAxiosError(error) && error.response?.status === 429) {
-            // Rate limited - wait and retry with exponential backoff
             const waitTime = Math.pow(2, retries) * 1000
             await new Promise((resolve) => setTimeout(resolve, waitTime))
             retries++
@@ -102,15 +98,14 @@ export class EtherscanClient {
         throw new Error('Failed to fetch data from Etherscan')
       }
 
-      // Validate response
       if (data.status !== '1') {
         if (data.message === 'No transactions found') {
           break
         }
-        // Check for common API key issues
+        const resultAsString = typeof data.result === 'string' ? data.result : ''
         if (
           data.message === 'NOTOK' ||
-          (typeof data.result === 'string' && data.result.includes('Invalid API Key'))
+          resultAsString.includes('Invalid API Key')
         ) {
           throw new Error(
             'Invalid or missing Etherscan API key. Please add ETHERSCAN_API_KEY to your .env.local file. Get your key from https://etherscan.io/apis'
@@ -121,13 +116,12 @@ export class EtherscanClient {
 
       const transfers = data.result
 
-      if (!Array.isArray(transfers) || transfers.length === 0) {
+      if (!Array.isArray(transfers) || !transfers.length) {
         break
       }
 
       allTransfers.push(...transfers)
 
-      // If we got less than the offset, we've reached the end
       if (transfers.length < offset) {
         break
       }
@@ -135,17 +129,12 @@ export class EtherscanClient {
       page++
     }
 
-    // Additional client-side filtering by timestamp for precision
     let filteredTransfers = allTransfers
 
-    // CRITICAL: Filter to only include transfers TO the recipient
-    // The Etherscan API returns transfers where the address is either sender or receiver
-    // We only want transfers where the recipient is the RECEIVER (to field)
     filteredTransfers = filteredTransfers.filter(
       (t) => t.to.toLowerCase() === recipientAddress.toLowerCase()
     )
 
-    // Also verify the token address matches (should already be filtered by API, but double-check)
     filteredTransfers = filteredTransfers.filter(
       (t) => t.contractAddress.toLowerCase() === tokenAddress.toLowerCase()
     )
@@ -176,7 +165,7 @@ export class EtherscanClient {
     }
 
     try {
-      const response = await axios.get<EtherscanResponse>(ETHERSCAN_API_V2_BASE, {
+      const response = await axios.get<EtherscanResponse<string>>(ETHERSCAN_API_V2_BASE, {
         params: {
           chainid: chainId,
           module: 'block',

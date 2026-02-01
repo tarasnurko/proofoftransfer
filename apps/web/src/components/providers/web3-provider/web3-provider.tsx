@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, cookieToInitialState, type Config } from "wagmi";
 import { createAppKit } from "@reown/appkit/react";
 import { mainnet } from "@reown/appkit/networks";
-import { wagmiConfig, networks, projectId, wagmiAdapter } from "@/config/wagmi";
+import { wagmiConfig, networks, projectId, wagmiAdapter } from "@/config";
 
 const metadata = {
   name: "Proof of Transfer",

@@ -1,5 +1,5 @@
-import AppHeader from '@/components/app-header'
-import { ClaimsList } from '@/components/claims-list'
+import { AppHeader } from '@/components/layout/app-header'
+import { ClaimsList } from '@/components/features/claims/claims-list'
 
 export default function HomePage() {
   return (

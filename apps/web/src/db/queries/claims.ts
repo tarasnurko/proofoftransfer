@@ -1,117 +1,89 @@
 import { db } from '../index'
 import { claims, proofs, tokens } from '../schema'
-import type { NewClaim, Claim } from '../schema'
-import { eq, desc, count, sql, and } from 'drizzle-orm'
+import type { InsertClaimEntity, ClaimEntity } from '../index.types'
+import { eq, desc, count, and } from 'drizzle-orm'
+import { entityOrError, entityOrNull } from '../exceptions'
 
-export async function createClaim(data: NewClaim) {
-  try {
-    const [claim] = await db.insert(claims).values(data).returning()
-    return { success: true, data: claim }
-  } catch (error) {
-    console.error('Error creating claim:', error)
-    return { success: false, error: 'Failed to create claim' }
-  }
+export async function createClaim(data: InsertClaimEntity): Promise<ClaimEntity> {
+  return entityOrError(
+    await db.insert(claims).values(data).returning(),
+    'Failed to create claim'
+  )
 }
 
 export async function getClaims(options?: { limit?: number; offset?: number }) {
-  try {
-    const limit = options?.limit ?? 50
-    const offset = options?.offset ?? 0
+  const limit = options?.limit ?? 50
+  const offset = options?.offset ?? 0
 
-    // Get claims with proof count and token data
-    const result = await db
-      .select({
-        claim: claims,
-        proofCount: count(proofs.id).as('proof_count'),
-        token: tokens,
-      })
-      .from(claims)
-      .leftJoin(proofs, eq(claims.id, proofs.claim_id))
-      .leftJoin(
-        tokens,
-        and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
-      )
-      .groupBy(claims.id, tokens.id)
-      .orderBy(desc(claims.created_at))
-      .limit(limit)
-      .offset(offset)
+  const result = await db
+    .select({
+      claim: claims,
+      proofCount: count(proofs.id).as('proof_count'),
+      token: tokens,
+    })
+    .from(claims)
+    .leftJoin(proofs, eq(claims.id, proofs.claim_id))
+    .leftJoin(
+      tokens,
+      and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+    )
+    .groupBy(claims.id, tokens.id)
+    .orderBy(desc(claims.created_at))
+    .limit(limit)
+    .offset(offset)
 
-    // Get total count
-    const totalResult = await db
-      .select({ total: count(claims.id) })
-      .from(claims)
+  const totalResult = await db
+    .select({ total: count(claims.id) })
+    .from(claims)
 
-    const total = totalResult[0]?.total ?? 0
+  const total = totalResult[0]?.total ?? 0
 
-    return {
-      success: true,
-      data: {
-        claims: result.map((r) => ({
-          ...r.claim,
-          proofCount: Number(r.proofCount),
-          token: r.token,
-        })),
-        total: Number(total),
-      },
-    }
-  } catch (error) {
-    console.error('Error fetching claims:', error)
-    return { success: false, error: 'Failed to fetch claims' }
+  return {
+    claims: result.map((r) => ({
+      ...r.claim,
+      proofCount: Number(r.proofCount),
+      token: r.token,
+    })),
+    total: Number(total),
   }
 }
 
 export async function getClaimById(id: string) {
-  try {
-    const result = await db
-      .select({
-        claim: claims,
-        proofCount: count(proofs.id).as('proof_count'),
-        token: tokens,
-      })
-      .from(claims)
-      .leftJoin(proofs, eq(claims.id, proofs.claim_id))
-      .leftJoin(
-        tokens,
-        and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
-      )
-      .where(eq(claims.id, id))
-      .groupBy(claims.id, tokens.id)
-      .limit(1)
+  const result = await db
+    .select({
+      claim: claims,
+      proofCount: count(proofs.id).as('proof_count'),
+      token: tokens,
+    })
+    .from(claims)
+    .leftJoin(proofs, eq(claims.id, proofs.claim_id))
+    .leftJoin(
+      tokens,
+      and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+    )
+    .where(eq(claims.id, id))
+    .groupBy(claims.id, tokens.id)
+    .limit(1)
 
-    if (result.length === 0) {
-      return { success: true, data: null }
-    }
+  const claimResult = entityOrNull(result)
 
-    const firstResult = result[0]
-    if (!firstResult) {
-      return { success: true, data: null }
-    }
+  if (!claimResult) {
+    return null
+  }
 
-    return {
-      success: true,
-      data: {
-        ...firstResult.claim,
-        proofCount: Number(firstResult.proofCount),
-        token: firstResult.token,
-      },
-    }
-  } catch (error) {
-    console.error('Error fetching claim by id:', error)
-    return { success: false, error: 'Failed to fetch claim' }
+  return {
+    ...claimResult.claim,
+    proofCount: Number(claimResult.proofCount),
+    token: claimResult.token,
   }
 }
 
 export async function getClaimByMessageHash(messageHash: string) {
-  try {
-    const [claim] = await db
+  return entityOrNull(
+    await db
       .select()
       .from(claims)
       .where(eq(claims.message_hash, messageHash))
       .limit(1)
-
-    return { success: true, data: claim ?? null }
-  } catch (error) {
-    console.error('Error fetching claim by message hash:', error)
-    return { success: false, error: 'Failed to fetch claim' }
-  }
+  )
 }
