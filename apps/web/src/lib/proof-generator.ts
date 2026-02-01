@@ -221,7 +221,7 @@ export async function generateClaimProof(
   const claimMessageHashBytes32 = circuitUtils.bigintToBytes32(claimMessageHashBigInt)
 
   // Step 5: Construct message for wallet signature
-  const claimIdBytes32 = claimMessageHashBytes32
+  const claimIdBytes32 = circuitUtils.uuidToBytes32(claimId)
   const tokenAddressBytes32 = circuitUtils.addressToBytes32(tokenAddress)
   const userAddressBytes32 = circuitUtils.addressToBytes32(recipientAddress)
   const merkleTreeRootBytes32 = circuitUtils.bigintToBytes32(merkleRoot)
@@ -234,13 +234,17 @@ export async function generateClaimProof(
   }
 
   // For future EIP-712 support (requires circuit update)
-  const USE_EIP712 = false // Set to true when circuit supports EIP-712
+  const USE_EIP712 = true // Circuit now supports EIP-712 typed data signing
+
+  // Get wallet's chain ID for EIP-712 domain
+  const walletChainId = await walletClient.getChainId()
 
   const messageToSign = circuitUtils.constructClaimMessage({
     claimIdBytes32,
     claimMessageHashBytes32,
     tokenAddressBytes32,
     userAddressBytes32,
+    chainId: BigInt(walletChainId),
     claimConstraints,
     merkleTreeRootBytes32,
   })
@@ -256,13 +260,12 @@ export async function generateClaimProof(
 
   if (USE_EIP712) {
     // EIP-712 Typed Data Signing (for browser wallets)
-    // NOTE: Requires circuit update to verify EIP-712 signatures
-    console.log('🔄 Using EIP-712 typed data signing (requires updated circuit)')
+    console.log('🔄 Using EIP-712 typed data signing')
 
     const domain = {
       name: 'ProofOfTransfer',
       version: '1',
-      chainId: BigInt(claimId), // Use claim chain_id
+      chainId: BigInt(walletChainId), // Use wallet's actual chain ID
       verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
     } as const
 
@@ -345,7 +348,7 @@ export async function generateClaimProof(
       const domain = {
         name: 'ProofOfTransfer',
         version: '1',
-        chainId: BigInt(claimId),
+        chainId: BigInt(walletChainId),
         verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
       } as const
 
@@ -522,6 +525,7 @@ export async function generateClaimProof(
     claim_message_hash: claimMessageHashBytes32,
     token_address: tokenAddress,
     recipient_address: recipientAddress,
+    chain_id: walletChainId.toString(),
     min_transfers_sum: claimConstraints.minTransfersSum.toString(),
     max_transfers_sum: claimConstraints.maxTransfersSum.toString(),
     from_block_timestamp: claimConstraints.fromBlockTimestamp.toString(),

@@ -290,10 +290,12 @@ export const buildCircuitInputs = async (
     claimMessageHashBytes32,
     tokenAddressBytes32,
     userAddressBytes32,
+    chainId: 1n, // Use Ethereum mainnet chain ID for tests
     claimConstraints: constraints,
     merkleTreeRootBytes32,
   });
 
+  // constructClaimMessage now returns the EIP-712 hash, sign it directly
   const sig = signature || (await prover.sign({ hash: hashedMessage }));
 
   const { fullSignature, nullifier: computedNullifier } =
@@ -317,6 +319,7 @@ export const buildCircuitInputs = async (
     claim_message_hash: claimMessageHashBytes32,
     token_address: tokenAddress,
     recipient_address: userAddress,
+    chain_id: "1", // Ethereum mainnet chain ID
     min_transfers_sum: constraints.minTransfersSum.toString(),
     max_transfers_sum: constraints.maxTransfersSum.toString(),
     from_block_timestamp: constraints.fromBlockTimestamp.toString(),

@@ -1,4 +1,4 @@
-import { keccak256, encodePacked, hexToBytes } from "viem";
+import { keccak256, encodePacked, hexToBytes, hashTypedData } from "viem";
 import type { Barretenberg } from "@aztec/bb.js";
 import type { EtherscanERC20Transfer } from "@repo/types";
 
@@ -77,6 +77,7 @@ export const constructClaimMessage = (params: {
   claimMessageHashBytes32: `0x${string}`;
   tokenAddressBytes32: `0x${string}`;
   userAddressBytes32: `0x${string}`;
+  chainId: bigint;
   claimConstraints: ClaimConstraints;
   merkleTreeRootBytes32: `0x${string}`;
 }): `0x${string}` => {
@@ -85,36 +86,57 @@ export const constructClaimMessage = (params: {
     claimMessageHashBytes32,
     tokenAddressBytes32,
     userAddressBytes32,
+    chainId,
     claimConstraints,
     merkleTreeRootBytes32,
   } = params;
 
-  const messageBytes = encodePacked(
-    [
-      "bytes32",
-      "bytes32",
-      "bytes32",
-      "bytes32",
-      "uint128",
-      "uint128",
-      "uint64",
-      "uint64",
-      "bytes32",
-    ],
-    [
-      claimIdBytes32,
-      claimMessageHashBytes32,
-      tokenAddressBytes32,
-      userAddressBytes32,
-      claimConstraints.minTransfersSum,
-      claimConstraints.maxTransfersSum,
-      claimConstraints.fromBlockTimestamp,
-      claimConstraints.toBlockTimestamp,
-      merkleTreeRootBytes32,
-    ],
-  );
+  // Convert bytes32 addresses (32 bytes padded) to 20-byte addresses
+  // bytes32 format: 0x000000000000000000000000<20-byte-address>
+  // Extract last 20 bytes (40 hex chars)
+  const tokenAddress = ('0x' + tokenAddressBytes32.slice(-40)) as `0x${string}`;
+  const recipientAddress = ('0x' + userAddressBytes32.slice(-40)) as `0x${string}`;
 
-  return keccak256(messageBytes);
+  // EIP-712 Typed Data Signing
+  const domain = {
+    name: 'ProofOfTransfer',
+    version: '1',
+    chainId, // Use wallet's actual chain ID
+    verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+  } as const;
+
+  const types = {
+    Claim: [
+      { name: 'claimId', type: 'bytes32' },
+      { name: 'claimMessageHash', type: 'bytes32' },
+      { name: 'tokenAddress', type: 'address' },
+      { name: 'recipientAddress', type: 'address' },
+      { name: 'minTransfersSum', type: 'uint128' },
+      { name: 'maxTransfersSum', type: 'uint128' },
+      { name: 'fromBlockTimestamp', type: 'uint64' },
+      { name: 'toBlockTimestamp', type: 'uint64' },
+      { name: 'transfersRootHash', type: 'bytes32' },
+    ],
+  } as const;
+
+  const message = {
+    claimId: claimIdBytes32,
+    claimMessageHash: claimMessageHashBytes32,
+    tokenAddress,
+    recipientAddress,
+    minTransfersSum: claimConstraints.minTransfersSum,
+    maxTransfersSum: claimConstraints.maxTransfersSum,
+    fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
+    toBlockTimestamp: claimConstraints.toBlockTimestamp,
+    transfersRootHash: merkleTreeRootBytes32,
+  };
+
+  return hashTypedData({
+    domain,
+    types,
+    primaryType: 'Claim',
+    message,
+  });
 };
 
 export const processSignature = async (
