@@ -1,8 +1,8 @@
-import { db } from '../index'
-import { proofs, claims, proof_verifications } from '../schema'
+import { db } from '../client'
+import { proofs, claims, proofVerifications } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
 import { eq, and, desc, count } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../exceptions'
+import { entityOrError, entityOrNull } from '@/exceptions'
 
 export async function createProof(data: InsertProofEntity): Promise<ProofEntity> {
   return entityOrError(
@@ -15,13 +15,13 @@ export async function getProofsByClaimId(claimId: string) {
   const result = await db
     .select({
       proof: proofs,
-      verificationCount: count(proof_verifications.id).as('verification_count'),
+      verificationCount: count(proofVerifications.id),
     })
     .from(proofs)
-    .leftJoin(proof_verifications, eq(proofs.id, proof_verifications.proof_id))
-    .where(eq(proofs.claim_id, claimId))
+    .leftJoin(proofVerifications, eq(proofs.id, proofVerifications.proofId))
+    .where(eq(proofs.claimId, claimId))
     .groupBy(proofs.id)
-    .orderBy(desc(proofs.created_at))
+    .orderBy(desc(proofs.createdAt))
 
   return result.map((r) => ({
     ...r.proof,
@@ -36,7 +36,7 @@ export async function getProofById(id: string) {
       claim: claims,
     })
     .from(proofs)
-    .innerJoin(claims, eq(proofs.claim_id, claims.id))
+    .innerJoin(claims, eq(proofs.claimId, claims.id))
     .where(eq(proofs.id, id))
     .limit(1)
 
@@ -56,7 +56,7 @@ export async function checkNullifierExists(claimId: string, nullifier: string): 
   const result = await db
     .select({ id: proofs.id })
     .from(proofs)
-    .where(and(eq(proofs.claim_id, claimId), eq(proofs.nullifier, nullifier)))
+    .where(and(eq(proofs.claimId, claimId), eq(proofs.nullifier, nullifier)))
     .limit(1)
 
   return !!entityOrNull(result)

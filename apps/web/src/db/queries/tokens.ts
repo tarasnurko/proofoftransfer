@@ -1,8 +1,8 @@
-import { db } from '../index'
+import { db } from '../client'
 import { tokens } from '../schema'
 import type { InsertTokenEntity, TokenEntity } from '../index.types'
 import { eq, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../exceptions'
+import { entityOrError, entityOrNull } from '@/exceptions'
 
 export async function createToken(data: InsertTokenEntity): Promise<TokenEntity> {
   return entityOrError(
@@ -10,7 +10,7 @@ export async function createToken(data: InsertTokenEntity): Promise<TokenEntity>
       .insert(tokens)
       .values(data)
       .onConflictDoUpdate({
-        target: [tokens.address, tokens.chain_id],
+        target: [tokens.address, tokens.chainId],
         set: {
           name: data.name,
           symbol: data.symbol,
@@ -27,7 +27,7 @@ export async function getTokenByAddressAndChain(address: string, chainId: number
     await db
       .select()
       .from(tokens)
-      .where(and(eq(tokens.address, address.toLowerCase()), eq(tokens.chain_id, chainId)))
+      .where(and(eq(tokens.address, address.toLowerCase()), eq(tokens.chainId, chainId)))
       .limit(1)
   )
 }

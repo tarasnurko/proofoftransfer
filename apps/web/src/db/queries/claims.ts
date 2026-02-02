@@ -1,8 +1,8 @@
-import { db } from '../index'
+import { db } from '../client'
 import { claims, proofs, tokens } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
 import { eq, desc, count, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../exceptions'
+import { entityOrError, entityOrNull } from '@/exceptions'
 
 export async function createClaim(data: InsertClaimEntity): Promise<ClaimEntity> {
   return entityOrError(
@@ -18,17 +18,17 @@ export async function getClaims(options?: { limit?: number; offset?: number }) {
   const result = await db
     .select({
       claim: claims,
-      proofCount: count(proofs.id).as('proof_count'),
+      proofCount: count(proofs.id),
       token: tokens,
     })
     .from(claims)
-    .leftJoin(proofs, eq(claims.id, proofs.claim_id))
+    .leftJoin(proofs, eq(claims.id, proofs.claimId))
     .leftJoin(
       tokens,
-      and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+      and(eq(claims.tokenAddress, tokens.address), eq(claims.chainId, tokens.chainId))
     )
     .groupBy(claims.id, tokens.id)
-    .orderBy(desc(claims.created_at))
+    .orderBy(desc(claims.createdAt))
     .limit(limit)
     .offset(offset)
 
@@ -52,14 +52,14 @@ export async function getClaimById(id: string) {
   const result = await db
     .select({
       claim: claims,
-      proofCount: count(proofs.id).as('proof_count'),
+      proofCount: count(proofs.id),
       token: tokens,
     })
     .from(claims)
-    .leftJoin(proofs, eq(claims.id, proofs.claim_id))
+    .leftJoin(proofs, eq(claims.id, proofs.claimId))
     .leftJoin(
       tokens,
-      and(eq(claims.token_address, tokens.address), eq(claims.chain_id, tokens.chain_id))
+      and(eq(claims.tokenAddress, tokens.address), eq(claims.chainId, tokens.chainId))
     )
     .where(eq(claims.id, id))
     .groupBy(claims.id, tokens.id)
@@ -83,7 +83,7 @@ export async function getClaimByMessageHash(messageHash: string) {
     await db
       .select()
       .from(claims)
-      .where(eq(claims.message_hash, messageHash))
+      .where(eq(claims.messageHash, messageHash))
       .limit(1)
   )
 }

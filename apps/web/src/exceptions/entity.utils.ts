@@ -1,12 +1,5 @@
 import type { Nullable } from '@/types'
-
-export class EntityNotFoundException extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'EntityNotFoundException'
-    Object.setPrototypeOf(this, EntityNotFoundException.prototype)
-  }
-}
+import { EntityNotFoundException } from './not-found.exception'
 
 export function entityOrError<T>(
   entity: Nullable<T> | T[],

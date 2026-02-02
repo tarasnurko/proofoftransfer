@@ -1,13 +1,13 @@
-import { db } from '../index'
-import { proof_verifications } from '../schema'
+import { db } from '../client'
+import { proofVerifications } from '../schema'
 import type { InsertProofVerificationEntity, ProofVerificationEntity } from '../index.types'
-import { eq, desc, count, sql } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../exceptions'
+import { eq, and, desc, count } from 'drizzle-orm'
+import { entityOrError, entityOrNull } from '@/exceptions'
 
 export async function createVerification(data: InsertProofVerificationEntity): Promise<ProofVerificationEntity> {
   return entityOrError(
     await db
-      .insert(proof_verifications)
+      .insert(proofVerifications)
       .values(data)
       .returning(),
     'Failed to create verification'
@@ -17,31 +17,31 @@ export async function createVerification(data: InsertProofVerificationEntity): P
 export async function getVerificationsByProofId(proofId: string) {
   return db
     .select()
-    .from(proof_verifications)
-    .where(eq(proof_verifications.proof_id, proofId))
-    .orderBy(desc(proof_verifications.verified_at))
+    .from(proofVerifications)
+    .where(eq(proofVerifications.proofId, proofId))
+    .orderBy(desc(proofVerifications.verifiedAt))
 }
 
 export async function getVerificationStats(proofId: string) {
-  const statsResult = await db
-    .select({
-      total: count(proof_verifications.id).as('total'),
-      successful: count(
-        sql`CASE WHEN ${proof_verifications.is_valid} = true THEN 1 END`
-      ).as('successful'),
-      failed: count(
-        sql`CASE WHEN ${proof_verifications.is_valid} = false THEN 1 END`
-      ).as('failed'),
-    })
-    .from(proof_verifications)
-    .where(eq(proof_verifications.proof_id, proofId))
-
-  const stats = statsResult[0]
+  const [totalResult, successfulResult, failedResult] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(proofVerifications)
+      .where(eq(proofVerifications.proofId, proofId)),
+    db
+      .select({ count: count() })
+      .from(proofVerifications)
+      .where(and(eq(proofVerifications.proofId, proofId), eq(proofVerifications.isValid, true))),
+    db
+      .select({ count: count() })
+      .from(proofVerifications)
+      .where(and(eq(proofVerifications.proofId, proofId), eq(proofVerifications.isValid, false))),
+  ])
 
   return {
-    total: stats ? Number(stats.total) : 0,
-    successful: stats ? Number(stats.successful) : 0,
-    failed: stats ? Number(stats.failed) : 0,
+    total: totalResult[0]?.count ?? 0,
+    successful: successfulResult[0]?.count ?? 0,
+    failed: failedResult[0]?.count ?? 0,
   }
 }
 
@@ -49,9 +49,9 @@ export async function getLatestVerification(proofId: string) {
   return entityOrNull(
     await db
       .select()
-      .from(proof_verifications)
-      .where(eq(proof_verifications.proof_id, proofId))
-      .orderBy(desc(proof_verifications.verified_at))
+      .from(proofVerifications)
+      .where(eq(proofVerifications.proofId, proofId))
+      .orderBy(desc(proofVerifications.verifiedAt))
       .limit(1)
   )
 }

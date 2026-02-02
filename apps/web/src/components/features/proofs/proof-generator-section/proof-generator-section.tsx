@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, LoadingState } from '@/components/ui'
+import { useAction } from 'next-safe-action/hooks'
+import { Button } from '@/components/ui'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchTransfersAction, submitProofAction } from '@/actions'
@@ -13,25 +14,12 @@ import { generateClaimProof } from '@/lib/proof-generator'
 import { verifyProofClient, hexToUint8Array } from '@/lib/proof-verifier'
 import { formatAddress } from '@/utils/format'
 import { LABEL_UPPERCASE } from '@/constants/styles'
-
-type Claim = {
-  id: string
-  message: string
-  message_hash: string
-  token_address: string
-  recipient_address: string
-  min_transfers_sum: string
-  max_transfers_sum: string
-  from_block_timestamp: number
-  to_block_timestamp: number
-  chain_id: number
-  created_at: string
-}
+import type { ClaimEntity } from '@/db/index.types'
 
 type TransferFilter = 'all' | 'mine'
 
 interface ProofGeneratorSectionProps {
-  claim: Claim
+  claim: ClaimEntity
 }
 
 export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
@@ -42,38 +30,54 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
   const [mounted, setMounted] = useState(false)
   const [allTransfers, setAllTransfers] = useState<EtherscanERC20Transfer[]>([])
   const [transferFilter, setTransferFilter] = useState<TransferFilter>('all')
-  const [isFetchingTransfers, setIsFetchingTransfers] = useState(false)
   const [isGeneratingProof, setIsGeneratingProof] = useState(false)
   const [proof, setProof] = useState<string | null>(null)
   const [nullifier, setNullifier] = useState<string | null>(null)
   const [transfersRootHash, setTransfersRootHash] = useState<string | null>(null)
   const [proofPublicInputs, setProofPublicInputs] = useState<any>(null)
 
+  const { execute: fetchTransfers, isPending: isFetchingTransfers } = useAction(fetchTransfersAction, {
+    onSuccess: ({ data }) => {
+      if (data?.transfers) {
+        setAllTransfers(data.transfers)
+        toast.success(`Found ${data.transfers.length} matching transfers`)
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError || 'Failed to fetch transfers')
+    },
+  })
+
+  const { execute: submitProof } = useAction(submitProofAction, {
+    onSuccess: () => {
+      toast.success('Proof submitted successfully!')
+      router.refresh()
+      setProof(null)
+      setNullifier(null)
+      setTransfersRootHash(null)
+      setProofPublicInputs(null)
+      setAllTransfers([])
+    },
+    onError: ({ error }) => {
+      const fieldErrors = error.validationErrors?.fieldErrors
+      const errorMsg = fieldErrors?.nullifier?.[0]
+        || fieldErrors?.claimId?.[0]
+        || error.serverError
+        || 'Failed to submit proof'
+      toast.error(errorMsg)
+    },
+  })
+
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const handleFetchTransfers = async () => {
+  const handleFetchTransfers = () => {
     if (!walletAddress) {
       toast.error('Please connect your wallet first')
       return
     }
-
-    setIsFetchingTransfers(true)
-    try {
-      const result = await fetchTransfersAction(claim.id)
-
-      if (result.success && result.transfers) {
-        setAllTransfers(result.transfers)
-        toast.success(`Found ${result.transfers.length} matching transfers`)
-      } else {
-        toast.error(result.error || 'Failed to fetch transfers')
-      }
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch transfers')
-    } finally {
-      setIsFetchingTransfers(false)
-    }
+    fetchTransfers({ claimId: claim.id })
   }
 
   const getProverAddress = () => walletAddress || ''
@@ -121,23 +125,20 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
       const result = await generateClaimProof({
         claimId: claim.id,
         claimMessage: claim.message,
-        tokenAddress: claim.token_address,
-        recipientAddress: claim.recipient_address,
-        minTransfersSum: claim.min_transfers_sum,
-        maxTransfersSum: claim.max_transfers_sum,
-        fromBlockTimestamp: claim.from_block_timestamp,
-        toBlockTimestamp: claim.to_block_timestamp,
+        tokenAddress: claim.tokenAddress,
+        recipientAddress: claim.recipientAddress,
+        minTransfersSum: claim.minTransfersSum,
+        maxTransfersSum: claim.maxTransfersSum,
+        fromBlockTimestamp: claim.fromBlockTimestamp,
+        toBlockTimestamp: claim.toBlockTimestamp,
         allTransfers: allTransfers,
         proverAddress: prover,
         walletClient: walletClient,
       })
 
-      // Verify the proof before accepting it
       toast.info('Verifying proof...')
 
       const proofBytes = hexToUint8Array(result.proofData)
-
-      // Use the actual public inputs from Noir (all 11 of them)
       const isValid = await verifyProofClient(proofBytes, result.publicInputs)
 
       if (!isValid) {
@@ -159,33 +160,16 @@ export function ProofGeneratorSection({ claim }: ProofGeneratorSectionProps) {
     }
   }
 
-  const handleSubmitProof = async () => {
+  const handleSubmitProof = () => {
     if (!proof || !nullifier || !transfersRootHash || !proofPublicInputs) return
 
-    try {
-      const result = await submitProofAction({
-        claimId: claim.id,
-        nullifier: nullifier,
-        proofData: proof,
-        publicInputs: proofPublicInputs,
-        transfersRootHash: transfersRootHash,
-      })
-
-      if (result.success) {
-        toast.success('Proof submitted successfully!')
-        router.refresh()
-        // Reset state
-        setProof(null)
-        setNullifier(null)
-        setTransfersRootHash(null)
-        setProofPublicInputs(null)
-        setAllTransfers([])
-      } else {
-        toast.error(result.error || 'Failed to submit proof')
-      }
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'An error occurred')
-    }
+    submitProof({
+      claimId: claim.id,
+      nullifier: nullifier,
+      proofData: proof,
+      publicInputs: proofPublicInputs,
+      transfersRootHash: transfersRootHash,
+    })
   }
 
   return (

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useAction } from 'next-safe-action/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,12 +22,19 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import { createClaimSchema, type CreateClaimInput } from '@/lib/validations/claim'
 import { createClaimAction } from '@/actions'
 import { ChainId } from '@repo/types'
-import { useAccount } from 'wagmi'
 
 export function CreateClaimForm() {
   const router = useRouter()
-  const { address, isConnected } = useAccount()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const { execute, isPending } = useAction(createClaimAction, {
+    onSuccess: () => {
+      toast.success('Claim created successfully!')
+      router.push('/')
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError || 'Failed to create claim')
+    },
+  })
 
   const {
     register,
@@ -46,23 +53,8 @@ export function CreateClaimForm() {
     },
   })
 
-  const onSubmit = async (data: CreateClaimInput) => {
-    setIsSubmitting(true)
-
-    try {
-      const result = await createClaimAction(data)
-
-      if (result.success) {
-        toast.success('Claim created successfully!')
-        router.push('/')
-      } else {
-        toast.error(result.error || 'Failed to create claim')
-      }
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred')
-    } finally {
-      setIsSubmitting(false)
-    }
+  const onSubmit = (data: CreateClaimInput) => {
+    execute(data)
   }
 
   return (
@@ -255,7 +247,7 @@ export function CreateClaimForm() {
           <Button
             type="button"
             variant="outline"
-            disabled={isSubmitting}
+            disabled={isPending}
             className="border-2 border-foreground bg-background px-8 py-6 font-bold uppercase hover:bg-foreground hover:text-background"
           >
             Cancel
@@ -263,10 +255,10 @@ export function CreateClaimForm() {
         </Link>
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className="border-2 border-foreground bg-accent px-8 py-6 font-bold uppercase text-accent-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
         >
-          {isSubmitting ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Creating...

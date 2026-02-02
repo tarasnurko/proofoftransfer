@@ -1,58 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { useQuery } from '@tanstack/react-query'
 import { Button, LoadingState, ErrorState, EmptyState } from '@/components/ui'
 import { ArrowRight } from 'lucide-react'
-import { getClaimsAction } from '@/actions'
+import { QUERY_KEYS, fetchClaims } from '@/lib/queries'
 import { formatAddress, formatTimestamp } from '@/utils/format'
 import { getChainName } from '@/utils/blockchain.utils'
-import { toast } from 'sonner'
-import type { SerializedClaimWithMeta } from '@/types/claims'
-
-type Claim = SerializedClaimWithMeta
 
 export function ClaimsList() {
-  const [claims, setClaims] = useState<Claim[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isPending, error } = useQuery({
+    queryKey: QUERY_KEYS.claims.list(),
+    queryFn: fetchClaims,
+  })
 
-  useEffect(() => {
-    async function loadClaims() {
-      try {
-        setLoading(true)
-        const result = await getClaimsAction()
-
-        if (result.success && result.data) {
-          setClaims(result.data)
-          setError(null)
-        } else {
-          const errorMessage = result.error || 'Failed to load claims'
-          setError(errorMessage)
-          toast.error(errorMessage)
-        }
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-        setError(errorMessage)
-        toast.error(errorMessage)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadClaims()
-  }, [])
-
-  if (loading) {
+  if (isPending) {
     return <LoadingState message="Loading claims..." />
   }
 
   if (error) {
-    return <ErrorState error={error} />
+    return <ErrorState error={error.message} />
   }
 
-  if (!claims || !claims.length) {
+  const claims = data?.data
+
+  if (!claims?.length) {
     return (
       <EmptyState
         title="NO CLAIMS YET"
@@ -80,7 +53,7 @@ export function ClaimsList() {
               <div className="mb-2 flex items-center gap-4 font-mono text-sm text-muted-foreground">
                 <span>ID: {formatAddress(claim.id)}</span>
                 <span>•</span>
-                <span>{format(new Date(claim.created_at), 'MMM d, yyyy')}</span>
+                <span>{format(new Date(claim.createdAt), 'MMM d, yyyy')}</span>
               </div>
               <h3 className="text-xl font-bold text-foreground">{claim.message}</h3>
             </div>
@@ -95,7 +68,7 @@ export function ClaimsList() {
           <div className="mb-4 grid gap-4 font-mono text-sm md:grid-cols-3">
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">Chain</div>
-              <div className="mt-1 text-foreground">{getChainName(claim.chain_id)}</div>
+              <div className="mt-1 text-foreground">{getChainName(claim.chainId)}</div>
             </div>
             <div>
               <div className="font-bold uppercase tracking-wide text-muted-foreground">Token</div>
@@ -105,7 +78,7 @@ export function ClaimsList() {
                     {claim.token.name} ({claim.token.symbol})
                   </>
                 ) : (
-                  formatAddress(claim.token_address)
+                  formatAddress(claim.tokenAddress)
                 )}
               </div>
             </div>
@@ -113,7 +86,7 @@ export function ClaimsList() {
               <div className="font-bold uppercase tracking-wide text-muted-foreground">
                 Recipient
               </div>
-              <div className="mt-1 text-foreground">{formatAddress(claim.recipient_address)}</div>
+              <div className="mt-1 text-foreground">{formatAddress(claim.recipientAddress)}</div>
             </div>
           </div>
 
@@ -123,8 +96,8 @@ export function ClaimsList() {
                 Amount Range
               </div>
               <div className="mt-1 text-foreground">
-                {claim.min_transfers_sum === '0' ? 'No min' : claim.min_transfers_sum} -{' '}
-                {claim.max_transfers_sum === '0' ? 'No max' : claim.max_transfers_sum}
+                {claim.minTransfersSum === '0' ? 'No min' : claim.minTransfersSum} -{' '}
+                {claim.maxTransfersSum === '0' ? 'No max' : claim.maxTransfersSum}
               </div>
             </div>
             <div>
@@ -132,8 +105,8 @@ export function ClaimsList() {
                 Time Range
               </div>
               <div className="mt-1 text-foreground">
-                {formatTimestamp(claim.from_block_timestamp)} →{' '}
-                {formatTimestamp(claim.to_block_timestamp)}
+                {formatTimestamp(claim.fromBlockTimestamp)} →{' '}
+                {formatTimestamp(claim.toBlockTimestamp)}
               </div>
             </div>
           </div>

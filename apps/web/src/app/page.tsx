@@ -1,7 +1,16 @@
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query'
 import { AppHeader } from '@/components/layout/app-header'
 import { ClaimsList } from '@/components/features/claims/claims-list'
+import { QUERY_KEYS, fetchClaims } from '@/lib/queries'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const queryClient = new QueryClient()
+
+  await queryClient.prefetchQuery({
+    queryKey: QUERY_KEYS.claims.list(),
+    queryFn: fetchClaims,
+  })
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -17,7 +26,9 @@ export default function HomePage() {
             </p>
           </div>
 
-          <ClaimsList />
+          <HydrationBoundary state={dehydrate(queryClient)}>
+            <ClaimsList />
+          </HydrationBoundary>
         </div>
       </main>
     </div>

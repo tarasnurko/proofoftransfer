@@ -69,12 +69,12 @@ export type CreateClaimInput = z.infer<typeof createClaimSchema>
 export function transformClaimFormData(data: CreateClaimInput) {
   return {
     message: data.claimMessage,
-    token_address: data.tokenAddress,
-    recipient_address: data.recipientAddress,
-    min_transfers_sum: data.minTransfersSum,
-    max_transfers_sum: data.maxTransfersSum,
-    from_block_timestamp: data.fromDate instanceof Date ? Math.floor(data.fromDate.getTime() / 1000) : 0,
-    to_block_timestamp: data.toDate instanceof Date ? Math.floor(data.toDate.getTime() / 1000) : 0,
-    chain_id: data.chainId,
+    tokenAddress: data.tokenAddress,
+    recipientAddress: data.recipientAddress,
+    minTransfersSum: data.minTransfersSum,
+    maxTransfersSum: data.maxTransfersSum,
+    fromBlockTimestamp: data.fromDate instanceof Date ? Math.floor(data.fromDate.getTime() / 1000) : 0,
+    toBlockTimestamp: data.toDate instanceof Date ? Math.floor(data.toDate.getTime() / 1000) : 0,
+    chainId: data.chainId,
   }
 }

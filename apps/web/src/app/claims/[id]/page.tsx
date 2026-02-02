@@ -1,37 +1,48 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { format } from "date-fns";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getClaimByIdAction } from "@/actions";
-import { ProofsList } from "@/components/features/proofs/proofs-list";
-import { ProofGeneratorSection } from "@/components/features/proofs/proof-generator-section";
-import { AppHeader } from "@/components/layout/app-header";
-import { formatAddress } from "@/utils/format";
-import { getChainName, getBlockExplorerUrl } from "@/utils/blockchain.utils";
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { format } from 'date-fns'
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ProofsList } from '@/components/features/proofs/proofs-list'
+import { ProofGeneratorSection } from '@/components/features/proofs/proof-generator-section'
+import { AppHeader } from '@/components/layout/app-header'
+import { formatAddress } from '@/utils/format'
+import { getChainName, getBlockExplorerUrl } from '@/utils/blockchain.utils'
+import { QUERY_KEYS, fetchClaimById, fetchProofsByClaimId } from '@/lib/queries'
 
 function formatFullAddress(address: string): string {
-  return address;
+  return address
 }
 
 function formatTimestamp(timestamp: number): string {
-  if (timestamp === 0) return "No constraint";
-  return format(new Date(timestamp * 1000), "PPpp");
+  if (timestamp === 0) return 'No constraint'
+  return format(new Date(timestamp * 1000), 'PPpp')
 }
 
 export default async function ClaimDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
-  const result = await getClaimByIdAction(id);
+  const { id } = await params
+  const queryClient = new QueryClient()
 
-  if (!result.success || !result.data) {
-    notFound();
+  await queryClient.prefetchQuery({
+    queryKey: QUERY_KEYS.claims.detail(id),
+    queryFn: () => fetchClaimById(id),
+  })
+
+  const claim = queryClient.getQueryData(QUERY_KEYS.claims.detail(id)) as Awaited<ReturnType<typeof fetchClaimById>>
+
+  if (!claim) {
+    notFound()
   }
 
-  const claim = result.data;
+  await queryClient.prefetchQuery({
+    queryKey: QUERY_KEYS.proofs.byClaimId(id),
+    queryFn: () => fetchProofsByClaimId(id),
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,22 +101,22 @@ export default async function ClaimDetailPage({
                         {claim.token.name} ({claim.token.symbol})
                       </div>
                       <a
-                        href={`${getBlockExplorerUrl(claim.chain_id)}/address/${claim.token_address}`}
+                        href={`${getBlockExplorerUrl(claim.chainId)}/address/${claim.tokenAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block break-all text-accent hover:underline"
                       >
-                        {formatFullAddress(claim.token_address)}
+                        {formatFullAddress(claim.tokenAddress)}
                       </a>
                     </div>
                   ) : (
                     <a
-                      href={`${getBlockExplorerUrl(claim.chain_id)}/address/${claim.token_address}`}
+                      href={`${getBlockExplorerUrl(claim.chainId)}/address/${claim.tokenAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1 block break-all text-accent hover:underline"
                     >
-                      {formatFullAddress(claim.token_address)}
+                      {formatFullAddress(claim.tokenAddress)}
                     </a>
                   )}
                 </div>
@@ -116,12 +127,12 @@ export default async function ClaimDetailPage({
                     Recipient
                   </div>
                   <a
-                    href={`${getBlockExplorerUrl(claim.chain_id)}/address/${claim.recipient_address}`}
+                    href={`${getBlockExplorerUrl(claim.chainId)}/address/${claim.recipientAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-1 block break-all text-accent hover:underline"
                   >
-                    {formatFullAddress(claim.recipient_address)}
+                    {formatFullAddress(claim.recipientAddress)}
                   </a>
                 </div>
 
@@ -131,7 +142,7 @@ export default async function ClaimDetailPage({
                     Chain
                   </div>
                   <div className="mt-1 text-foreground">
-                    {getChainName(claim.chain_id)}
+                    {getChainName(claim.chainId)}
                   </div>
                 </div>
 
@@ -141,7 +152,7 @@ export default async function ClaimDetailPage({
                     Created
                   </div>
                   <div className="mt-1 text-foreground">
-                    {format(new Date(claim.created_at), "PPpp")}
+                    {format(new Date(claim.createdAt), 'PPpp')}
                   </div>
                 </div>
 
@@ -151,9 +162,9 @@ export default async function ClaimDetailPage({
                     Amount Range
                   </div>
                   <div className="mt-1 text-foreground">
-                    Min: {claim.min_transfers_sum === "0" ? "No constraint" : claim.min_transfers_sum}
+                    Min: {claim.minTransfersSum === '0' ? 'No constraint' : claim.minTransfersSum}
                     <br />
-                    Max: {claim.max_transfers_sum === "0" ? "No constraint" : claim.max_transfers_sum}
+                    Max: {claim.maxTransfersSum === '0' ? 'No constraint' : claim.maxTransfersSum}
                   </div>
                 </div>
 
@@ -163,9 +174,9 @@ export default async function ClaimDetailPage({
                     Time Range
                   </div>
                   <div className="mt-1 text-foreground">
-                    From: {formatTimestamp(claim.from_block_timestamp)}
+                    From: {formatTimestamp(claim.fromBlockTimestamp)}
                     <br />
-                    To: {formatTimestamp(claim.to_block_timestamp)}
+                    To: {formatTimestamp(claim.toBlockTimestamp)}
                   </div>
                 </div>
 
@@ -175,7 +186,7 @@ export default async function ClaimDetailPage({
                     Message Hash (Poseidon2)
                   </div>
                   <div className="mt-1 break-all text-foreground">
-                    {claim.message_hash}
+                    {claim.messageHash}
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Used as claim_id in ZK circuit
@@ -197,10 +208,12 @@ export default async function ClaimDetailPage({
             </div>
 
             {/* Proofs Section */}
-            <ProofsList claimId={claim.id} />
+            <HydrationBoundary state={dehydrate(queryClient)}>
+              <ProofsList claimId={claim.id} />
+            </HydrationBoundary>
           </div>
         </div>
       </main>
     </div>
-  );
+  )
 }
