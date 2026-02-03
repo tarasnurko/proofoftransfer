@@ -87,3 +87,10 @@ export async function getClaimByMessageHash(messageHash: string) {
       .limit(1)
   )
 }
+
+export async function updateClaimMerkleRoot(
+  claimId: string,
+  merkleRoot: string
+): Promise<void> {
+  await db.update(claims).set({ merkleRoot }).where(eq(claims.id, claimId))
+}

@@ -1,7 +1,7 @@
 import { db } from '../client'
 import { proofs, claims, proofVerifications } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
-import { eq, and, desc, count } from 'drizzle-orm'
+import { eq, and, desc, count, sql } from 'drizzle-orm'
 import { entityOrError, entityOrNull } from '@/exceptions'
 
 export async function createProof(data: InsertProofEntity): Promise<ProofEntity> {
@@ -60,4 +60,34 @@ export async function checkNullifierExists(claimId: string, nullifier: string): 
     .limit(1)
 
   return !!entityOrNull(result)
+}
+
+export async function getProofCountsByNullifier(claimId: string) {
+  const result = await db
+    .select({
+      nullifier: proofs.nullifier,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(proofs)
+    .where(eq(proofs.claimId, claimId))
+    .groupBy(proofs.nullifier)
+
+  return result
+}
+
+export async function getProofsByNullifier(nullifier: string) {
+  const result = await db
+    .select({
+      proof: proofs,
+      claim: claims,
+    })
+    .from(proofs)
+    .innerJoin(claims, eq(proofs.claimId, claims.id))
+    .where(eq(proofs.nullifier, nullifier))
+    .orderBy(desc(proofs.createdAt))
+
+  return result.map((r) => ({
+    ...r.proof,
+    claim: r.claim,
+  }))
 }

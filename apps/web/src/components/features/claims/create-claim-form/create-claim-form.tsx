@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
@@ -20,11 +21,16 @@ import {
 } from '@/components/ui/select'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { createClaimSchema, type CreateClaimInput } from '@/lib/validations/claim'
-import { createClaimAction } from '@/actions'
+import { createClaimAction, fetchAndStoreTokenDataAction } from '@/actions'
 import { ChainId } from '@repo/types'
+import { useDebounce } from '@/hooks/use-debounce'
+import type { TokenEntity } from '@/db/index.types'
 
 export function CreateClaimForm() {
   const router = useRouter()
+  const [tokenAddress, setTokenAddress] = useState('')
+  const [tokenData, setTokenData] = useState<TokenEntity | null>(null)
+  const debouncedTokenAddress = useDebounce(tokenAddress, 500)
 
   const { execute, isPending } = useAction(createClaimAction, {
     onSuccess: () => {
@@ -36,10 +42,25 @@ export function CreateClaimForm() {
     },
   })
 
+  const { execute: fetchToken, isPending: isFetchingToken } = useAction(
+    fetchAndStoreTokenDataAction,
+    {
+      onSuccess: ({ data }) => {
+        if (data?.data) {
+          setTokenData(data.data)
+        }
+      },
+      onError: () => {
+        setTokenData(null)
+      },
+    }
+  )
+
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<CreateClaimInput>({
     resolver: zodResolver(createClaimSchema),
@@ -52,6 +73,18 @@ export function CreateClaimForm() {
       chainId: ChainId.BASE,
     },
   })
+
+  useEffect(() => {
+    if (debouncedTokenAddress && /^0x[a-fA-F0-9]{40}$/.test(debouncedTokenAddress)) {
+      const chainId = watch('chainId')
+      fetchToken({
+        tokenAddress: debouncedTokenAddress,
+        chainId: chainId,
+      })
+    } else {
+      setTokenData(null)
+    }
+  }, [debouncedTokenAddress, watch, fetchToken])
 
   const onSubmit = (data: CreateClaimInput) => {
     execute(data)
@@ -123,15 +156,33 @@ export function CreateClaimForm() {
               <Label htmlFor="tokenAddress" className="text-sm font-bold uppercase tracking-wide">
                 Token Address
               </Label>
-              <Input
-                id="tokenAddress"
-                type="text"
-                placeholder="0x..."
-                {...register('tokenAddress')}
-                className="border-2 border-foreground bg-background font-mono text-sm focus:border-accent focus:ring-0"
-              />
+              <div className="relative">
+                <Input
+                  id="tokenAddress"
+                  type="text"
+                  placeholder="0x..."
+                  {...register('tokenAddress')}
+                  onChange={(e) => {
+                    register('tokenAddress').onChange(e)
+                    setTokenAddress(e.target.value)
+                  }}
+                  className="border-2 border-foreground bg-background font-mono text-sm focus:border-accent focus:ring-0"
+                />
+                {isFetchingToken && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               {errors.tokenAddress && (
                 <p className="text-sm text-red-500">{errors.tokenAddress.message}</p>
+              )}
+              {tokenData && (
+                <div className="rounded border-2 border-accent bg-accent/10 px-3 py-2">
+                  <p className="font-mono text-sm font-bold">
+                    {tokenData.name} ({tokenData.symbol})
+                  </p>
+                </div>
               )}
             </div>
             <div className="space-y-3">

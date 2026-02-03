@@ -10,6 +10,7 @@ import { createProof, checkNullifierExists, getProofById } from '@/db/queries/pr
 import { createVerification } from '@/db/queries/verifications'
 import { EtherscanClient } from '@/lib/etherscan'
 import type { InsertProofEntity } from '@/db/index.types'
+import { verifyProofServer } from '@/lib/proof-verifier-server'
 
 const proofIdSchema = z.object({
   id: z.string().uuid('Invalid ID format'),
@@ -83,19 +84,30 @@ export const verifyProofAction = actionClient
       throw new Error('Proof not found')
     }
 
-    // Note: Proof verification is done client-side using Noir.js before submission
-    // This action records the verification result for tracking purposes
-    const isValid = true
+    const claim = await getClaimById(proof.claimId)
+    if (!claim) {
+      throw new Error('Claim not found')
+    }
+
+    const verification = await verifyProofServer({
+      proofData: proof.proofData,
+      publicInputs: proof.publicInputs as string[],
+      claimId: claim.id,
+      transfersRootHash: proof.transfersRootHash,
+    })
+
+    const isValid = verification.isValid
+    const errorMessage = verification.error
 
     try {
       await createVerification({
         proofId: proofId,
         isValid: isValid,
-        errorMessage: null,
+        errorMessage: errorMessage || null,
       })
     } catch (err) {
       console.error('Failed to record verification:', err)
     }
 
-    return { isValid }
+    return { isValid, error: errorMessage }
   })

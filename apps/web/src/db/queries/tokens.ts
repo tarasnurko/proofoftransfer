@@ -1,6 +1,7 @@
 import { db } from '../client'
 import { tokens } from '../schema'
 import type { InsertTokenEntity, TokenEntity } from '../index.types'
+import type { Nullable } from '@/types'
 import { eq, and } from 'drizzle-orm'
 import { entityOrError, entityOrNull } from '@/exceptions'
 
@@ -22,7 +23,10 @@ export async function createToken(data: InsertTokenEntity): Promise<TokenEntity>
   )
 }
 
-export async function getTokenByAddressAndChain(address: string, chainId: number) {
+export async function getTokenByAddressAndChain(
+  address: string,
+  chainId: number
+): Promise<Nullable<TokenEntity>> {
   return entityOrNull(
     await db
       .select()
