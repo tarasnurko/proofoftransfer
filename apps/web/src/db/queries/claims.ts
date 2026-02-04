@@ -1,12 +1,13 @@
-import { db } from '../client'
+import { db, type DB } from '../client'
 import { claims, proofs, tokens } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
 import { eq, desc, count, and } from 'drizzle-orm'
 import { entityOrError, entityOrNull } from '@/exceptions'
 
-export async function createClaim(data: InsertClaimEntity): Promise<ClaimEntity> {
+export async function createClaim(data: InsertClaimEntity, tx?: DB): Promise<ClaimEntity> {
+  const dbInstance = tx ?? db
   return entityOrError(
-    await db.insert(claims).values(data).returning(),
+    await dbInstance.insert(claims).values(data).returning(),
     'Failed to create claim'
   )
 }
@@ -90,7 +91,9 @@ export async function getClaimByMessageHash(messageHash: string) {
 
 export async function updateClaimMerkleRoot(
   claimId: string,
-  merkleRoot: string
+  merkleRoot: string,
+  tx?: DB
 ): Promise<void> {
-  await db.update(claims).set({ merkleRoot }).where(eq(claims.id, claimId))
+  const dbInstance = tx ?? db
+  await dbInstance.update(claims).set({ merkleRoot }).where(eq(claims.id, claimId))
 }

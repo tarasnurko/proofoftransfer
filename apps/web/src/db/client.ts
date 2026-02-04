@@ -1,4 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
 
@@ -14,3 +15,6 @@ const conn = globalForDb.conn ?? postgres(process.env.DATABASE_URL)
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn
 
 export const db = drizzle(conn, { schema, casing: 'camelCase' })
+
+export type Schema = typeof schema
+export type DB = PostgresJsDatabase<Schema>

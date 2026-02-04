@@ -13,7 +13,7 @@ import {
   fieldToBigint,
 } from '@repo/circuit-utils'
 
-interface VerifyProofParams {
+interface VerifyProofServerParams {
   proofData: string
   publicInputs: string[]
   claimId: string
@@ -26,7 +26,7 @@ interface VerifyProofResult {
 }
 
 export async function verifyProofServer(
-  params: VerifyProofParams
+  params: VerifyProofServerParams
 ): Promise<VerifyProofResult> {
   try {
     // Initialize Barretenberg API

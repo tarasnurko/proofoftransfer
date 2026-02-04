@@ -69,8 +69,8 @@ export const createClaimAction = actionClient
     }))
 
     const result = await db.transaction(async (tx) => {
-      const claim = await createClaim(claimData)
-      const storedTransfers = await bulkUpsertTransfers(transfersData)
+      const claim = await createClaim(claimData, tx)
+      const storedTransfers = await bulkUpsertTransfers(transfersData, tx)
 
       if (storedTransfers.length) {
         const transferHashesBytes = await Promise.all(
@@ -102,9 +102,9 @@ export const createClaimAction = actionClient
           claimId: claim.id,
           transferIds: storedTransfers.map((t) => t.id),
           merkleIndices: storedTransfers.map((_, idx) => idx),
-        })
+        }, tx)
 
-        await updateClaimMerkleRoot(claim.id, merkleRoot)
+        await updateClaimMerkleRoot(claim.id, merkleRoot, tx)
       }
 
       return claim

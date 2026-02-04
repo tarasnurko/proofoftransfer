@@ -11,7 +11,7 @@ export const submitProofSchema = z.object({
 
   publicInputs: z
     .record(z.any())
-    .refine((val) => Object.keys(val).length > 0, {
+    .refine((val) => Object.keys(val).length, {
       message: 'Public inputs are required',
     }),
 

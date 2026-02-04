@@ -1,4 +1,4 @@
-import { db } from '../client'
+import { db, type DB } from '../client'
 import { transfers, claimTransfers } from '../schema'
 import type { InsertTransferEntity, TransferEntity } from '../index.types'
 import type { Nullable } from '@/types'
@@ -6,13 +6,16 @@ import { eq } from 'drizzle-orm'
 import { entityOrNull } from '@/exceptions'
 
 export async function bulkUpsertTransfers(
-  transfersData: InsertTransferEntity[]
+  transfersData: InsertTransferEntity[],
+  tx?: DB
 ): Promise<TransferEntity[]> {
   if (!transfersData.length) {
     return []
   }
 
-  const result = await db
+  const dbInstance = tx ?? db
+
+  const result = await dbInstance
     .insert(transfers)
     .values(transfersData)
     .onConflictDoUpdate({
@@ -31,7 +34,8 @@ interface LinkTransfersToClaimParams {
 }
 
 export async function linkTransfersToClaim(
-  params: LinkTransfersToClaimParams
+  params: LinkTransfersToClaimParams,
+  tx?: DB
 ): Promise<void> {
   const { claimId, transferIds, merkleIndices } = params
 
@@ -43,13 +47,15 @@ export async function linkTransfersToClaim(
     return
   }
 
+  const dbInstance = tx ?? db
+
   const data = transferIds.map((transferId, idx) => ({
     claimId,
     transferId,
     merkleLeafIndex: merkleIndices[idx]!,
   }))
 
-  await db.insert(claimTransfers).values(data)
+  await dbInstance.insert(claimTransfers).values(data)
 }
 
 export async function getTransfersForClaim(

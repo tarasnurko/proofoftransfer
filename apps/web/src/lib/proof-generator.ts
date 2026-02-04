@@ -1,7 +1,7 @@
 import type { EtherscanERC20Transfer } from '@repo/types'
 import type { WalletClient } from 'viem'
 
-export interface ProofGenerationParams {
+export interface GenerateClaimProofParams {
   claimId: string
   claimMessage: string
   tokenAddress: string
@@ -33,7 +33,7 @@ export interface GeneratedProof {
  * Uses dynamic imports to avoid Turbopack build-time analysis
  */
 export async function generateClaimProof(
-  params: ProofGenerationParams
+  params: GenerateClaimProofParams
 ): Promise<GeneratedProof> {
   // Dynamic imports to avoid Turbopack analyzing dependencies at build time
   const [

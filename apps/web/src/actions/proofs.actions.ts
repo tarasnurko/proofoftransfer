@@ -8,7 +8,7 @@ import { submitProofSchema } from '@/lib/validations/proof'
 import { getClaimById } from '@/db/queries/claims'
 import { createProof, checkNullifierExists, getProofById } from '@/db/queries/proofs'
 import { createVerification } from '@/db/queries/verifications'
-import { EtherscanClient } from '@/lib/etherscan'
+import { etherscanClient } from '@/lib/etherscan'
 import type { InsertProofEntity } from '@/db/index.types'
 import { verifyProofServer } from '@/lib/proof-verifier-server'
 
@@ -29,7 +29,6 @@ export const fetchTransfersAction = actionClient
       throw new Error('Claim not found')
     }
 
-    const etherscanClient = new EtherscanClient()
     const transfers = await etherscanClient.fetchERC20Transfers({
       chainId: claim.chainId,
       tokenAddress: claim.tokenAddress,
