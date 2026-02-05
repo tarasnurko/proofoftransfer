@@ -17,7 +17,7 @@ export function WalletButton() {
     <Button
       onClick={() => open()}
       size="sm"
-      className="border-4 font-bold"
+      variant="outline"
     >
       <Wallet className="mr-2 h-4 w-4" />
       {isConnected ? truncatedAddress : 'Connect Wallet'}

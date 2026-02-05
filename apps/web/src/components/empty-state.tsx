@@ -22,7 +22,7 @@ export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
         <p className="text-muted-foreground">{message}</p>
       </div>
       {action && (
-        <Button onClick={action.onClick} className="border-4 font-bold">
+        <Button onClick={action.onClick}>
           {action.label}
         </Button>
       )}

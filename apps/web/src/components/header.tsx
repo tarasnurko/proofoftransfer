@@ -13,13 +13,13 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" className="border-4 font-bold">
+          <Button asChild variant="outline" size="sm">
             <Link href="/">
               <List className="mr-2 h-4 w-4" />
               All Claims
             </Link>
           </Button>
-          <Button asChild size="sm" className="border-4 font-bold">
+          <Button asChild variant="outline" size="sm">
             <Link href="/create">
               <Plus className="mr-2 h-4 w-4" />
               Create Claim

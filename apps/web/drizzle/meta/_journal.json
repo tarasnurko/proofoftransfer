@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769806607903,
-      "tag": "0000_odd_talisman",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1770062539769,
-      "tag": "0001_tired_grey_gargoyle",
+      "when": 1770317008357,
+      "tag": "0000_typical_doorman",
       "breakpoints": true
     }
   ]

@@ -28,7 +28,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button size="sm" className="border-4 font-bold">
+      <Button size="sm" variant="outline">
         <Sun className="h-4 w-4" />
       </Button>
     )
@@ -40,7 +40,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <Button size="sm" onClick={toggleTheme} className="border-4 font-bold">
+    <Button size="sm" onClick={toggleTheme} variant="outline">
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </Button>
   )

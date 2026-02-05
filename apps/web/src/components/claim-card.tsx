@@ -125,7 +125,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
       </CardContent>
 
       <CardFooter className="mt-auto">
-        <Button asChild className="w-full border-4 font-bold">
+        <Button asChild className="w-full">
           <Link href={`/claims/${claim.id}`}>View Details</Link>
         </Button>
       </CardFooter>

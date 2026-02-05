@@ -1,9 +1,105 @@
 {
-  "id": "26f9db11-2d5a-4e65-a945-c743b0b143dc",
+  "id": "741bad2d-70ab-4b84-8905-0a8030a790b9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.claim_transfers": {
+      "name": "claim_transfers",
+      "schema": "",
+      "columns": {
+        "claimId": {
+          "name": "claimId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transferId": {
+          "name": "transferId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "merkleLeafIndex": {
+          "name": "merkleLeafIndex",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "claim_transfers_leaf_idx": {
+          "name": "claim_transfers_leaf_idx",
+          "columns": [
+            {
+              "expression": "claimId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "merkleLeafIndex",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "claim_transfers_claimId_claims_id_fk": {
+          "name": "claim_transfers_claimId_claims_id_fk",
+          "tableFrom": "claim_transfers",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claimId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "claim_transfers_transferId_transfers_id_fk": {
+          "name": "claim_transfers_transferId_transfers_id_fk",
+          "tableFrom": "claim_transfers",
+          "tableTo": "transfers",
+          "columnsFrom": [
+            "transferId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "claim_transfer_pk": {
+          "name": "claim_transfer_pk",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claimId",
+            "transferId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.claims": {
       "name": "claims",
       "schema": "",
@@ -21,66 +117,72 @@
           "primaryKey": false,
           "notNull": true
         },
-        "message_hash": {
-          "name": "message_hash",
+        "messageHash": {
+          "name": "messageHash",
           "type": "varchar(78)",
           "primaryKey": false,
           "notNull": true
         },
-        "token_address": {
-          "name": "token_address",
+        "tokenAddress": {
+          "name": "tokenAddress",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
         },
-        "recipient_address": {
-          "name": "recipient_address",
+        "recipientAddress": {
+          "name": "recipientAddress",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
         },
-        "min_transfers_sum": {
-          "name": "min_transfers_sum",
+        "minTransfersSum": {
+          "name": "minTransfersSum",
           "type": "varchar(78)",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
         },
-        "max_transfers_sum": {
-          "name": "max_transfers_sum",
+        "maxTransfersSum": {
+          "name": "maxTransfersSum",
           "type": "varchar(78)",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
         },
-        "from_block_timestamp": {
-          "name": "from_block_timestamp",
+        "fromBlockTimestamp": {
+          "name": "fromBlockTimestamp",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
           "default": 0
         },
-        "to_block_timestamp": {
-          "name": "to_block_timestamp",
+        "toBlockTimestamp": {
+          "name": "toBlockTimestamp",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
           "default": 0
         },
-        "chain_id": {
-          "name": "chain_id",
+        "chainId": {
+          "name": "chainId",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "creator_address": {
-          "name": "creator_address",
+        "creatorAddress": {
+          "name": "creatorAddress",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
         },
-        "created_at": {
-          "name": "created_at",
+        "merkleRoot": {
+          "name": "merkleRoot",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -92,7 +194,7 @@
           "name": "message_hash_idx",
           "columns": [
             {
-              "expression": "message_hash",
+              "expression": "messageHash",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -107,19 +209,19 @@
           "name": "token_recipient_chain_idx",
           "columns": [
             {
-              "expression": "token_address",
+              "expression": "tokenAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "recipient_address",
+              "expression": "recipientAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "chain_id",
+              "expression": "chainId",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -134,7 +236,7 @@
           "name": "creator_idx",
           "columns": [
             {
-              "expression": "creator_address",
+              "expression": "creatorAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -164,33 +266,33 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "proof_id": {
-          "name": "proof_id",
+        "proofId": {
+          "name": "proofId",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "verifier_address": {
-          "name": "verifier_address",
+        "verifierAddress": {
+          "name": "verifierAddress",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": false
         },
-        "is_valid": {
-          "name": "is_valid",
+        "isValid": {
+          "name": "isValid",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true
         },
-        "verified_at": {
-          "name": "verified_at",
+        "verifiedAt": {
+          "name": "verifiedAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
-        "error_message": {
-          "name": "error_message",
+        "errorMessage": {
+          "name": "errorMessage",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -201,7 +303,7 @@
           "name": "proof_id_idx",
           "columns": [
             {
-              "expression": "proof_id",
+              "expression": "proofId",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -216,7 +318,7 @@
           "name": "is_valid_idx",
           "columns": [
             {
-              "expression": "is_valid",
+              "expression": "isValid",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -229,12 +331,12 @@
         }
       },
       "foreignKeys": {
-        "proof_verifications_proof_id_proofs_id_fk": {
-          "name": "proof_verifications_proof_id_proofs_id_fk",
+        "proof_verifications_proofId_proofs_id_fk": {
+          "name": "proof_verifications_proofId_proofs_id_fk",
           "tableFrom": "proof_verifications",
           "tableTo": "proofs",
           "columnsFrom": [
-            "proof_id"
+            "proofId"
           ],
           "columnsTo": [
             "id"
@@ -260,8 +362,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "claim_id": {
-          "name": "claim_id",
+        "claimId": {
+          "name": "claimId",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -272,32 +374,32 @@
           "primaryKey": false,
           "notNull": true
         },
-        "proof_data": {
-          "name": "proof_data",
+        "proofData": {
+          "name": "proofData",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "public_inputs": {
-          "name": "public_inputs",
+        "publicInputs": {
+          "name": "publicInputs",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
-        "transfers_root_hash": {
-          "name": "transfers_root_hash",
+        "transfersRootHash": {
+          "name": "transfersRootHash",
           "type": "varchar(78)",
           "primaryKey": false,
           "notNull": true
         },
-        "prover_address": {
-          "name": "prover_address",
+        "proverAddress": {
+          "name": "proverAddress",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": false
         },
-        "created_at": {
-          "name": "created_at",
+        "createdAt": {
+          "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -309,7 +411,7 @@
           "name": "claim_id_idx",
           "columns": [
             {
-              "expression": "claim_id",
+              "expression": "claimId",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -339,7 +441,7 @@
           "name": "prover_address_idx",
           "columns": [
             {
-              "expression": "prover_address",
+              "expression": "proverAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -352,12 +454,12 @@
         }
       },
       "foreignKeys": {
-        "proofs_claim_id_claims_id_fk": {
-          "name": "proofs_claim_id_claims_id_fk",
+        "proofs_claimId_claims_id_fk": {
+          "name": "proofs_claimId_claims_id_fk",
           "tableFrom": "proofs",
           "tableTo": "claims",
           "columnsFrom": [
-            "claim_id"
+            "claimId"
           ],
           "columnsTo": [
             "id"
@@ -372,8 +474,208 @@
           "name": "claim_nullifier_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "claim_id",
+            "claimId",
             "nullifier"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tokens": {
+      "name": "tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decimals": {
+          "name": "decimals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "address_chain_idx": {
+          "name": "address_chain_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "address",
+            "chainId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.transfers": {
+      "name": "transfers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logIndex": {
+          "name": "logIndex",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockNumber": {
+          "name": "blockNumber",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockTimestamp": {
+          "name": "blockTimestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senderAddress": {
+          "name": "senderAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipientAddress": {
+          "name": "recipientAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenAddress": {
+          "name": "tokenAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "transfers_recipient_token_idx": {
+          "name": "transfers_recipient_token_idx",
+          "columns": [
+            {
+              "expression": "recipientAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tokenAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chainId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transfers_timestamp_idx": {
+          "name": "transfers_timestamp_idx",
+          "columns": [
+            {
+              "expression": "blockTimestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "transfers_chain_tx_log_idx": {
+          "name": "transfers_chain_tx_log_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chainId",
+            "txHash",
+            "logIndex"
           ]
         }
       },

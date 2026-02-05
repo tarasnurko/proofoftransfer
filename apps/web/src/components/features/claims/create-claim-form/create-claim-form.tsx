@@ -258,10 +258,9 @@ export function CreateClaimForm() {
               control={control}
               render={({ field }) => (
                 <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
+                  date={field.value}
+                  onSelect={field.onChange}
                   placeholder="Select start date"
-                  disableFuture
                 />
               )}
             />
@@ -278,10 +277,9 @@ export function CreateClaimForm() {
               control={control}
               render={({ field }) => (
                 <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
+                  date={field.value}
+                  onSelect={field.onChange}
                   placeholder="Select end date"
-                  disableFuture
                 />
               )}
             />

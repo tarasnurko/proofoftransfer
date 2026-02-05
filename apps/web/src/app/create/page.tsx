@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { SUPPORTED_CHAINS } from '@/lib/types'
 import { isValidAddress } from '@/lib/address-utils'
 import { toast } from 'sonner'
@@ -136,7 +137,7 @@ export default function CreateClaimPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
         <Card className="border-4">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Claim Details</CardTitle>
@@ -150,7 +151,7 @@ export default function CreateClaimPage() {
                 placeholder="e.g., Donation to the community pool for Q1 2024"
                 value={formData.claimMessage}
                 onChange={(e) => handleChange('claimMessage', e.target.value)}
-                className="min-h-24 border-2"
+                className="min-h-24"
               />
               {errors.claimMessage && <p className="text-sm text-destructive">{errors.claimMessage}</p>}
               <p className="text-sm text-muted-foreground">{formData.claimMessage.length} / 1000 characters</p>
@@ -164,10 +165,10 @@ export default function CreateClaimPage() {
             <CardDescription>Specify the blockchain and token</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            <div className="max-w-xs space-y-2">
               <Label htmlFor="chainId">Chain *</Label>
               <Select value={formData.chainId.toString()} onValueChange={(value) => handleChange('chainId', Number.parseInt(value))}>
-                <SelectTrigger className="border-2">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,7 +188,7 @@ export default function CreateClaimPage() {
                 placeholder="0x..."
                 value={formData.tokenAddress}
                 onChange={(e) => handleChange('tokenAddress', e.target.value)}
-                className="border-2 font-mono"
+                className="font-mono"
               />
               {errors.tokenAddress && <p className="text-sm text-destructive">{errors.tokenAddress}</p>}
             </div>
@@ -199,7 +200,7 @@ export default function CreateClaimPage() {
                 placeholder="0x..."
                 value={formData.recipientAddress}
                 onChange={(e) => handleChange('recipientAddress', e.target.value)}
-                className="border-2 font-mono"
+                className="font-mono"
               />
               {errors.recipientAddress && <p className="text-sm text-destructive">{errors.recipientAddress}</p>}
             </div>
@@ -217,12 +218,10 @@ export default function CreateClaimPage() {
                 <Label htmlFor="minTransfersSum">Minimum Amount</Label>
                 <Input
                   id="minTransfersSum"
-                  type="number"
                   placeholder="0"
                   value={formData.minTransfersSum}
                   onChange={(e) => handleChange('minTransfersSum', e.target.value)}
-                  className="border-2"
-                  min="0"
+                  className="font-mono"
                 />
               </div>
 
@@ -230,12 +229,10 @@ export default function CreateClaimPage() {
                 <Label htmlFor="maxTransfersSum">Maximum Amount</Label>
                 <Input
                   id="maxTransfersSum"
-                  type="number"
                   placeholder="0"
                   value={formData.maxTransfersSum}
                   onChange={(e) => handleChange('maxTransfersSum', e.target.value)}
-                  className="border-2"
-                  min="0"
+                  className="font-mono"
                 />
                 {errors.maxTransfersSum && <p className="text-sm text-destructive">{errors.maxTransfersSum}</p>}
               </div>
@@ -253,23 +250,19 @@ export default function CreateClaimPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="fromDate">Start Date</Label>
-                <Input
-                  id="fromDate"
-                  type="date"
-                  value={formData.fromDate ? formData.fromDate.toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleChange('fromDate', e.target.value ? new Date(e.target.value) : null)}
-                  className="border-2"
+                <DatePicker
+                  date={formData.fromDate || undefined}
+                  onSelect={(date) => handleChange('fromDate', date || null)}
+                  placeholder="Select start date"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="toDate">End Date</Label>
-                <Input
-                  id="toDate"
-                  type="date"
-                  value={formData.toDate ? formData.toDate.toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleChange('toDate', e.target.value ? new Date(e.target.value) : null)}
-                  className="border-2"
+                <DatePicker
+                  date={formData.toDate || undefined}
+                  onSelect={(date) => handleChange('toDate', date || null)}
+                  placeholder="Select end date"
                 />
                 {errors.toDate && <p className="text-sm text-destructive">{errors.toDate}</p>}
               </div>
@@ -279,10 +272,10 @@ export default function CreateClaimPage() {
         </Card>
 
         <div className="flex gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading} className="border-4 font-bold">
+          <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading} className="flex-1 border-4 font-bold">
+          <Button type="submit" disabled={loading} className="flex-1">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Claim
           </Button>
