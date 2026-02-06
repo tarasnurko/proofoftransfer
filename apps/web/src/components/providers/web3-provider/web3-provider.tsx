@@ -26,7 +26,7 @@ if (projectId) {
     metadata,
     // themeMode: "",
     enableCoinbase: false,
-    enableReconnect: false,
+    enableReconnect: true,
     features: {
       analytics: false,
       email: false,

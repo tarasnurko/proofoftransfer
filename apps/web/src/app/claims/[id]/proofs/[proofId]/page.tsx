@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import Link from 'next/link'
 import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,13 +11,13 @@ import { ErrorState } from '@/components/shared/error-state'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { Address } from '@/components/shared/address'
-import type { ClaimEntity, ProofEntity } from '@/lib/types'
-import { getChainName } from '@/lib/types'
+import { BackLink } from '@/components/shared/back-link'
+import { PageHeader } from '@/components/shared/page-header'
+import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/lib/types'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
-import type { EtherscanTransfer } from '@/lib/types'
-import { ArrowLeft, Shield, Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X } from 'lucide-react'
+import { Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { verifyProofAction } from '@/actions/proofs.actions'
 
@@ -151,16 +150,11 @@ export default function ProofDetailsPage() {
   return (
     <PageContainer>
       <div className="mb-4 flex items-center justify-between">
-        <Link href={`/claims/${claimId}`} className="inline-flex items-center text-sm hover:opacity-80">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Claim
-        </Link>
+        <BackLink href={`/claims/${claimId}`} label="Back to Claim" />
         <CopyLinkButton />
       </div>
 
-      <div className="mb-8 space-y-2 border-b-4 border-border pb-6">
-        <h1 className="text-balance text-4xl font-bold uppercase tracking-tight">Proof Details</h1>
-      </div>
+      <PageHeader title="Proof Details" />
 
       <div className="space-y-6">
         {/* Claim Information */}

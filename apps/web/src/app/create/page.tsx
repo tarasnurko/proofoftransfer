@@ -14,13 +14,16 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { SUPPORTED_CHAINS } from '@/lib/types'
 import { isValidAddress } from '@/lib/address-utils'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
+import { BackLink } from '@/components/shared/back-link'
+import { PageHeader } from '@/components/shared/page-header'
 import { createClaimAction, fetchClaimTransfersAction } from '@/actions/claims.actions'
 import { fetchAndStoreTokenDataAction } from '@/actions'
 import { useDebounce } from '@/hooks/use-debounce'
 import type { TokenEntity, TransferEntity } from '@/db/index.types'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
+
+const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddress', 'fromDate', 'toDate'])
 
 export default function CreateClaimPage() {
   const router = useRouter()
@@ -74,8 +77,6 @@ export default function CreateClaimPage() {
       })
       .finally(() => setIsFetchingToken(false))
   }, [debouncedTokenAddress, formData.chainId])
-
-  const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddress', 'fromDate', 'toDate'])
 
   const handleChange = (field: string, value: string | number | Date | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -238,17 +239,14 @@ export default function CreateClaimPage() {
 
   return (
     <PageContainer>
-      <Link href="/" className="mb-4 inline-flex items-center text-sm hover:opacity-80">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Claims
-      </Link>
-
-      <div className="mb-8 space-y-2 border-b-4 border-border pb-6">
-        <h1 className="text-balance text-4xl font-bold uppercase tracking-tight">Create Claim</h1>
-        <p className="text-pretty text-lg text-muted-foreground">
-          Set up a verifiable transfer claim that others can prove using zero-knowledge proofs
-        </p>
+      <div className="mb-4">
+        <BackLink href="/" label="Back to Claims" />
       </div>
+
+      <PageHeader
+        title="Create Claim"
+        description="Set up a verifiable transfer claim that others can prove using zero-knowledge proofs"
+      />
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
         <Card className="border-4">

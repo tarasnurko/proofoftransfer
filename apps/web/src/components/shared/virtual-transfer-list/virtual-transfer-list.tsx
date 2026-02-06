@@ -1,11 +1,12 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Address } from '@/components/shared/address'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatTokenAmount, formatTokenValue } from '@/lib/address-utils'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 export interface TransferDisplayItem {
   from: string
@@ -23,19 +24,14 @@ interface VirtualTransferListProps {
 }
 
 function CopyableAmount({ amount, token }: { amount: string; token?: { decimals: number; symbol: string } | null }) {
-  const [copied, setCopied] = useState(false)
   const numericValue = amount && token ? formatTokenValue(amount, token.decimals) : amount
   const display = amount && token ? formatTokenAmount(amount, token.decimals, token.symbol) : amount
-  const copy = useCallback(async () => {
-    await navigator.clipboard.writeText(numericValue)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }, [numericValue])
+  const { copied, copy } = useCopyToClipboard()
 
   return (
     <Tooltip open={copied}>
       <TooltipTrigger asChild>
-        <span onClick={copy} className="cursor-pointer text-right font-mono hover:opacity-70">
+        <span onClick={() => copy(numericValue)} className="cursor-pointer text-right font-mono hover:opacity-70">
           {display}
         </span>
       </TooltipTrigger>

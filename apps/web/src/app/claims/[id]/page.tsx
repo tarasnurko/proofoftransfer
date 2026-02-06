@@ -18,11 +18,12 @@ import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
+import { BackLink } from '@/components/shared/back-link'
+import { PageHeader } from '@/components/shared/page-header'
+import { Pagination } from '@/components/shared/pagination'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
-import { getChainName } from '@/lib/types'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatTokenAmount } from '@/lib/address-utils'
-import { ArrowLeft, Check, Loader2, Search, ChevronLeft, ChevronRight, FileSearch, Shield, Wallet } from 'lucide-react'
+import { Check, Loader2, Search, FileSearch, Shield, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { assembleCircuitInputs, generateProofFromPrepared } from '@/lib/proof-generator'
 import type { PreparedProofData, ServerSigningData } from '@/lib/proof-generator'
@@ -54,18 +55,28 @@ export default function ClaimDetailsPage() {
   const [proofPage, setProofPage] = useState(1)
 
   useEffect(() => {
-    fetchClaimDetails()
-    fetchProofs()
-    fetchTransfers()
+    fetchAllData()
   }, [claimId])
 
-  const fetchClaimDetails = async () => {
+  const fetchAllData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await fetch(`/api/claims/${claimId}`)
-      if (!response.ok) throw new Error('Claim not found')
-      const data = await response.json()
-      setClaim(data)
+      const [claimRes, proofsRes, transfersRes] = await Promise.all([
+        fetch(`/api/claims/${claimId}`),
+        fetch(`/api/claims/${claimId}/proofs`),
+        fetch(`/api/claims/${claimId}/transfers`),
+      ])
+
+      if (!claimRes.ok) throw new Error('Claim not found')
+      const claimData = await claimRes.json()
+      setClaim(claimData)
+
+      if (proofsRes.ok) {
+        setProofs(await proofsRes.json())
+      }
+      if (transfersRes.ok) {
+        setTransfers(await transfersRes.json())
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -77,24 +88,9 @@ export default function ClaimDetailsPage() {
     try {
       const response = await fetch(`/api/claims/${claimId}/proofs`)
       if (response.ok) {
-        const data = await response.json()
-        setProofs(data)
+        setProofs(await response.json())
       }
-    } catch (err) {
-      console.error('Failed to fetch proofs:', err)
-    }
-  }
-
-  const fetchTransfers = async () => {
-    try {
-      const response = await fetch(`/api/claims/${claimId}/transfers`)
-      if (response.ok) {
-        const data = await response.json()
-        setTransfers(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch transfers:', error)
-    }
+    } catch {}
   }
 
   const displayedTransfers = useMemo(() => {
@@ -310,23 +306,20 @@ export default function ClaimDetailsPage() {
   return (
     <PageContainer>
       <div className="mb-4 flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center text-sm hover:opacity-80">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Claims
-        </Link>
+        <BackLink href="/" label="Back to Claims" />
         <CopyLinkButton />
       </div>
 
-      <div className="mb-8 space-y-2 border-b-4 border-border pb-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-balance text-4xl font-bold uppercase tracking-tight">Claim Details</h1>
-          {claim.proofCount > 0 && (
+      <PageHeader
+        title="Claim Details"
+        actions={
+          claim.proofCount > 0 ? (
             <Badge className="shrink-0 whitespace-nowrap border-2 text-sm font-bold">
               {claim.proofCount} Proof{claim.proofCount !== 1 ? 's' : ''}
             </Badge>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       <div className="space-y-6">
         {/* Claim Details Card */}
@@ -580,41 +573,11 @@ export default function ClaimDetailsPage() {
                   ))}
                 </div>
 
-                {totalProofPages > 1 && (
-                  <div className="mt-4 flex items-center justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProofPage((p) => Math.max(1, p - 1))}
-                      disabled={proofPage === 1}
-                      className="border-2"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="flex gap-1">
-                      {Array.from({ length: totalProofPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={proofPage === page ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setProofPage(page)}
-                          className="border-2"
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProofPage((p) => Math.min(totalProofPages, p + 1))}
-                      disabled={proofPage === totalProofPages}
-                      className="border-2"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={proofPage}
+                  totalPages={totalProofPages}
+                  onPageChange={setProofPage}
+                />
               </>
             )}
           </CardContent>

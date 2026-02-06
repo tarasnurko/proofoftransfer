@@ -10,8 +10,11 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PageHeader } from '@/components/shared/page-header'
+import { Pagination } from '@/components/shared/pagination'
 import type { ClaimEntity } from '@/lib/types'
-import { FileSearch, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { SUPPORTED_CHAINS } from '@/lib/types'
+import { FileSearch, Search } from 'lucide-react'
 
 const ITEMS_PER_PAGE = 10
 
@@ -71,8 +74,8 @@ export default function HomePage() {
     // Sort
     const [sortField, sortOrder] = sortBy.split('-')
     filtered.sort((a, b) => {
-      let aVal: any
-      let bVal: any
+      let aVal = 0
+      let bVal = 0
 
       switch (sortField) {
         case 'createdAt':
@@ -105,14 +108,10 @@ export default function HomePage() {
 
   return (
     <PageContainer>
-      <div className="mb-8 space-y-2 border-b-4 border-border pb-6">
-        <h1 className="text-balance text-4xl font-bold uppercase tracking-tight">
-          Transfer Claims
-        </h1>
-        <p className="text-pretty text-lg text-muted-foreground">
-          Create verifiable on-chain transfer claims using zero-knowledge proofs
-        </p>
-      </div>
+      <PageHeader
+        title="Transfer Claims"
+        description="Create verifiable on-chain transfer claims using zero-knowledge proofs"
+      />
 
       {loading && <LoadingState message="Loading claims..." />}
 
@@ -148,13 +147,11 @@ export default function HomePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Chains</SelectItem>
-                <SelectItem value="1">Ethereum</SelectItem>
-                <SelectItem value="8453">Base</SelectItem>
-                <SelectItem value="10">Optimism</SelectItem>
-                <SelectItem value="42161">Arbitrum</SelectItem>
-                <SelectItem value="56">BNB Chain</SelectItem>
-                <SelectItem value="137">Polygon</SelectItem>
-                <SelectItem value="534352">Scroll</SelectItem>
+                {SUPPORTED_CHAINS.map((chain) => (
+                  <SelectItem key={chain.id} value={chain.id.toString()}>
+                    {chain.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
@@ -192,43 +189,11 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="border-2 font-bold"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="border-2 font-bold"
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-2 font-bold"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </>
           )}
         </div>

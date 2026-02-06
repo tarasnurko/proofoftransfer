@@ -1,3 +1,5 @@
+export type NonEmptyArray<T> = [T, ...T[]]
+
 export interface PaginationParams {
   page: number;
   pageSize: number;
