@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { WalletButton } from '@/components/wallet-button'
+import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { WalletButton } from '@/components/shared/wallet-button'
 import { List, Plus } from 'lucide-react'
 
 export function Header() {

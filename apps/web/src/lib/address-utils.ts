@@ -7,11 +7,20 @@ export function isValidAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address)
 }
 
+import Big from 'big.js'
+
+export function formatTokenValue(amount: string, decimals: number): string {
+  const raw = new Big(amount)
+  const divisor = new Big(10).pow(decimals)
+  const value = raw.div(divisor)
+  return value.toFixed()
+}
+
 export function formatTokenAmount(
   amount: string,
   decimals: number,
   symbol?: string
 ): string {
-  const value = BigInt(amount) / BigInt(10 ** decimals)
-  return symbol ? `${value} ${symbol}` : value.toString()
+  const value = formatTokenValue(amount, decimals)
+  return symbol ? `${value} ${symbol}` : value
 }

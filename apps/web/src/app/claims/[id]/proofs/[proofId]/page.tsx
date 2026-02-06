@@ -3,17 +3,18 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { PageContainer } from '@/components/page-container'
+import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { LoadingState } from '@/components/loading-state'
-import { ErrorState } from '@/components/error-state'
-import { CopyHash } from '@/components/copy-hash'
-import { CopyLinkButton } from '@/components/copy-link-button'
-import { Address } from '@/components/address'
+import { LoadingState } from '@/components/shared/loading-state'
+import { ErrorState } from '@/components/shared/error-state'
+import { CopyHash } from '@/components/shared/copy-hash'
+import { CopyLinkButton } from '@/components/shared/copy-link-button'
+import { Address } from '@/components/shared/address'
 import type { ClaimEntity, ProofEntity } from '@/lib/types'
 import { getChainName } from '@/lib/types'
+import { ChainBadge } from '@/components/shared/chain-badge'
 import { ArrowLeft } from 'lucide-react'
 
 export default function ProofDetailsPage() {
@@ -90,7 +91,7 @@ export default function ProofDetailsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Chain</div>
-                <div className="mt-1">{getChainName(claim.chainId)}</div>
+                <div className="mt-1"><ChainBadge chainId={claim.chainId} /></div>
               </div>
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Token</div>
@@ -101,7 +102,7 @@ export default function ProofDetailsPage() {
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Recipient</div>
                 <div className="mt-1">
-                  <Address address={claim.recipientAddress} />
+                  <Address address={claim.recipientAddress} chainId={claim.chainId} />
                 </div>
               </div>
               <div>
@@ -161,7 +162,7 @@ export default function ProofDetailsPage() {
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Prover Address</div>
                 <div className="mt-1">
-                  <Address address={proof.proverAddress} />
+                  <Address address={proof.proverAddress} chainId={claim.chainId} />
                 </div>
               </div>
             )}

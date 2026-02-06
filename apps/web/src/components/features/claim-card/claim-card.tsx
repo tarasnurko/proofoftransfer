@@ -4,25 +4,18 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Address } from '@/components/address'
-import { ClaimEntity, getChainName } from '@/lib/types'
+import { Address } from '@/components/shared/address'
+import { CopyHash } from '@/components/shared/copy-hash'
+import { ClaimEntity } from '@/lib/types'
+import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatTokenAmount } from '@/lib/address-utils'
-import { Clock, Target, TrendingUp, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { Clock, Target, TrendingUp } from 'lucide-react'
 
 interface ClaimCardProps {
   claim: ClaimEntity
 }
 
 export function ClaimCard({ claim }: ClaimCardProps) {
-  const [copiedToken, setCopiedToken] = useState(false)
-
-  const copyTokenAddress = async () => {
-    await navigator.clipboard.writeText(claim.tokenAddress)
-    setCopiedToken(true)
-    setTimeout(() => setCopiedToken(false), 2000)
-  }
-
   // Check if recipient is an ENS name
   const isENS = claim.recipientAddress.endsWith('.eth')
 
@@ -72,21 +65,13 @@ export function ClaimCard({ claim }: ClaimCardProps) {
         <div className="grid gap-2 rounded border-2 border-border bg-secondary/30 p-3 text-sm">
           <div className="grid grid-cols-[80px_1fr] items-center gap-2">
             <span className="font-bold">Chain:</span>
-            <Badge variant="outline" className="border-2 w-fit">
-              {getChainName(claim.chainId)}
-            </Badge>
+            <ChainBadge chainId={claim.chainId} />
           </div>
           <div className="grid grid-cols-[80px_1fr] items-center gap-2">
             <span className="font-bold">Token:</span>
             <div className="flex items-center gap-2">
               <span className="text-sm">{tokenDisplay}</span>
-              <button
-                type="button"
-                onClick={copyTokenAddress}
-                className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-secondary"
-              >
-                {copiedToken ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
-              </button>
+              <CopyHash hash={claim.tokenAddress} chars={0} />
             </div>
           </div>
           <div className="grid grid-cols-[80px_1fr] items-center gap-2">
@@ -94,7 +79,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
             {isENS ? (
               <span className="font-mono text-sm">{claim.recipientAddress}</span>
             ) : (
-              <Address address={claim.recipientAddress} showCopy={true} />
+              <Address address={claim.recipientAddress} showCopy={true} chainId={claim.chainId} />
             )}
           </div>
         </div>

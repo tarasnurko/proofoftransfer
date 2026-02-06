@@ -4,20 +4,22 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAccount } from 'wagmi'
-import { PageContainer } from '@/components/page-container'
+import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { LoadingState } from '@/components/loading-state'
-import { ErrorState } from '@/components/error-state'
-import { EmptyState } from '@/components/empty-state'
-import { Address } from '@/components/address'
-import { CopyHash } from '@/components/copy-hash'
-import { CopyLinkButton } from '@/components/copy-link-button'
+import { LoadingState } from '@/components/shared/loading-state'
+import { ErrorState } from '@/components/shared/error-state'
+import { EmptyState } from '@/components/shared/empty-state'
+import { Address } from '@/components/shared/address'
+import { CopyHash } from '@/components/shared/copy-hash'
+import { CopyLinkButton } from '@/components/shared/copy-link-button'
+import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
 import { getChainName } from '@/lib/types'
+import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatTokenAmount } from '@/lib/address-utils'
 import { ArrowLeft, Loader2, Search, ChevronLeft, ChevronRight, FileSearch } from 'lucide-react'
 import { toast } from 'sonner'
@@ -168,19 +170,19 @@ export default function ClaimDetailsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Chain</div>
-                <div className="mt-1">{getChainName(claim.chainId)}</div>
+                <div className="mt-1"><ChainBadge chainId={claim.chainId} /></div>
               </div>
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Token</div>
                 <div className="mt-1 flex items-center gap-2">
                   {claim.token ? `${claim.token.name} (${claim.token.symbol})` : 'Unknown'}
-                  <CopyHash hash={claim.tokenAddress} />
+                  <Address address={claim.tokenAddress} chainId={claim.chainId} chars={6} />
                 </div>
               </div>
               <div>
                 <div className="text-sm font-bold text-muted-foreground">Recipient</div>
                 <div className="mt-1">
-                  <Address address={claim.recipientAddress} />
+                  <Address address={claim.recipientAddress} chainId={claim.chainId} />
                 </div>
               </div>
               <div>
@@ -230,28 +232,17 @@ export default function ClaimDetailsPage() {
                 message={showOnlyMyTransfers ? "You don't have any transfers" : "No transfers found"}
               />
             ) : (
-              <div className="space-y-2">
-                {displayedTransfers.map((transfer, i) => (
-                  <div key={i} className="flex items-center justify-between border-2 border-border p-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Address address={transfer.from} />
-                        {walletAddress && transfer.from.toLowerCase() === walletAddress.toLowerCase() && (
-                          <Badge className="bg-accent text-accent-foreground">You</Badge>
-                        )}
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        {new Date(parseInt(transfer.timeStamp) * 1000).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="text-right font-mono">
-                      {transfer.value && claim.token
-                        ? formatTokenAmount(transfer.value, claim.token.decimals, claim.token.symbol)
-                        : transfer.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <VirtualTransferList
+                transfers={displayedTransfers.map((t) => ({
+                  from: t.from,
+                  amount: t.value,
+                  timestamp: parseInt(t.timeStamp),
+                }))}
+                token={claim.token}
+                walletAddress={walletAddress}
+                chainId={claim.chainId}
+                maxHeight={400}
+              />
             )}
           </CardContent>
         </Card>

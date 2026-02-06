@@ -159,22 +159,38 @@
 - To date picker (must be after from date)
 - Clear buttons on date pickers
 
+**Transfers Preview Section (appears after fetch):**
+- Card showing transfer count + virtual-scrolled transfer list
+- Uses VirtualTransferList component (max height 300px)
+- Shows sender address, amount, date for each transfer
+- Hidden when any form field changes (must re-fetch)
+
 **Form Actions (horizontal buttons):**
 - "Cancel" button → returns to home
-- "Create Claim" button (primary) → submits form
+- "Fetch Transfers" button (type=button, onClick) → fetches and previews transfers
+- "Create Claim" button (primary, type=submit) → appears after transfers fetched
 
 **Form States:**
-- Loading state during submission
+- Loading state during transfer fetch
+- Loading state during claim creation
 - Success: redirect to home + show toast
 - Error: inline validation errors
+- No transfers: error toast, "Fetch Transfers" button remains
+- Too many transfers (>5000): error toast with guidance to narrow constraints
 
-**Backend Flow (automatic on submit):**
-1. Validate form data
-2. Fetch ALL transfers matching constraints from Etherscan
-3. Save transfers to database (cache)
-4. Build merkle tree from transfers
-5. Create claim with merkle root
-6. If no matching transfers found → claim creation fails
+**Backend Flow (two-step):**
+1. Step 1 — Fetch Transfers (fetchTransfersAction):
+   - Validate constraints
+   - Fetch ALL transfers matching constraints from Etherscan
+   - If 0 transfers → error
+   - If >MAX_TRANSFERS (5000) → error
+   - Save transfers to database
+   - Return transfers to client for preview
+2. Step 2 — Create Claim (createClaimAction):
+   - Read cached transfers from DB by constraints
+   - Build merkle tree from transfers
+   - Create claim with merkle root
+   - Link transfers to claim
 
 ---
 
@@ -225,6 +241,7 @@
 - Transfers displayed automatically on page load
 - Uses cached transfers from database (fetched during claim creation)
 - Transfer count display
+- Virtual scroll with fixed max height (400px) using VirtualTransferList component
 
 **When Wallet NOT Connected:**
 - Shows all transfers
@@ -454,6 +471,15 @@
 - Used for "Back to" navigation
 - Avoids button padding
 
+### Virtualized Components
+
+**VirtualTransferList**
+- Virtual-scrolled transfer list using @tanstack/react-virtual
+- Props: transfers (normalized shape), token, walletAddress, maxHeight
+- Fixed max height with overflow scroll
+- Used on: claim details page (400px), create claim preview (300px)
+- Reuses Address component, Badge, formatTokenAmount
+
 ### State Components
 
 **LoadingState**
@@ -501,14 +527,15 @@
 ### Create Claim Flow
 
 1. User fills form
-2. Submits form
-3. **Backend automatically:**
-   - Fetches ALL matching transfers from Etherscan
-   - Saves transfers to database (cache)
-   - Builds merkle tree
-   - Creates claim with merkle root
-4. Redirects to home
-5. Toast shows success
+2. Clicks "Fetch Transfers"
+3. Backend fetches matching transfers from Etherscan, saves to DB
+4. Transfers preview displayed in virtual-scrolled container
+5. If no transfers → error, cannot proceed
+6. If >5000 transfers → error, must narrow constraints
+7. If user changes any field → preview hidden, must re-fetch
+8. User clicks "Create Claim"
+9. Backend reads cached transfers from DB, builds merkle tree, creates claim
+10. Redirects to home + toast shows success
 
 ### View Claim Details Flow
 

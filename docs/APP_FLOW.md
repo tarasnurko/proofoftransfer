@@ -74,26 +74,34 @@ ZK proof that user made transfer(s) matching claim constraints.
 
 ## Flows
 
-### 1. Create Claim
+### 1. Create Claim (Two-Step Flow)
 
 ```
 User                    Backend                 Etherscan
  │                         │                        │
  ├──[specify constraints]─▶│                        │
+ ├──[click Fetch]─────────▶│                        │
  │                         ├──[fetch transfers]────▶│
  │                         │◀──[transfer list]──────┤
- │                         │                        │
- │                         ├──[build merkle tree]   │
  │                         ├──[save to DB]          │
+ │◀──[show transfers]──────┤                        │
+ │                         │                        │
+ ├──[click Create Claim]──▶│                        │
+ │                         ├──[read transfers DB]   │
+ │                         ├──[build merkle tree]   │
+ │                         ├──[save claim to DB]    │
  │◀──[claim created]───────┤                        │
 ```
 
 **Steps:**
 1. User specifies: token, recipient, amount range, time range, message
-2. Backend fetches matching transfers from Etherscan API
-3. Backend builds merkle tree from transfers (leaf = hash of transfer data)
-4. Backend saves claim + transfers + merkle tree to database
-5. Claim becomes publicly visible
+2. User clicks "Fetch Transfers" — backend fetches from Etherscan, saves to DB
+3. Transfers displayed in preview (virtual scroll, max 5000)
+4. If no transfers found → error, cannot proceed
+5. User reviews transfers, clicks "Create Claim"
+6. Backend reads cached transfers from DB, builds merkle tree
+7. Backend saves claim + merkle tree to database
+8. Claim becomes publicly visible
 
 ### 2. Generate Proof
 

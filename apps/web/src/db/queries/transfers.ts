@@ -2,7 +2,7 @@ import { db, type DB } from '../client'
 import { transfers, claimTransfers } from '../schema'
 import type { InsertTransferEntity, TransferEntity } from '../index.types'
 import type { Nullable } from '@/types'
-import { eq } from 'drizzle-orm'
+import { eq, and, gte, lte } from 'drizzle-orm'
 import { entityOrNull } from '../helpers'
 
 export async function bulkUpsertTransfers(
@@ -69,6 +69,37 @@ export async function getTransfersForClaim(
     .orderBy(claimTransfers.merkleLeafIndex)
 
   return result
+}
+
+interface GetTransfersByConstraintsParams {
+  chainId: number
+  tokenAddress: string
+  recipientAddress: string
+  fromTimestamp?: number
+  toTimestamp?: number
+}
+
+export async function getTransfersByConstraints(
+  params: GetTransfersByConstraintsParams
+): Promise<TransferEntity[]> {
+  const conditions = [
+    eq(transfers.chainId, params.chainId),
+    eq(transfers.tokenAddress, params.tokenAddress.toLowerCase()),
+    eq(transfers.recipientAddress, params.recipientAddress.toLowerCase()),
+  ]
+
+  if (params.fromTimestamp) {
+    conditions.push(gte(transfers.blockTimestamp, params.fromTimestamp))
+  }
+  if (params.toTimestamp) {
+    conditions.push(lte(transfers.blockTimestamp, params.toTimestamp))
+  }
+
+  return db
+    .select()
+    .from(transfers)
+    .where(and(...conditions))
+    .orderBy(transfers.blockTimestamp)
 }
 
 export async function getTransferById(id: string): Promise<Nullable<TransferEntity>> {

@@ -141,12 +141,22 @@ Description: Leave as 0 for no constraint
 - Clear button to remove date
 - Disable future dates option
 
+**Transfers Preview (Two-Step Flow):**
+- After filling form, user clicks "Fetch Transfers" to preview matching transfers
+- Transfers displayed in virtual-scrolled container (max height, @tanstack/react-virtual)
+- If no transfers → error message, cannot create claim
+- If >5000 transfers → error, user must narrow constraints
+- If user changes any field → preview hidden, must re-fetch
+- After reviewing transfers, user clicks "Create Claim" to finalize
+
 **Form Actions:**
 - "Cancel" button (returns to home)
-- "Create Claim" button (submits form)
+- "Fetch Transfers" button (initial step — fetches and previews transfers)
+- "Create Claim" button (appears after transfers fetched — submits form)
 
 **Form States:**
-- Loading state while submitting
+- Loading state while fetching transfers
+- Loading state while creating claim
 - Success: redirect to home, show toast
 - Error: show validation errors inline
 

@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { ChainId } from '@repo/types'
 
+export const MAX_TRANSFERS = 5000
+
 export const createClaimSchema = z
   .object({
     claimMessage: z
@@ -65,6 +67,35 @@ export const createClaimSchema = z
   )
 
 export type CreateClaimInput = z.infer<typeof createClaimSchema>
+
+export const fetchTransfersSchema = z
+  .object({
+    chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
+    tokenAddress: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+      .transform((val) => val.toLowerCase()),
+    recipientAddress: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+      .transform((val) => val.toLowerCase()),
+    fromDate: z.date().optional(),
+    toDate: z.date().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.fromDate && data.toDate && data.toDate < data.fromDate) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'End date must be after start date',
+      path: ['toDate'],
+    }
+  )
+
+export type FetchTransfersInput = z.infer<typeof fetchTransfersSchema>
 
 export function dateToTimestamp(date?: Date): number {
   return date instanceof Date ? Math.floor(date.getTime() / 1000) : 0

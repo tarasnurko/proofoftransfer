@@ -5,7 +5,8 @@ import { headers } from "next/headers";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Web3Provider } from "@/components/providers/web3-provider";
-import { Header } from "@/components/header";
+import { Header } from "@/components/layout/header";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,8 +43,10 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Header />
-            {children}
+            <TooltipProvider>
+              <Header />
+              {children}
+            </TooltipProvider>
             <Toaster position="bottom-right" />
           </ThemeProvider>
         </Web3Provider>
