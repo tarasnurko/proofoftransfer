@@ -2,7 +2,7 @@ import { db, type DB } from '../client'
 import { claims, proofs, tokens } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
 import { eq, desc, count, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '@/exceptions'
+import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createClaim(data: InsertClaimEntity, tx?: DB): Promise<ClaimEntity> {
   const dbInstance = tx ?? db

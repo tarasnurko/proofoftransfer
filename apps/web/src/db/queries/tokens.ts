@@ -3,7 +3,7 @@ import { tokens } from '../schema'
 import type { InsertTokenEntity, TokenEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '@/exceptions'
+import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createToken(data: InsertTokenEntity): Promise<TokenEntity> {
   return entityOrError(

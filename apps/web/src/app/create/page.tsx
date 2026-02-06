@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/page-container'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,9 @@ import { toast } from 'sonner'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { createClaimAction } from '@/actions/claims.actions'
+import { fetchAndStoreTokenDataAction } from '@/actions'
+import { useDebounce } from '@/hooks/use-debounce'
+import type { TokenEntity } from '@/db/index.types'
 
 export default function CreateClaimPage() {
   const router = useRouter()
@@ -32,6 +35,39 @@ export default function CreateClaimPage() {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [tokenData, setTokenData] = useState<TokenEntity | null>(null)
+  const [tokenError, setTokenError] = useState<string | null>(null)
+  const [isFetchingToken, setIsFetchingToken] = useState(false)
+  const debouncedTokenAddress = useDebounce(formData.tokenAddress, 500)
+
+  useEffect(() => {
+    if (!debouncedTokenAddress || !/^0x[a-fA-F0-9]{40}$/.test(debouncedTokenAddress)) {
+      setTokenData(null)
+      setTokenError(null)
+      return
+    }
+
+    setIsFetchingToken(true)
+    setTokenError(null)
+    fetchAndStoreTokenDataAction({
+      tokenAddress: debouncedTokenAddress,
+      chainId: formData.chainId,
+    })
+      .then((result) => {
+        if (result?.data?.data) {
+          setTokenData(result.data.data)
+          setTokenError(null)
+        } else {
+          setTokenData(null)
+          setTokenError(result?.serverError || 'Token not found on this chain')
+        }
+      })
+      .catch(() => {
+        setTokenData(null)
+        setTokenError('Token not found — check the address and chain')
+      })
+      .finally(() => setIsFetchingToken(false))
+  }, [debouncedTokenAddress, formData.chainId])
 
   const handleChange = (field: string, value: string | number | Date | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -183,14 +219,27 @@ export default function CreateClaimPage() {
 
             <div className="space-y-2">
               <Label htmlFor="tokenAddress">Token Address *</Label>
-              <Input
-                id="tokenAddress"
-                placeholder="0x..."
-                value={formData.tokenAddress}
-                onChange={(e) => handleChange('tokenAddress', e.target.value)}
-                className="font-mono"
-              />
+              <div className="relative">
+                <Input
+                  id="tokenAddress"
+                  placeholder="0x..."
+                  value={formData.tokenAddress}
+                  onChange={(e) => handleChange('tokenAddress', e.target.value)}
+                  className="font-mono"
+                />
+                {isFetchingToken && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               {errors.tokenAddress && <p className="text-sm text-destructive">{errors.tokenAddress}</p>}
+              {tokenError && <p className="text-sm text-destructive">{tokenError}</p>}
+              {tokenData && (
+                <p className="font-mono text-sm font-bold text-accent">
+                  {tokenData.name} ({tokenData.symbol})
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

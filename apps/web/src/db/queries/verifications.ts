@@ -2,7 +2,7 @@ import { db } from '../client'
 import { proofVerifications } from '../schema'
 import type { InsertProofVerificationEntity, ProofVerificationEntity } from '../index.types'
 import { eq, and, desc, count } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '@/exceptions'
+import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createVerification(data: InsertProofVerificationEntity): Promise<ProofVerificationEntity> {
   return entityOrError(

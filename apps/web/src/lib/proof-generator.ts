@@ -1,5 +1,5 @@
 import type { EtherscanERC20Transfer } from '@repo/types'
-import type { WalletClient } from 'viem'
+import type { Address, WalletClient } from 'viem'
 
 export interface GenerateClaimProofParams {
   claimId: string
@@ -192,7 +192,7 @@ export async function generateClaimProof(
 
   const account = walletClient.account
 
-  let signature: `0x${string}`
+  let signature: Address
 
   if (USE_EIP712) {
     // EIP-712 Typed Data Signing (for browser wallets)
@@ -200,7 +200,7 @@ export async function generateClaimProof(
       name: 'ProofOfTransfer',
       version: '1',
       chainId: BigInt(walletChainId), // Use wallet's actual chain ID
-      verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      verifyingContract: '0x0000000000000000000000000000000000000000' as Address,
     } as const
 
     const types = {
@@ -220,8 +220,8 @@ export async function generateClaimProof(
     const message = {
       claimId: claimIdBytes32,
       claimMessageHash: claimMessageHashBytes32,
-      tokenAddress: tokenAddress as `0x${string}`,
-      recipientAddress: recipientAddress as `0x${string}`,
+      tokenAddress: tokenAddress as Address,
+      recipientAddress: recipientAddress as Address,
       minTransfersSum: claimConstraints.minTransfersSum,
       maxTransfersSum: claimConstraints.maxTransfersSum,
       fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
@@ -253,7 +253,7 @@ export async function generateClaimProof(
   const signatureResult = await circuitUtils.processSignature(signature, api)
 
   // Get public key - try from account first, then recover from signature
-  let publicKey: `0x${string}`
+  let publicKey: Address
 
   if ('publicKey' in account && account.publicKey) {
     // Local account (testing/development)
@@ -262,7 +262,7 @@ export async function generateClaimProof(
     // Browser wallet - recover public key from signature
     const { recoverPublicKey, hashMessage, hashTypedData } = await import('viem')
 
-    let hashToRecover: `0x${string}`
+    let hashToRecover: Address
 
     if (USE_EIP712) {
       // Recover from EIP-712 signature
@@ -270,7 +270,7 @@ export async function generateClaimProof(
         name: 'ProofOfTransfer',
         version: '1',
         chainId: BigInt(walletChainId),
-        verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+        verifyingContract: '0x0000000000000000000000000000000000000000' as Address,
       } as const
 
       const types = {
@@ -290,8 +290,8 @@ export async function generateClaimProof(
       const message = {
         claimId: claimIdBytes32,
         claimMessageHash: claimMessageHashBytes32,
-        tokenAddress: tokenAddress as `0x${string}`,
-        recipientAddress: recipientAddress as `0x${string}`,
+        tokenAddress: tokenAddress as Address,
+        recipientAddress: recipientAddress as Address,
         minTransfersSum: claimConstraints.minTransfersSum,
         maxTransfersSum: claimConstraints.maxTransfersSum,
         fromBlockTimestamp: claimConstraints.fromBlockTimestamp,

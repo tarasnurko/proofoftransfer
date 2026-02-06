@@ -3,7 +3,7 @@ import { transfers, claimTransfers } from '../schema'
 import type { InsertTransferEntity, TransferEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq } from 'drizzle-orm'
-import { entityOrNull } from '@/exceptions'
+import { entityOrNull } from '../helpers'
 
 export async function bulkUpsertTransfers(
   transfersData: InsertTransferEntity[],
