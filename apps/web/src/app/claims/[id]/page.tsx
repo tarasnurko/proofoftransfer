@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAccount } from 'wagmi'
+import { useAccount, useWalletClient } from 'wagmi'
+import { useAppKit } from '@reown/appkit/react'
 import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,8 +22,11 @@ import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
 import { getChainName } from '@/lib/types'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatTokenAmount } from '@/lib/address-utils'
-import { ArrowLeft, Loader2, Search, ChevronLeft, ChevronRight, FileSearch } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, Search, ChevronLeft, ChevronRight, FileSearch, Shield, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
+import { assembleCircuitInputs, generateProofFromPrepared } from '@/lib/proof-generator'
+import type { PreparedProofData, ServerSigningData } from '@/lib/proof-generator'
+import { submitProofAction, prepareClaimSigningDataAction, processSignatureAction } from '@/actions/proofs.actions'
 
 const PROOFS_PER_PAGE = 9
 
@@ -31,6 +35,8 @@ export default function ClaimDetailsPage() {
   const router = useRouter()
   const claimId = params.id as string
   const { address: walletAddress, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const { open } = useAppKit()
 
   const [claim, setClaim] = useState<ClaimEntity | null>(null)
   const [proofs, setProofs] = useState<ProofEntity[]>([])
@@ -38,6 +44,9 @@ export default function ClaimDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
+  const [preparedProof, setPreparedProof] = useState<PreparedProofData | null>(null)
+  const [signingClaim, setSigningClaim] = useState(false)
+  const [generatingProof, setGeneratingProof] = useState(false)
 
   // Proof search and pagination
   const [proofSearchQuery, setProofSearchQuery] = useState('')
@@ -97,6 +106,170 @@ export default function ClaimDetailsPage() {
     if (!walletAddress) return 0
     return transfers.filter(t => t.from.toLowerCase() === walletAddress.toLowerCase()).length
   }, [transfers, walletAddress])
+
+  const nullifierAlreadyUsed = useMemo(() => {
+    if (!preparedProof) return false
+    return proofs.some(p => p.nullifier === preparedProof.nullifier)
+  }, [preparedProof, proofs])
+
+  const handleSignClaim = async () => {
+    if (!walletAddress || !walletClient || !claim) return
+
+    setSigningClaim(true)
+    try {
+      // 1. Server prepares merkle tree + EIP-712 fields (fast, no WASM on client)
+      const result = await prepareClaimSigningDataAction({ claimId, proverAddress: walletAddress })
+      if (result?.serverError) throw new Error(result.serverError)
+      if (!result?.data) throw new Error('Failed to prepare signing data')
+
+      const serverData = result.data as ServerSigningData
+      const walletChainId = await walletClient.getChainId()
+
+      // 2. Sign EIP-712 typed data (MetaMask popup — appears fast now)
+      const signature = await walletClient.signTypedData({
+        account: walletClient.account!,
+        domain: {
+          name: 'ProofOfTransfer',
+          version: '1',
+          chainId: BigInt(walletChainId),
+          verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+        },
+        types: {
+          Claim: [
+            { name: 'claimId', type: 'bytes32' },
+            { name: 'claimMessageHash', type: 'bytes32' },
+            { name: 'tokenAddress', type: 'address' },
+            { name: 'recipientAddress', type: 'address' },
+            { name: 'minTransfersSum', type: 'uint128' },
+            { name: 'maxTransfersSum', type: 'uint128' },
+            { name: 'fromBlockTimestamp', type: 'uint64' },
+            { name: 'toBlockTimestamp', type: 'uint64' },
+            { name: 'transfersRootHash', type: 'bytes32' },
+          ],
+        } as const,
+        primaryType: 'Claim',
+        message: {
+          claimId: serverData.eip712.claimIdBytes32,
+          claimMessageHash: serverData.eip712.claimMessageHashBytes32,
+          tokenAddress: serverData.eip712.tokenAddress as `0x${string}`,
+          recipientAddress: serverData.eip712.recipientAddress as `0x${string}`,
+          minTransfersSum: BigInt(serverData.eip712.minTransfersSum),
+          maxTransfersSum: BigInt(serverData.eip712.maxTransfersSum),
+          fromBlockTimestamp: BigInt(serverData.eip712.fromBlockTimestamp),
+          toBlockTimestamp: BigInt(serverData.eip712.toBlockTimestamp),
+          transfersRootHash: serverData.eip712.merkleTreeRootBytes32,
+        },
+      })
+
+      // 3. Server computes nullifier from signature (Poseidon2, no WASM on client)
+      const sigResult = await processSignatureAction({ signature })
+      if (sigResult?.serverError) throw new Error(sigResult.serverError)
+      if (!sigResult?.data) throw new Error('Failed to process signature')
+
+      // 4. Recover public key client-side (lightweight, no WASM)
+      const { recoverPublicKey, hashTypedData, keccak256, hexToBytes } = await import('viem')
+
+      const hashToRecover = hashTypedData({
+        domain: {
+          name: 'ProofOfTransfer',
+          version: '1',
+          chainId: BigInt(walletChainId),
+          verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+        },
+        types: {
+          Claim: [
+            { name: 'claimId', type: 'bytes32' },
+            { name: 'claimMessageHash', type: 'bytes32' },
+            { name: 'tokenAddress', type: 'address' },
+            { name: 'recipientAddress', type: 'address' },
+            { name: 'minTransfersSum', type: 'uint128' },
+            { name: 'maxTransfersSum', type: 'uint128' },
+            { name: 'fromBlockTimestamp', type: 'uint64' },
+            { name: 'toBlockTimestamp', type: 'uint64' },
+            { name: 'transfersRootHash', type: 'bytes32' },
+          ],
+        } as const,
+        primaryType: 'Claim',
+        message: {
+          claimId: serverData.eip712.claimIdBytes32,
+          claimMessageHash: serverData.eip712.claimMessageHashBytes32,
+          tokenAddress: serverData.eip712.tokenAddress as `0x${string}`,
+          recipientAddress: serverData.eip712.recipientAddress as `0x${string}`,
+          minTransfersSum: BigInt(serverData.eip712.minTransfersSum),
+          maxTransfersSum: BigInt(serverData.eip712.maxTransfersSum),
+          fromBlockTimestamp: BigInt(serverData.eip712.fromBlockTimestamp),
+          toBlockTimestamp: BigInt(serverData.eip712.toBlockTimestamp),
+          transfersRootHash: serverData.eip712.merkleTreeRootBytes32,
+        },
+      })
+
+      const publicKey = await recoverPublicKey({ hash: hashToRecover, signature })
+
+      // Verify public key matches prover address
+      const pkBytes = hexToBytes(publicKey)
+      const pkHash = keccak256(pkBytes.slice(1))
+      const derivedAddress = '0x' + pkHash.slice(-40)
+      if (derivedAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        throw new Error('Public key does not match prover address')
+      }
+
+      const pubKeyX = Array.from(pkBytes.slice(1, 33))
+      const pubKeyY = Array.from(pkBytes.slice(33, 65))
+
+      // 5. Assemble circuit inputs
+      const prepared = assembleCircuitInputs(
+        serverData,
+        sigResult.data,
+        walletChainId,
+        { pubKeyX, pubKeyY },
+      )
+
+      setPreparedProof(prepared)
+      toast.success('Claim signed successfully!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to sign claim')
+      console.error(err)
+    } finally {
+      setSigningClaim(false)
+    }
+  }
+
+  const handleGenerateProof = async () => {
+    if (!preparedProof) return
+
+    setGeneratingProof(true)
+    try {
+      const generated = await generateProofFromPrepared(preparedProof)
+
+      const submitResult = await submitProofAction({
+        claimId,
+        nullifier: generated.nullifier,
+        proofData: generated.proofData,
+        publicInputs: generated.publicInputs,
+        transfersRootHash: generated.transfersRootHash,
+      })
+
+      if (submitResult?.serverError) {
+        throw new Error(submitResult.serverError)
+      }
+
+      if (submitResult?.validationErrors) {
+        const { fieldErrors } = submitResult.validationErrors as { fieldErrors?: Record<string, string[] | undefined> }
+        const firstError = fieldErrors
+          ? Object.values(fieldErrors).flat().find(Boolean)
+          : undefined
+        throw new Error(firstError || 'Validation failed')
+      }
+
+      toast.success('Proof generated and submitted!')
+      await fetchProofs()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to generate proof')
+      console.error('Proof generation failed:', err)
+    } finally {
+      setGeneratingProof(false)
+    }
+  }
 
   const filteredAndSortedProofs = useMemo(() => {
     let filtered = [...proofs]
@@ -247,6 +420,98 @@ export default function ClaimDetailsPage() {
           </CardContent>
         </Card>
 
+        {/* Generate Proof Section */}
+        <Card className="border-4">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Generate Proof</CardTitle>
+            <CardDescription>
+              Prove your transfers match this claim using zero-knowledge
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!isConnected ? (
+              <div className="border-4 border-dashed border-border p-8 text-center">
+                <Wallet className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-bold">Connect Your Wallet</h3>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Connect your wallet to generate a proof
+                </p>
+                <Button onClick={() => open()} className="border-4 font-bold">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect Wallet
+                </Button>
+              </div>
+            ) : !preparedProof ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-accent" />
+                  <span className="font-bold">Connected:</span>
+                  <Address address={walletAddress!} chainId={claim.chainId} />
+                </div>
+
+                {userTransferCount > 0 ? (
+                  <div className="border-4 border-dashed border-border p-6 text-center">
+                    <Shield className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-bold">Sign Claim</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Sign the EIP-712 claim message to generate your unique nullifier
+                    </p>
+                    <Button onClick={handleSignClaim} disabled={signingClaim} className="border-4 font-bold">
+                      {signingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {signingClaim ? 'Preparing & Signing...' : 'Sign Claim'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-destructive p-4 text-center text-sm">
+                    <p className="font-bold text-destructive">No matching transfers found</p>
+                    <p className="text-muted-foreground">
+                      You must have transfers matching this claim to generate a proof
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-accent" />
+                  <span className="font-bold">Connected:</span>
+                  <Address address={walletAddress!} chainId={claim.chainId} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-accent" />
+                  <span className="font-bold">Claim Signed</span>
+                  <span className="text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">Nullifier:</span>
+                  <CopyHash hash={preparedProof.nullifier} chars={10} />
+                </div>
+
+                <div className="space-y-3">
+                  {nullifierAlreadyUsed ? (
+                    <p className="text-sm text-muted-foreground">
+                      Proof already submitted with this nullifier.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-bold text-foreground">{preparedProof.proverTransferCount}</span> matching transfer{preparedProof.proverTransferCount !== 1 ? 's' : ''} ready. Click below to generate the ZK proof.
+                      </p>
+                      <Button
+                        onClick={handleGenerateProof}
+                        disabled={generatingProof}
+                        className="w-full border-4 font-bold"
+                      >
+                        {generatingProof && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {generatingProof ? 'Generating Proof...' : 'Generate Proof'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Proofs Section */}
         <Card className="border-4">
           <CardHeader>
@@ -292,10 +557,15 @@ export default function ClaimDetailsPage() {
                     <Link
                       key={proof.id}
                       href={`/claims/${claimId}/proofs/${proof.id}`}
-                      className="block border-4 border-border p-4 transition-colors hover:bg-muted"
+                      className={`block border-4 p-4 transition-colors hover:bg-muted ${preparedProof && proof.nullifier === preparedProof.nullifier ? 'border-accent bg-accent/5' : 'border-border'}`}
                     >
                       <div className="mb-2 flex items-start justify-between">
-                        <div className="text-sm font-bold text-muted-foreground">Proof</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-muted-foreground">Proof</span>
+                          {preparedProof && proof.nullifier === preparedProof.nullifier && (
+                            <Badge variant="outline" className="border-accent text-accent text-xs">Yours</Badge>
+                          )}
+                        </div>
                         {proof.verified !== undefined && (
                           <Badge variant={proof.verified ? 'default' : 'destructive'}>
                             {proof.verified ? 'Valid' : 'Invalid'}

@@ -15,6 +15,13 @@ export interface GenerateClaimProofParams {
   walletClient: WalletClient
 }
 
+export interface PreparedProofData {
+  circuitInputs: any
+  nullifier: string
+  transfersRootHash: string
+  proverTransferCount: number
+}
+
 export interface GeneratedProof {
   proofData: string
   nullifier: string
@@ -29,21 +36,18 @@ export interface GeneratedProof {
 }
 
 /**
- * Generate a ZK proof for a claim
- * Uses dynamic imports to avoid Turbopack build-time analysis
+ * Phase 1: Prepare proof data — build merkle tree, sign EIP-712 message, compute nullifier.
+ * Returns prepared data needed for ZK proof generation.
  */
-export async function generateClaimProof(
+export async function prepareClaimProof(
   params: GenerateClaimProofParams
-): Promise<GeneratedProof> {
-  // Dynamic imports to avoid Turbopack analyzing dependencies at build time
+): Promise<PreparedProofData> {
   const [
     { Barretenberg },
     circuitUtils,
-    { generateProofClient, uint8ArrayToHex },
   ] = await Promise.all([
     import('@aztec/bb.js'),
     import('@repo/circuit-utils'),
-    import('./circuit-client'),
   ])
 
   const {
@@ -60,7 +64,6 @@ export async function generateClaimProof(
     walletClient,
   } = params
 
-  // Initialize Barretenberg API for hashing
   const api = await Barretenberg.new({ threads: 1 })
 
   // Step 1: Filter prover's transfers
@@ -76,7 +79,6 @@ export async function generateClaimProof(
     throw new Error(`Too many transfers. Maximum ${circuitUtils.MAX_TRANSFERS} allowed.`)
   }
 
-  // Validate that all transfers have the expected recipient and token addresses
   const invalidTransfers = allTransfers.filter(
     (t) =>
       t.to.toLowerCase() !== recipientAddress.toLowerCase() ||
@@ -86,8 +88,7 @@ export async function generateClaimProof(
     throw new Error(`Found ${invalidTransfers.length} transfers that don't match claim parameters`)
   }
 
-  // Step 2: Build Merkle tree from ALL transfers
-  // Process transfers in batches to avoid memory issues
+  // Step 2: Build Merkle tree
   const BATCH_SIZE = 50
   const allTransferHashes: string[] = []
 
@@ -96,16 +97,12 @@ export async function generateClaimProof(
     const batchHashesBytes = await Promise.all(
       batch.map((transfer) => circuitUtils.hashTransfer(api, transfer))
     )
-
-    // Convert Uint8Array hashes to string (bigint string)
     const batchHashes = batchHashesBytes.map((hash) =>
       circuitUtils.fieldToBigint(hash).toString()
     )
-
     allTransferHashes.push(...batchHashes)
   }
 
-  // Generate zero values for the merkle tree
   const zeros: string[] = []
   let currentZero = '0'
   zeros.push(currentZero)
@@ -121,17 +118,14 @@ export async function generateClaimProof(
   )
 
   await merkleTree.init(allTransferHashes)
-
   const merkleRoot = merkleTree.root()
 
-  // Step 3: Generate merkle proofs for prover's transfers
+  // Step 3: Merkle proofs for prover's transfers
   const proverIndices = proverTransfers.map((proverTransfer, i) => {
     const index = allTransfers.findIndex((t) => t.hash === proverTransfer.hash)
     if (index === -1) {
       throw new Error(`Prover transfer not found in all transfers: ${proverTransfer.hash}`)
     }
-
-    // Verify the transfer at this index matches
     const transferAtIndex = allTransfers[index]
     if (transferAtIndex) {
       const matches =
@@ -140,12 +134,10 @@ export async function generateClaimProof(
         transferAtIndex.value === proverTransfer.value &&
         transferAtIndex.timeStamp === proverTransfer.timeStamp &&
         transferAtIndex.contractAddress === proverTransfer.contractAddress
-
       if (!matches) {
         throw new Error(`Transfer ${i} found at index ${index} but fields don't match`)
       }
     }
-
     return index
   })
 
@@ -156,7 +148,7 @@ export async function generateClaimProof(
   const claimMessageHashBigInt = BigInt('0x' + Buffer.from(claimMessageHashBytes).toString('hex'))
   const claimMessageHashBytes32 = circuitUtils.bigintToBytes32(claimMessageHashBigInt)
 
-  // Step 5: Construct message for wallet signature
+  // Step 5: Construct EIP-712 message
   const claimIdBytes32 = circuitUtils.uuidToBytes32(claimId)
   const tokenAddressBytes32 = circuitUtils.addressToBytes32(tokenAddress)
   const userAddressBytes32 = circuitUtils.addressToBytes32(recipientAddress)
@@ -169,147 +161,72 @@ export async function generateClaimProof(
     toBlockTimestamp: BigInt(toBlockTimestamp || 0),
   }
 
-  // For future EIP-712 support (requires circuit update)
-  const USE_EIP712 = true // Circuit now supports EIP-712 typed data signing
-
-  // Get wallet's chain ID for EIP-712 domain
   const walletChainId = await walletClient.getChainId()
 
-  const messageToSign = circuitUtils.constructClaimMessage({
-    claimIdBytes32,
-    claimMessageHashBytes32,
-    tokenAddressBytes32,
-    userAddressBytes32,
-    chainId: BigInt(walletChainId),
-    claimConstraints,
-    merkleTreeRootBytes32,
-  })
-
-  // Step 6: Get wallet signature and public key
+  // Step 6: Sign EIP-712 typed data
   if (!walletClient.account) {
     throw new Error('Wallet not connected')
   }
 
   const account = walletClient.account
 
-  let signature: Address
+  const domain = {
+    name: 'ProofOfTransfer',
+    version: '1',
+    chainId: BigInt(walletChainId),
+    verifyingContract: '0x0000000000000000000000000000000000000000' as Address,
+  } as const
 
-  if (USE_EIP712) {
-    // EIP-712 Typed Data Signing (for browser wallets)
-    const domain = {
-      name: 'ProofOfTransfer',
-      version: '1',
-      chainId: BigInt(walletChainId), // Use wallet's actual chain ID
-      verifyingContract: '0x0000000000000000000000000000000000000000' as Address,
-    } as const
+  const types = {
+    Claim: [
+      { name: 'claimId', type: 'bytes32' },
+      { name: 'claimMessageHash', type: 'bytes32' },
+      { name: 'tokenAddress', type: 'address' },
+      { name: 'recipientAddress', type: 'address' },
+      { name: 'minTransfersSum', type: 'uint128' },
+      { name: 'maxTransfersSum', type: 'uint128' },
+      { name: 'fromBlockTimestamp', type: 'uint64' },
+      { name: 'toBlockTimestamp', type: 'uint64' },
+      { name: 'transfersRootHash', type: 'bytes32' },
+    ],
+  } as const
 
-    const types = {
-      Claim: [
-        { name: 'claimId', type: 'bytes32' },
-        { name: 'claimMessageHash', type: 'bytes32' },
-        { name: 'tokenAddress', type: 'address' },
-        { name: 'recipientAddress', type: 'address' },
-        { name: 'minTransfersSum', type: 'uint128' },
-        { name: 'maxTransfersSum', type: 'uint128' },
-        { name: 'fromBlockTimestamp', type: 'uint64' },
-        { name: 'toBlockTimestamp', type: 'uint64' },
-        { name: 'transfersRootHash', type: 'bytes32' },
-      ],
-    } as const
+  const message = {
+    claimId: claimIdBytes32,
+    claimMessageHash: claimMessageHashBytes32,
+    tokenAddress: tokenAddress as Address,
+    recipientAddress: recipientAddress as Address,
+    minTransfersSum: claimConstraints.minTransfersSum,
+    maxTransfersSum: claimConstraints.maxTransfersSum,
+    fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
+    toBlockTimestamp: claimConstraints.toBlockTimestamp,
+    transfersRootHash: merkleTreeRootBytes32,
+  }
 
-    const message = {
-      claimId: claimIdBytes32,
-      claimMessageHash: claimMessageHashBytes32,
-      tokenAddress: tokenAddress as Address,
-      recipientAddress: recipientAddress as Address,
-      minTransfersSum: claimConstraints.minTransfersSum,
-      maxTransfersSum: claimConstraints.maxTransfersSum,
-      fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
-      toBlockTimestamp: claimConstraints.toBlockTimestamp,
-      transfersRootHash: merkleTreeRootBytes32,
-    }
+  const signature = await walletClient.signTypedData({
+    account,
+    domain,
+    types,
+    primaryType: 'Claim',
+    message,
+  })
 
-    signature = await walletClient.signTypedData({
-      account,
+  // Step 7: Process signature, extract public key, compute nullifier
+  const signatureResult = await circuitUtils.processSignature(signature, api)
+
+  let publicKey: Address
+
+  if ('publicKey' in account && account.publicKey) {
+    publicKey = account.publicKey
+  } else {
+    const { recoverPublicKey, hashTypedData } = await import('viem')
+
+    const hashToRecover = hashTypedData({
       domain,
       types,
       primaryType: 'Claim',
       message,
     })
-  } else {
-    // Legacy signing (current circuit)
-    if ('sign' in account && typeof account.sign === 'function') {
-      // Local account - can sign raw hash directly
-      signature = await account.sign({ hash: messageToSign })
-    } else {
-      // Browser wallet - will add Ethereum prefix
-      throw new Error(
-        'Browser wallets not supported with current circuit. Please use a local account or wait for EIP-712 support.'
-      )
-    }
-  }
-
-  // Step 7: Process signature, extract public key components, and compute nullifier
-  const signatureResult = await circuitUtils.processSignature(signature, api)
-
-  // Get public key - try from account first, then recover from signature
-  let publicKey: Address
-
-  if ('publicKey' in account && account.publicKey) {
-    // Local account (testing/development)
-    publicKey = account.publicKey
-  } else {
-    // Browser wallet - recover public key from signature
-    const { recoverPublicKey, hashMessage, hashTypedData } = await import('viem')
-
-    let hashToRecover: Address
-
-    if (USE_EIP712) {
-      // Recover from EIP-712 signature
-      const domain = {
-        name: 'ProofOfTransfer',
-        version: '1',
-        chainId: BigInt(walletChainId),
-        verifyingContract: '0x0000000000000000000000000000000000000000' as Address,
-      } as const
-
-      const types = {
-        Claim: [
-          { name: 'claimId', type: 'bytes32' },
-          { name: 'claimMessageHash', type: 'bytes32' },
-          { name: 'tokenAddress', type: 'address' },
-          { name: 'recipientAddress', type: 'address' },
-          { name: 'minTransfersSum', type: 'uint128' },
-          { name: 'maxTransfersSum', type: 'uint128' },
-          { name: 'fromBlockTimestamp', type: 'uint64' },
-          { name: 'toBlockTimestamp', type: 'uint64' },
-          { name: 'transfersRootHash', type: 'bytes32' },
-        ],
-      } as const
-
-      const message = {
-        claimId: claimIdBytes32,
-        claimMessageHash: claimMessageHashBytes32,
-        tokenAddress: tokenAddress as Address,
-        recipientAddress: recipientAddress as Address,
-        minTransfersSum: claimConstraints.minTransfersSum,
-        maxTransfersSum: claimConstraints.maxTransfersSum,
-        fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
-        toBlockTimestamp: claimConstraints.toBlockTimestamp,
-        transfersRootHash: merkleTreeRootBytes32,
-      }
-
-      hashToRecover = hashTypedData({
-        domain,
-        types,
-        primaryType: 'Claim',
-        message,
-      })
-    } else {
-      // Legacy: Browser wallets add Ethereum message prefix
-      // (This code path won't execute since we now throw error for browser wallets)
-      hashToRecover = hashMessage({ raw: messageToSign })
-    }
 
     publicKey = await recoverPublicKey({
       hash: hashToRecover,
@@ -320,15 +237,11 @@ export async function generateClaimProof(
   const publicKeyComponents = circuitUtils.extractPublicKeyComponents(publicKey)
   const nullifier = signatureResult.nullifier
 
-  // CRITICAL: Verify the public key actually corresponds to the prover address
-  // The circuit's ecrecover will derive the address from the public key
-  // If this doesn't match proverAddress, the circuit will compute wrong hashes
+  // Verify public key matches prover address
   const { keccak256, hexToBytes } = await import('viem')
   const publicKeyBytes = hexToBytes(publicKey)
-  // Remove the 0x04 prefix (first byte) for uncompressed public key
   const publicKeyWithoutPrefix = publicKeyBytes.slice(1)
   const publicKeyHash = keccak256(publicKeyWithoutPrefix)
-  // Ethereum address is the last 20 bytes of the keccak hash
   const derivedAddress = '0x' + publicKeyHash.slice(-40)
 
   if (derivedAddress.toLowerCase() !== proverAddress.toLowerCase()) {
@@ -337,7 +250,6 @@ export async function generateClaimProof(
 
   // Step 8: Prepare circuit inputs
   const circuitTransfers = circuitUtils.mapToCircuitTransfers(proverTransfers)
-
   const paddedTransfers = circuitUtils.padTransfersArray(circuitTransfers, circuitUtils.MAX_TRANSFERS)
   const paddedMerkleProofs = circuitUtils.padMerkleProofsArray(
     merkleProofs,
@@ -345,8 +257,6 @@ export async function generateClaimProof(
     circuitUtils.MERKLE_TREE_HEIGHT
   )
 
-  // Calculate are_transfer_leaves_even from path indices
-  // pathIndices[i] === 0 means even leaf, === 1 means odd leaf
   const areTransferLeavesEven = paddedMerkleProofs.map((mp) =>
     mp.pathIndices.map((idx) => idx === 0)
   )
@@ -372,7 +282,7 @@ export async function generateClaimProof(
     prover_signature: signatureResult.fullSignature,
   }
 
-  // Validate constraint satisfaction before sending to circuit
+  // Validate constraints before circuit
   const totalSum = proverTransfers.reduce((sum, t) => sum + BigInt(t.value), 0n)
   const minSum = claimConstraints.minTransfersSum
   const maxSum = claimConstraints.maxTransfersSum
@@ -389,30 +299,120 @@ export async function generateClaimProof(
   const sumConstraintsValid = (minSum === 0n || totalSum >= minSum) && (maxSum === 0n || totalSum <= maxSum)
 
   if (!allTimestampsValid) {
-    const invalidTransfers = timestampChecks.filter(tc => !tc.satisfies_from || !tc.satisfies_to)
-    throw new Error(`Timestamp constraint violation: ${invalidTransfers.length} transfers out of range`)
+    const invalid = timestampChecks.filter(tc => !tc.satisfies_from || !tc.satisfies_to)
+    throw new Error(`Timestamp constraint violation: ${invalid.length} transfers out of range`)
   }
 
   if (!sumConstraintsValid) {
     throw new Error(`Sum constraint violation: total ${totalSum} not in range [${minSum}, ${maxSum}]`)
   }
 
-  // Step 9: Generate the proof
-  // Cast to any to bypass TypeScript's strict InputMap checking
-  // Noir.js will handle the conversion internally
-  const { proof, publicInputs } = await generateProofClient(circuitInputs as any)
+  return {
+    circuitInputs,
+    nullifier: '0x' + BigInt(nullifier).toString(16).padStart(64, '0'),
+    transfersRootHash: '0x' + BigInt(merkleRoot).toString(16).padStart(64, '0'),
+    proverTransferCount: proverTransfers.length,
+  }
+}
 
-  // Step 10: Return formatted result
+/**
+ * Assemble PreparedProofData from server-prepared signing/circuit data + client-side signature results.
+ */
+export interface ServerSigningData {
+  eip712: {
+    claimIdBytes32: `0x${string}`
+    claimMessageHashBytes32: `0x${string}`
+    tokenAddress: string
+    recipientAddress: string
+    minTransfersSum: string
+    maxTransfersSum: string
+    fromBlockTimestamp: string
+    toBlockTimestamp: string
+    merkleTreeRootBytes32: `0x${string}`
+  }
+  circuitData: {
+    merkleRoot: string
+    claimIdBytes32: `0x${string}`
+    claimMessageHashBytes32: `0x${string}`
+    paddedTransfers: any[]
+    paddedMerkleProofElements: any[]
+    areTransferLeavesEven: boolean[][]
+    proverTransferCount: number
+  }
+}
+
+export interface SignatureResult {
+  nullifier: string
+  fullSignature: number[]
+}
+
+export function assembleCircuitInputs(
+  serverData: ServerSigningData,
+  signatureResult: SignatureResult,
+  walletChainId: number,
+  publicKeyComponents: { pubKeyX: number[]; pubKeyY: number[] },
+): PreparedProofData {
+  const { eip712, circuitData } = serverData
+
+  const circuitInputs = {
+    claim_id: circuitData.claimIdBytes32,
+    claim_message_hash: circuitData.claimMessageHashBytes32,
+    token_address: eip712.tokenAddress,
+    recipient_address: eip712.recipientAddress,
+    chain_id: walletChainId.toString(),
+    min_transfers_sum: eip712.minTransfersSum,
+    max_transfers_sum: eip712.maxTransfersSum,
+    from_block_timestamp: eip712.fromBlockTimestamp,
+    to_block_timestamp: eip712.toBlockTimestamp,
+    transfers_root_hash: circuitData.merkleRoot,
+    nullifier: signatureResult.nullifier,
+    transfers: circuitData.paddedTransfers,
+    transfers_proofs: circuitData.paddedMerkleProofElements,
+    are_transfer_leaves_even: circuitData.areTransferLeavesEven,
+    transfers_amount: circuitData.proverTransferCount.toString(),
+    prover_pub_key_x: publicKeyComponents.pubKeyX,
+    prover_pub_key_y: publicKeyComponents.pubKeyY,
+    prover_signature: signatureResult.fullSignature,
+  }
+
+  return {
+    circuitInputs,
+    nullifier: '0x' + BigInt(signatureResult.nullifier).toString(16).padStart(64, '0'),
+    transfersRootHash: '0x' + BigInt(circuitData.merkleRoot).toString(16).padStart(64, '0'),
+    proverTransferCount: circuitData.proverTransferCount,
+  }
+}
+
+/**
+ * Phase 2: Generate ZK proof from prepared data.
+ */
+export async function generateProofFromPrepared(
+  prepared: PreparedProofData
+): Promise<GeneratedProof> {
+  const { generateProofClient, uint8ArrayToHex } = await import('./circuit-client')
+
+  const { proof, publicInputs } = await generateProofClient(prepared.circuitInputs as any)
+
   return {
     proofData: uint8ArrayToHex(proof),
-    nullifier: '0x' + BigInt(nullifier).toString(16).padStart(64, '0'),
-    publicInputs: publicInputs, // Original array from Noir for verification
+    nullifier: prepared.nullifier,
+    publicInputs,
     publicInputsFormatted: {
-      claim_id: claimMessageHashBigInt.toString(),
-      token_address: tokenAddress,
-      recipient_address: recipientAddress,
-      transfers_count: proverTransfers.length,
+      claim_id: prepared.circuitInputs.claim_id,
+      token_address: prepared.circuitInputs.token_address,
+      recipient_address: prepared.circuitInputs.recipient_address,
+      transfers_count: prepared.proverTransferCount,
     },
-    transfersRootHash: '0x' + BigInt(merkleRoot).toString(16).padStart(64, '0'),
+    transfersRootHash: prepared.transfersRootHash,
   }
+}
+
+/**
+ * Full flow: prepare + generate in one call (backwards-compatible).
+ */
+export async function generateClaimProof(
+  params: GenerateClaimProofParams
+): Promise<GeneratedProof> {
+  const prepared = await prepareClaimProof(params)
+  return generateProofFromPrepared(prepared)
 }

@@ -5,3 +5,4 @@
 5. add sorting for transfers when generating proof, filter transfers by amount. Check how much who transfered (token amount and count)
 6. multichain claims - allow to fetch same recipitn transfers from multiple chains
 7. when pressing submit proof im getting error "Invalid proof data"
+8. export all proofs for claim in csv/json

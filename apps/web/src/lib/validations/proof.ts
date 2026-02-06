@@ -10,10 +10,8 @@ export const submitProofSchema = z.object({
   proofData: z.string().min(1, 'Proof data is required'),
 
   publicInputs: z
-    .record(z.any())
-    .refine((val) => Object.keys(val).length, {
-      message: 'Public inputs are required',
-    }),
+    .array(z.string())
+    .min(1, 'Public inputs are required'),
 
   transfersRootHash: z
     .string()
