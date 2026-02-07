@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { headers } from "next/headers";
 import { Toaster } from "sonner";
+import { Agentation } from "agentation";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Web3Provider } from "@/components/providers/web3-provider";
 import { Header } from "@/components/layout/header";
@@ -48,6 +49,9 @@ export default async function RootLayout({
               {children}
             </TooltipProvider>
             <Toaster position="bottom-right" />
+            {process.env.NODE_ENV === "development" && (
+              <Agentation endpoint="http://localhost:4747" />
+            )}
           </ThemeProvider>
         </Web3Provider>
       </body>

@@ -39,6 +39,24 @@ const EXPLORER_URLS: Record<number, string> = {
   534352: 'https://scrollscan.com',
 }
 
+const EXPLORER_NAMES: Record<number, string> = {
+  1: 'Etherscan',
+  10: 'Optimistic Etherscan',
+  56: 'BscScan',
+  137: 'Polygonscan',
+  8453: 'BaseScan',
+  42161: 'Arbiscan',
+  534352: 'Scrollscan',
+}
+
+export function getExplorerName(chainId: number): string | null {
+  return EXPLORER_NAMES[chainId] || null
+}
+
+export function getExplorerBaseUrl(chainId: number): string | null {
+  return EXPLORER_URLS[chainId] || null
+}
+
 export function getExplorerAddressUrl(chainId: number, address: string): string | null {
   const base = EXPLORER_URLS[chainId]
   if (!base) return null

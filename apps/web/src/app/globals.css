@@ -118,30 +118,30 @@
     @apply bg-background text-foreground;
   }
 
-  /* Dark mode button styling with custom palette */
+  /* Dark mode button styling matching theme palette */
   .dark .bg-primary {
-    background-color: hsl(49 75% 49%) !important; /* #dab71f - yellow/gold */
-    color: hsl(0 0% 0%) !important;
-    border-color: hsl(49 75% 35%) !important; /* darker gold border */
+    background-color: hsl(0 0% 95%) !important; /* light gray */
+    color: hsl(0 0% 10%) !important; /* dark text */
+    border-color: hsl(0 0% 75%) !important; /* gray border */
   }
 
   .dark .bg-primary:hover {
-    background-color: hsl(49 75% 60%) !important; /* lighter gold */
-    border-color: hsl(49 75% 45%) !important;
+    background-color: hsl(0 0% 85%) !important; /* slightly darker */
+    border-color: hsl(0 0% 65%) !important;
   }
 
   .dark .bg-primary:active {
-    background-color: hsl(49 75% 40%) !important; /* darker gold */
-    border-color: hsl(49 75% 28%) !important;
+    background-color: hsl(0 0% 75%) !important; /* darker gray */
+    border-color: hsl(0 0% 55%) !important;
   }
 
   .dark .bg-secondary {
-    background-color: hsl(227 38% 38%) !important; /* #3c4c85 - dark blue */
-    border-color: hsl(227 38% 28%) !important; /* darker blue border */
+    background-color: hsl(0 0% 22%) !important; /* dark gray from theme */
+    border-color: hsl(0 0% 35%) !important; /* lighter border */
   }
 
   .dark .bg-secondary:hover {
-    background-color: hsl(227 38% 48%) !important; /* lighter blue */
-    border-color: hsl(227 38% 38%) !important;
+    background-color: hsl(0 0% 28%) !important; /* slightly lighter */
+    border-color: hsl(0 0% 45%) !important;
   }
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
+import { parseUnits } from 'viem'
 import { PageContainer } from '@/components/layout/page-container'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -25,8 +26,7 @@ export default function ProofDetailsPage() {
   const [verifying, setVerifying] = useState(false)
   const [transfers, setTransfers] = useState<EtherscanTransfer[]>([])
   const [fetchingTransfers, setFetchingTransfers] = useState(false)
-  const [csvTransfers, setCsvTransfers] = useState<EtherscanTransfer[]>([])
-  const [csvFileName, setCsvFileName] = useState<string | null>(null)
+  const [csvFiles, setCsvFiles] = useState<Array<{ name: string; transfers: EtherscanTransfer[] }>>([])
 
   useEffect(() => {
     fetchData()
@@ -70,11 +70,10 @@ export default function ProofDetailsPage() {
 
       if (result?.data?.isValid) {
         toast.success('Proof verified successfully!')
+        await fetchData()
       } else {
         toast.error(result?.data?.error || 'Proof verification failed')
       }
-
-      await fetchData()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to verify proof')
     } finally {
@@ -89,7 +88,6 @@ export default function ProofDetailsPage() {
       if (!response.ok) throw new Error('Failed to fetch transfers')
       const data = await response.json()
       setTransfers(data)
-      toast.success(`Fetched ${data.length} transfers`)
     } catch {
       toast.error('Failed to fetch transfers')
     } finally {
@@ -101,42 +99,98 @@ export default function ProofDetailsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setCsvFileName(file.name)
-    const text = await file.text()
-    const lines = text.split('\n').filter(line => line.trim())
-    if (lines.length < 2) {
-      toast.error('CSV file is empty or has no data rows')
+    if (csvFiles.length >= 3) {
+      toast.error('Maximum 3 CSV files allowed')
+      e.target.value = ''
       return
     }
 
-    const headers = lines[0]!.toLowerCase().split(',')
-    const parsed: EtherscanTransfer[] = []
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').filter(line => line.trim())
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i]!.split(',')
-      const row: Record<string, string> = {}
-      headers.forEach((header, index) => {
-        row[header.trim()] = values[index]?.trim() || ''
-      })
+      if (lines.length < 2) {
+        toast.error('CSV file is empty or has no data rows')
+        e.target.value = ''
+        return
+      }
 
-      parsed.push({
-        hash: row['txhash'] || row['hash'] || '',
-        from: row['from'] || '',
-        to: row['to'] || '',
-        contractAddress: row['contractaddress'] || row['tokenaddress'] || '',
-        value: row['value'] || row['amount'] || '',
-        timeStamp: row['timestamp'] || row['unixtimestamp'] || '',
-        blockNumber: row['blocknumber'] || row['block'] || '',
-      })
+      // Validate format - check for expected headers
+      const headerLine = lines[0]!.toLowerCase().replace(/["'\s]/g, '')
+      const requiredHeaders = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
+      const hasValidFormat = requiredHeaders.every(header => headerLine.includes(header))
+
+      if (!hasValidFormat) {
+        toast.error('Invalid CSV format. Expected columns: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity')
+        e.target.value = ''
+        return
+      }
+
+      // Parse CSV with quoted values support
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = []
+        let current = ''
+        let inQuotes = false
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i]!
+          if (char === '"') {
+            inQuotes = !inQuotes
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim())
+            current = ''
+          } else {
+            current += char
+          }
+        }
+        result.push(current.trim())
+        return result
+      }
+
+      const headers = parseCsvLine(headerLine).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      const parsed: EtherscanTransfer[] = []
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCsvLine(lines[i]!)
+        const row: Record<string, string> = {}
+        headers.forEach((header, index) => {
+          row[header] = values[index]?.replace(/^"|"$/g, '') || ''
+        })
+
+        // Convert human-readable quantity to raw token units (same as etherscan API value)
+      const rawQuantity = row['quantity'] || row['value'] || row['amount'] || ''
+      const tokenDecimals = claim?.token?.decimals ?? 18
+      const rawValue = rawQuantity.includes('.')
+          ? parseUnits(rawQuantity, tokenDecimals).toString()
+          : rawQuantity
+
+        parsed.push({
+          hash: row['transactionhash'] || row['txhash'] || row['hash'] || '',
+          from: row['from'] || '',
+          to: row['to'] || '',
+          contractAddress: claim?.tokenAddress || '',
+          value: rawValue,
+          timeStamp: row['unixtimestamp'] || row['timestamp'] || '',
+          blockNumber: row['blockno'] || row['blocknumber'] || row['block'] || '',
+        })
+      }
+
+      if (!parsed.length) {
+        toast.error('No valid transfers found in CSV')
+        e.target.value = ''
+        return
+      }
+
+      setCsvFiles(prev => [...prev, { name: file.name, transfers: parsed }])
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to parse CSV')
+    } finally {
+      e.target.value = ''
     }
+  }, [csvFiles.length, claim?.tokenAddress])
 
-    setCsvTransfers(parsed)
-    toast.success(`Parsed ${parsed.length} transfers from CSV`)
-  }, [])
-
-  const handleClearCsv = useCallback(() => {
-    setCsvFileName(null)
-    setCsvTransfers([])
+  const handleRemoveCsv = useCallback((index: number) => {
+    setCsvFiles(prev => prev.filter((_, i) => i !== index))
   }, [])
 
   if (loading) return <PageContainer><LoadingState message="Loading proof details..." /></PageContainer>
@@ -159,14 +213,13 @@ export default function ProofDetailsPage() {
           proof={proof}
           claim={claim}
           transfers={transfers}
-          csvTransfers={csvTransfers}
-          csvFileName={csvFileName}
+          csvFiles={csvFiles}
           verifying={verifying}
           fetchingTransfers={fetchingTransfers}
           onVerify={handleVerify}
           onFetchTransfers={fetchTransfersForVerification}
           onCsvUpload={handleCsvUpload}
-          onClearCsv={handleClearCsv}
+          onRemoveCsv={handleRemoveCsv}
         />
       </div>
     </PageContainer>

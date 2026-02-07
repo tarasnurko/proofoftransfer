@@ -1,5 +1,7 @@
 'use server'
 
+import path from 'path'
+import { readFile } from 'fs/promises'
 import { Barretenberg, UltraHonkBackend } from '@aztec/bb.js'
 import { Noir } from '@noir-lang/noir_js'
 import { getTransfersForClaim } from '@/db/queries/transfers'
@@ -66,20 +68,21 @@ export async function verifyProofServer(
     await merkleTree.init(transferHashes)
     const computedRoot = merkleTree.root()
 
-    // 3. Verify root consistency
-    if (computedRoot !== params.transfersRootHash) {
+    // 3. Verify root consistency (normalize both to bigint for comparison)
+    const computedRootBigInt = BigInt(computedRoot)
+    const expectedRootBigInt = BigInt(params.transfersRootHash)
+
+    if (computedRootBigInt !== expectedRootBigInt) {
       return {
         isValid: false,
-        error: `Root mismatch: computed ${computedRoot}, expected ${params.transfersRootHash}`,
+        error: `Root mismatch: computed ${computedRootBigInt}, expected ${expectedRootBigInt}`,
       }
     }
 
-    // 4. Load circuit
-    const circuitResponse = await fetch('/circuit.json')
-    if (!circuitResponse.ok) {
-      return { isValid: false, error: 'Failed to load circuit' }
-    }
-    const circuit = await circuitResponse.json()
+    // 4. Load circuit from public directory
+    const circuitPath = path.join(process.cwd(), 'public', 'circuit.json')
+    const circuitRaw = await readFile(circuitPath, 'utf-8')
+    const circuit = JSON.parse(circuitRaw)
 
     // 5. Verify ZK proof
     const backend = new UltraHonkBackend(circuit.bytecode, api)

@@ -35,6 +35,7 @@ const proofIdSchema = z.object({
   id: z.string().uuid('Invalid ID format'),
 })
 
+
 const claimIdSchema = z.object({
   claimId: z.string().uuid('Invalid claim ID format'),
 })
@@ -129,6 +130,7 @@ export const verifyProofAction = actionClient
 
     return { isValid, error: errorMessage }
   })
+
 
 const prepareSigningSchema = z.object({
   claimId: z.string().uuid(),

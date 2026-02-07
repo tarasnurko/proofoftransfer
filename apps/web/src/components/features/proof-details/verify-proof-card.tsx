@@ -1,40 +1,54 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
-import { Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X } from 'lucide-react'
+import { getExplorerBaseUrl, getExplorerName } from '@/lib/types'
+import { Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X, ExternalLink } from 'lucide-react'
+
+interface CsvFile {
+  name: string
+  transfers: EtherscanTransfer[]
+}
 
 interface VerifyProofCardProps {
   proof: ProofEntity
   claim: ClaimEntity
   transfers: EtherscanTransfer[]
-  csvTransfers: EtherscanTransfer[]
-  csvFileName: string | null
+  csvFiles: CsvFile[]
   verifying: boolean
   fetchingTransfers: boolean
   onVerify: () => void
   onFetchTransfers: () => void
   onCsvUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onClearCsv: () => void
+  onRemoveCsv: (index: number) => void
 }
 
 export function VerifyProofCard({
   proof,
   claim,
   transfers,
-  csvTransfers,
-  csvFileName,
+  csvFiles,
   verifying,
   fetchingTransfers,
   onVerify,
   onFetchTransfers,
   onCsvUpload,
-  onClearCsv,
+  onRemoveCsv,
 }: VerifyProofCardProps) {
+  const totalCsvTransfers = csvFiles.reduce((sum, file) => sum + file.transfers.length, 0)
+  const canAddMore = csvFiles.length < 3
+
+  const [activeTab, setActiveTab] = useState(csvFiles.length ? 'csv' : 'blockchain')
+  const decimals = claim.token?.decimals || 18
+  const explorerBase = getExplorerBaseUrl(claim.chainId)
+  const explorerName = getExplorerName(claim.chainId)
+  const csvExportUrl = explorerBase
+    ? `${explorerBase}/exportData?type=tokentxnsbyaddress&contract=${claim.tokenAddress}&a=${claim.recipientAddress}&decimal=${decimals}`
+    : null
   return (
     <Card className="border-4">
       <CardHeader>
@@ -59,7 +73,7 @@ export function VerifyProofCard({
             )}
           </div>
         ) : (
-          <Tabs defaultValue="blockchain" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="blockchain">Fetch from Blockchain</TabsTrigger>
               <TabsTrigger value="csv">Upload CSV</TabsTrigger>
@@ -117,80 +131,104 @@ export function VerifyProofCard({
             </TabsContent>
 
             <TabsContent value="csv" className="space-y-4">
-              {!csvFileName ? (
-                <label
-                  htmlFor="csv-upload"
-                  className="flex cursor-pointer flex-col items-center gap-3 border-4 border-dashed border-border p-8 transition-colors hover:bg-muted"
-                >
-                  <Upload className="h-10 w-10 text-muted-foreground" />
-                  <div className="text-center">
-                    <p className="font-bold">Upload CSV File</p>
-                    <p className="text-sm text-muted-foreground">
-                      Download transfer data from Etherscan as CSV and upload it here
-                    </p>
-                  </div>
-                  <span className="border-2 border-border bg-background px-4 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow hover:shadow-none">
-                    Choose File
-                  </span>
-                  <input
-                    id="csv-upload"
-                    type="file"
-                    accept=".csv"
-                    onChange={onCsvUpload}
-                    className="hidden"
-                  />
-                </label>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-2 border-border p-3">
+              <div className="space-y-2 rounded border-2 border-border bg-secondary/30 p-3 text-sm">
+                <p className="font-bold">How to get CSV:</p>
+                {csvExportUrl ? (
+                  <a
+                    href={csvExportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-accent underline underline-offset-2 hover:opacity-70"
+                  >
+                    Download transfers CSV from {explorerName}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Download transfer data as CSV from your chain&apos;s block explorer.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Upload up to 3 CSV files. Transfers will be filtered by token, recipient, and date range automatically.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {csvFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between border-2 border-border p-3">
                     <div className="flex items-center gap-3">
                       <FileText className="h-5 w-5 text-accent" />
                       <div>
-                        <p className="text-sm font-bold">{csvFileName}</p>
-                        <p className="text-xs text-muted-foreground">{csvTransfers.length} transfers parsed</p>
+                        <p className="text-sm font-bold">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{file.transfers.length} transfers</p>
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={onClearCsv}
+                      onClick={() => onRemoveCsv(index)}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+                ))}
 
-                  {csvTransfers.length > 0 ? (
-                    <>
-                      <details>
-                        <summary className="cursor-pointer text-sm font-bold text-accent hover:underline">
-                          View transfers
-                        </summary>
-                        <div className="mt-2">
-                          <VirtualTransferList
-                            transfers={csvTransfers.map((t) => ({
-                              from: t.from,
-                              amount: t.value,
-                              timestamp: parseInt(t.timeStamp),
-                            }))}
-                            token={claim.token}
-                            chainId={claim.chainId}
-                            maxHeight={300}
-                          />
-                        </div>
-                      </details>
+                {canAddMore && (
+                  <label
+                    htmlFor="csv-upload"
+                    className="flex cursor-pointer flex-col items-center gap-3 border-4 border-dashed border-border p-6 transition-colors hover:bg-muted"
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-center">
+                      <p className="font-bold">Upload CSV File ({csvFiles.length}/3)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Expected format: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
+                      </p>
+                    </div>
+                    <span className="border-2 border-border bg-background px-4 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow hover:shadow-none">
+                      Choose File
+                    </span>
+                    <input
+                      id="csv-upload"
+                      type="file"
+                      accept=".csv"
+                      onChange={onCsvUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
 
-                      <Button
-                        onClick={onVerify}
-                        disabled={verifying}
-                        className="w-full border-4 font-bold"
-                      >
-                        {verifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {verifying ? 'Verifying...' : 'Verify Proof'}
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              )}
+                {csvFiles.length > 0 && totalCsvTransfers > 0 && (
+                  <>
+                    <details>
+                      <summary className="cursor-pointer text-sm font-bold text-accent hover:underline">
+                        View all transfers ({totalCsvTransfers})
+                      </summary>
+                      <div className="mt-2">
+                        <VirtualTransferList
+                          transfers={csvFiles.flatMap(f => f.transfers).map((t) => ({
+                            from: t.from,
+                            amount: t.value,
+                            timestamp: parseInt(t.timeStamp),
+                          }))}
+                          token={claim.token}
+                          chainId={claim.chainId}
+                          maxHeight={300}
+                        />
+                      </div>
+                    </details>
+
+                    <Button
+                      onClick={onVerify}
+                      disabled={verifying}
+                      className="w-full border-4 font-bold"
+                    >
+                      {verifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      {verifying ? 'Verifying...' : 'Verify Proof'}
+                    </Button>
+                  </>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         )}
