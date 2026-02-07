@@ -123,8 +123,8 @@ export const verifyProofAction = actionClient
         isValid: isValid,
         errorMessage: errorMessage || null,
       })
-    } catch (err) {
-      console.error('Failed to record verification:', err)
+    } catch {
+      // verification recording is non-critical
     }
 
     return { isValid, error: errorMessage }

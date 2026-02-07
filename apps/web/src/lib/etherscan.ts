@@ -2,6 +2,9 @@ import axios from "axios";
 import type { EtherscanERC20Transfer } from "@repo/types";
 
 const ETHERSCAN_API_V2_BASE = "https://api.etherscan.io/v2/api";
+const LATEST_BLOCK_FALLBACK = 99999999;
+const PAGE_SIZE = 1000;
+const MAX_RETRIES = 3;
 
 interface FetchERC20TransfersParams {
   chainId: number;
@@ -48,14 +51,14 @@ export class EtherscanClient {
       : 0;
     const endBlock = toTimestamp
       ? await this.getBlockByTimestamp(chainId, toTimestamp, "before")
-      : 99999999;
+      : LATEST_BLOCK_FALLBACK;
 
     const allTransfers: EtherscanERC20Transfer[] = [];
     let page = 1;
-    const maxRetries = 3;
+    const maxRetries = MAX_RETRIES;
 
     while (true) {
-      const offset = 1000;
+      const offset = PAGE_SIZE;
 
       let retries = 0;
       let data: EtherscanResponse<EtherscanERC20Transfer[]> | null = null;
@@ -192,13 +195,9 @@ export class EtherscanClient {
         return Number(response.data.result);
       }
 
-      console.error(
-        `Etherscan API error: ${response.data.message || "Unknown error"}`,
-      );
-      return closest === "after" ? 0 : 99999999;
-    } catch (error) {
-      console.error("Error getting block by timestamp:", error);
-      return closest === "after" ? 0 : 99999999;
+      return closest === "after" ? 0 : LATEST_BLOCK_FALLBACK;
+    } catch {
+      return closest === "after" ? 0 : LATEST_BLOCK_FALLBACK;
     }
   }
 }

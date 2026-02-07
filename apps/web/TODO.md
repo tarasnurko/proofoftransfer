@@ -6,3 +6,4 @@
 6. multichain claims - allow to fetch same recipitn transfers from multiple chains
 7. when pressing submit proof im getting error "Invalid proof data"
 8. export all proofs for claim in csv/json
+9. should be able to select multiple csv files when verifying proof

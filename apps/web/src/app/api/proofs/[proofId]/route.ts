@@ -14,8 +14,7 @@ export async function GET(
     }
 
     return NextResponse.json(proof)
-  } catch (error) {
-    console.error('Error fetching proof:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch proof' }, { status: 500 })
   }
 }

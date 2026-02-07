@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
 import { getClaims } from '@/db/queries/claims'
 
-export async function GET() {
+const MAX_PAGE_SIZE = 100
+
+export async function GET(request: Request) {
   try {
-    const result = await getClaims({ limit: 100, offset: 0 })
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(Number(searchParams.get('limit')) || 50, MAX_PAGE_SIZE)
+    const offset = Math.max(Number(searchParams.get('offset')) || 0, 0)
+
+    const result = await getClaims({ limit, offset })
     return NextResponse.json({ data: result.claims, total: result.total })
-  } catch (error) {
-    console.error('Error fetching claims:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch claims' },
       { status: 500 }

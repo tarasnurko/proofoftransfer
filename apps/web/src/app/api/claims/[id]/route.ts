@@ -14,8 +14,7 @@ export async function GET(
     }
 
     return NextResponse.json(claim)
-  } catch (error) {
-    console.error('Error fetching claim:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch claim' }, { status: 500 })
   }
 }

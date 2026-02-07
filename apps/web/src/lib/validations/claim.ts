@@ -38,6 +38,13 @@ export const createClaimSchema = z
     toDate: z.date().optional(),
 
     chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
+
+    creatorAddress: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+      .transform((val) => val.toLowerCase())
+      .optional()
+      .default(''),
   })
   .refine(
     (data) => {

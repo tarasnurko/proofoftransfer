@@ -12,9 +12,11 @@ export async function createClaim(data: InsertClaimEntity, tx?: DB): Promise<Cla
   )
 }
 
+const MAX_QUERY_LIMIT = 100
+
 export async function getClaims(options?: { limit?: number; offset?: number }) {
-  const limit = options?.limit ?? 50
-  const offset = options?.offset ?? 0
+  const limit = Math.min(options?.limit ?? 50, MAX_QUERY_LIMIT)
+  const offset = Math.max(options?.offset ?? 0, 0)
 
   const result = await db
     .select({

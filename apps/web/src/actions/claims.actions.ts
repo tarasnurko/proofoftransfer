@@ -86,7 +86,7 @@ export const createClaimAction = actionClient
       fromBlockTimestamp,
       toBlockTimestamp,
       chainId: parsedInput.chainId,
-      creatorAddress: '',
+      creatorAddress: parsedInput.creatorAddress || '',
     }
 
     await fetchAndStoreTokenDataAction({

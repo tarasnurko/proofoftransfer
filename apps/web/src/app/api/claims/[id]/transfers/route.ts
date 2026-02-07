@@ -21,8 +21,7 @@ export async function GET(
     }))
 
     return NextResponse.json(formattedTransfers)
-  } catch (error) {
-    console.error('Error fetching transfers:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch transfers' }, { status: 500 })
   }
 }

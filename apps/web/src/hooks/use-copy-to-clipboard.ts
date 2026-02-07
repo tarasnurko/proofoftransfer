@@ -7,9 +7,13 @@ export function useCopyToClipboard(resetDelay = 1500) {
 
   const copy = useCallback(
     async (text: string) => {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), resetDelay)
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), resetDelay)
+      } catch {
+        // clipboard unavailable (e.g. non-HTTPS, denied permission)
+      }
     },
     [resetDelay],
   )
