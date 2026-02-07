@@ -10,7 +10,7 @@ export async function GET(
     const result = await getTransfersForClaim(id)
 
     // Format for EtherscanTransfer interface
-    const formattedTransfers = result.map(({ transfers: t }) => ({
+    const formattedTransfers = result.map((t) => ({
       hash: t.txHash,
       from: t.senderAddress,
       to: t.recipientAddress,

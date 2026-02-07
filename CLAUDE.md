@@ -67,3 +67,4 @@ STOP. Before writing ANY code:
 - Assume you know the pattern - CHECK the skill
 - Write utility code - SEARCH for existing helper first
 - Skip verification - ALWAYS check before writing
+

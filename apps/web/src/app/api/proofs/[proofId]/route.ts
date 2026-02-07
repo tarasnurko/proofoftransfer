@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getProofById } from '@/db/queries/proofs'
+import { getVerificationStats } from '@/db/queries/verifications'
 
 export async function GET(
   request: Request,
@@ -13,7 +14,15 @@ export async function GET(
       return NextResponse.json({ error: 'Proof not found' }, { status: 404 })
     }
 
-    return NextResponse.json(proof)
+    const stats = await getVerificationStats(proofId)
+
+    return NextResponse.json({
+      ...proof,
+      verificationStats: {
+        successful: stats.successful,
+        failed: stats.failed,
+      },
+    })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch proof' }, { status: 500 })
   }

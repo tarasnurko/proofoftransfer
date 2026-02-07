@@ -5,7 +5,6 @@ import { readFile } from 'fs/promises'
 import { Barretenberg, UltraHonkBackend } from '@aztec/bb.js'
 import { Noir } from '@noir-lang/noir_js'
 import { getTransfersForClaim } from '@/db/queries/transfers'
-import { getClaimById } from '@/db/queries/claims'
 import {
   hashTransfer,
   MerkleTree,
@@ -15,11 +14,20 @@ import {
   fieldToBigint,
 } from '@repo/circuit-utils'
 
+interface ExternalTransfer {
+  from: string
+  to: string
+  contractAddress: string
+  value: string
+  timeStamp: string
+}
+
 interface VerifyProofServerParams {
   proofData: string
   publicInputs: string[]
   claimId: string
   transfersRootHash: string
+  externalTransfers?: ExternalTransfer[]
 }
 
 interface VerifyProofResult {
@@ -34,26 +42,41 @@ export async function verifyProofServer(
     // Initialize Barretenberg API
     const api = await Barretenberg.new({ threads: 1 })
 
-    // 1. Fetch claim and transfers
-    const claim = await getClaimById(params.claimId)
-    if (!claim) {
-      return { isValid: false, error: 'Claim not found' }
+    // 1. Build transfer hashes — from external transfers or DB
+    let transferHashesBytes: Uint8Array[]
+
+    if (params.externalTransfers?.length) {
+      // Sort external transfers by timestamp to match merkle tree ordering
+      const sorted = [...params.externalTransfers].sort(
+        (a, b) => Number(a.timeStamp) - Number(b.timeStamp)
+      )
+      transferHashesBytes = await Promise.all(
+        sorted.map((t) =>
+          hashTransfer(api, {
+            from: t.from,
+            to: t.to,
+            contractAddress: t.contractAddress,
+            value: t.value,
+            timeStamp: t.timeStamp,
+          })
+        )
+      )
+    } else {
+      const claimTransfers = await getTransfersForClaim(params.claimId)
+      transferHashesBytes = await Promise.all(
+        claimTransfers.map((t) =>
+          hashTransfer(api, {
+            from: t.senderAddress,
+            to: t.recipientAddress,
+            contractAddress: t.tokenAddress,
+            value: t.amount,
+            timeStamp: t.blockTimestamp.toString(),
+          })
+        )
+      )
     }
 
-    const claimTransfers = await getTransfersForClaim(params.claimId)
-
     // 2. Rebuild merkle tree
-    const transferHashesBytes = await Promise.all(
-      claimTransfers.map(({ transfers: t }) =>
-        hashTransfer(api, {
-          from: t.senderAddress,
-          to: t.recipientAddress,
-          contractAddress: t.tokenAddress,
-          value: t.amount,
-          timeStamp: t.blockTimestamp.toString(),
-        })
-      )
-    )
 
     const transferHashes = transferHashesBytes.map((hash) =>
       fieldToBigint(hash).toString()

@@ -26,6 +26,7 @@ CREATE TABLE "proof_verifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"proofId" uuid NOT NULL,
 	"verifierAddress" varchar(42),
+	"verifierNullifier" varchar(78),
 	"isValid" boolean NOT NULL,
 	"verifiedAt" timestamp DEFAULT now() NOT NULL,
 	"errorMessage" text
@@ -79,6 +80,7 @@ CREATE INDEX "token_recipient_chain_idx" ON "claims" USING btree ("tokenAddress"
 CREATE INDEX "creator_idx" ON "claims" USING btree ("creatorAddress");--> statement-breakpoint
 CREATE INDEX "proof_id_idx" ON "proof_verifications" USING btree ("proofId");--> statement-breakpoint
 CREATE INDEX "is_valid_idx" ON "proof_verifications" USING btree ("isValid");--> statement-breakpoint
+CREATE INDEX "proof_verifier_nullifier_idx" ON "proof_verifications" USING btree ("proofId","verifierNullifier");--> statement-breakpoint
 CREATE INDEX "claim_id_idx" ON "proofs" USING btree ("claimId");--> statement-breakpoint
 CREATE INDEX "nullifier_idx" ON "proofs" USING btree ("nullifier");--> statement-breakpoint
 CREATE INDEX "prover_address_idx" ON "proofs" USING btree ("proverAddress");--> statement-breakpoint

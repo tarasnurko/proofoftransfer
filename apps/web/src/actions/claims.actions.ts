@@ -16,7 +16,7 @@ import {
   ZERO_VALUES,
 } from '@repo/circuit-utils'
 import { etherscanClient } from '@/lib/etherscan'
-import { bulkUpsertTransfers, linkTransfersToClaim, getTransfersByConstraints } from '@/db/queries/transfers'
+import { bulkUpsertTransfers, getTransfersByConstraints } from '@/db/queries/transfers'
 import { fieldToBigint } from '@repo/circuit-utils'
 import { db } from '@/db/client'
 
@@ -86,7 +86,6 @@ export const createClaimAction = actionClient
       fromBlockTimestamp,
       toBlockTimestamp,
       chainId: parsedInput.chainId,
-      creatorAddress: parsedInput.creatorAddress || '',
     }
 
     await fetchAndStoreTokenDataAction({
@@ -133,12 +132,6 @@ export const createClaimAction = actionClient
 
       await merkleTree.init(transferHashes)
       const merkleRoot = merkleTree.root()
-
-      await linkTransfersToClaim({
-        claimId: claim.id,
-        transferIds: storedTransfers.map((t) => t.id),
-        merkleIndices: storedTransfers.map((_, idx) => idx),
-      }, tx)
 
       await updateClaimMerkleRoot(claim.id, merkleRoot, tx)
 

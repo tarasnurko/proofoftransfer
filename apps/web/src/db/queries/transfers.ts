@@ -1,5 +1,6 @@
 import { db, type DB } from '../client'
-import { transfers, claimTransfers } from '../schema'
+import { transfers } from '../schema'
+import { claims } from '../schema'
 import type { InsertTransferEntity, TransferEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq, and, gte, lte } from 'drizzle-orm'
@@ -27,48 +28,21 @@ export async function bulkUpsertTransfers(
   return result
 }
 
-interface LinkTransfersToClaimParams {
-  claimId: string
-  transferIds: string[]
-  merkleIndices: number[]
-}
-
-export async function linkTransfersToClaim(
-  params: LinkTransfersToClaimParams,
-  tx?: DB
-): Promise<void> {
-  const { claimId, transferIds, merkleIndices } = params
-
-  if (transferIds.length !== merkleIndices.length) {
-    throw new Error('transferIds and merkleIndices must have same length')
-  }
-
-  if (!transferIds.length) {
-    return
-  }
-
-  const dbInstance = tx ?? db
-
-  const data = transferIds.map((transferId, idx) => ({
-    claimId,
-    transferId,
-    merkleLeafIndex: merkleIndices[idx]!,
-  }))
-
-  await dbInstance.insert(claimTransfers).values(data)
-}
-
 export async function getTransfersForClaim(
   claimId: string
-): Promise<Array<{ transfers: TransferEntity; claim_transfers: typeof claimTransfers.$inferSelect }>> {
-  const result = await db
-    .select()
-    .from(transfers)
-    .innerJoin(claimTransfers, eq(transfers.id, claimTransfers.transferId))
-    .where(eq(claimTransfers.claimId, claimId))
-    .orderBy(claimTransfers.merkleLeafIndex)
+): Promise<TransferEntity[]> {
+  const claim = entityOrNull(
+    await db.select().from(claims).where(eq(claims.id, claimId)).limit(1)
+  )
+  if (!claim) throw new Error('Claim not found')
 
-  return result
+  return getTransfersByConstraints({
+    chainId: claim.chainId,
+    tokenAddress: claim.tokenAddress,
+    recipientAddress: claim.recipientAddress,
+    fromTimestamp: claim.fromBlockTimestamp || undefined,
+    toTimestamp: claim.toBlockTimestamp || undefined,
+  })
 }
 
 interface GetTransfersByConstraintsParams {

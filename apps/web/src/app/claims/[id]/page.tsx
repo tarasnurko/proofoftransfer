@@ -191,7 +191,6 @@ export default function ClaimDetailsPage() {
         nullifier: generated.nullifier,
         proofData: generated.proofData,
         publicInputs: generated.publicInputs,
-        transfersRootHash: generated.transfersRootHash,
       })
 
       if (submitResult?.serverError) {

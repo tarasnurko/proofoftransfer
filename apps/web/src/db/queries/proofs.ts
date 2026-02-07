@@ -1,7 +1,7 @@
 import { db } from '../client'
 import { proofs, claims, proofVerifications } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
-import { eq, and, desc, count } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createProof(data: InsertProofEntity): Promise<ProofEntity> {
@@ -15,7 +15,8 @@ export async function getProofsByClaimId(claimId: string) {
   const result = await db
     .select({
       proof: proofs,
-      verificationCount: count(proofVerifications.id),
+      successfulCount: sql<number>`count(case when ${proofVerifications.isValid} = true then 1 end)`.mapWith(Number),
+      failedCount: sql<number>`count(case when ${proofVerifications.isValid} = false then 1 end)`.mapWith(Number),
     })
     .from(proofs)
     .leftJoin(proofVerifications, eq(proofs.id, proofVerifications.proofId))
@@ -25,7 +26,10 @@ export async function getProofsByClaimId(claimId: string) {
 
   return result.map((r) => ({
     ...r.proof,
-    verificationCount: Number(r.verificationCount),
+    verificationStats: {
+      successful: r.successfulCount,
+      failed: r.failedCount,
+    },
   }))
 }
 

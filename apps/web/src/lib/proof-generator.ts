@@ -18,7 +18,6 @@ export interface GenerateClaimProofParams {
 export interface PreparedProofData {
   circuitInputs: any
   nullifier: string
-  transfersRootHash: string
   proverTransferCount: number
 }
 
@@ -32,7 +31,6 @@ export interface GeneratedProof {
     recipient_address: string
     transfers_count: number
   }
-  transfersRootHash: string
 }
 
 /**
@@ -310,7 +308,6 @@ export async function prepareClaimProof(
   return {
     circuitInputs,
     nullifier: '0x' + BigInt(nullifier).toString(16).padStart(64, '0'),
-    transfersRootHash: '0x' + BigInt(merkleRoot).toString(16).padStart(64, '0'),
     proverTransferCount: proverTransfers.length,
   }
 }
@@ -378,7 +375,6 @@ export function assembleCircuitInputs(
   return {
     circuitInputs,
     nullifier: '0x' + BigInt(signatureResult.nullifier).toString(16).padStart(64, '0'),
-    transfersRootHash: '0x' + BigInt(circuitData.merkleRoot).toString(16).padStart(64, '0'),
     proverTransferCount: circuitData.proverTransferCount,
   }
 }
@@ -403,7 +399,6 @@ export async function generateProofFromPrepared(
       recipient_address: prepared.circuitInputs.recipient_address,
       transfers_count: prepared.proverTransferCount,
     },
-    transfersRootHash: prepared.transfersRootHash,
   }
 }
 

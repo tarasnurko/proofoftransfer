@@ -1,6 +1,6 @@
 {
-  "id": "aeaf4650-aef7-4b4e-acdb-7c6800ee426e",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "a8eefb17-b659-4452-bd26-141119aa0ab9",
+  "prevId": "aeaf4650-aef7-4b4e-acdb-7c6800ee426e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -169,12 +169,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "creatorAddress": {
-          "name": "creatorAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "merkleRoot": {
           "name": "merkleRoot",
           "type": "varchar(78)",
@@ -231,21 +225,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "creator_idx": {
-          "name": "creator_idx",
-          "columns": [
-            {
-              "expression": "creatorAddress",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {},
@@ -271,12 +250,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "verifierAddress": {
-          "name": "verifierAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": false
         },
         "verifierNullifier": {
           "name": "verifierNullifier",
@@ -413,18 +386,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "transfersRootHash": {
-          "name": "transfersRootHash",
-          "type": "varchar(78)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "proverAddress": {
-          "name": "proverAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -454,21 +415,6 @@
           "columns": [
             {
               "expression": "nullifier",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prover_address_idx": {
-          "name": "prover_address_idx",
-          "columns": [
-            {
-              "expression": "proverAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

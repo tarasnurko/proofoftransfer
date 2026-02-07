@@ -1,4 +1,4 @@
-import { tokens, claims, proofs, proofVerifications, transfers, claimTransfers } from './schema'
+import { tokens, claims, proofs, proofVerifications, transfers } from './schema'
 
 export type TokenEntity = typeof tokens.$inferSelect
 export type InsertTokenEntity = typeof tokens.$inferInsert
@@ -14,6 +14,3 @@ export type InsertProofVerificationEntity = typeof proofVerifications.$inferInse
 
 export type TransferEntity = typeof transfers.$inferSelect
 export type InsertTransferEntity = typeof transfers.$inferInsert
-
-export type ClaimTransferEntity = typeof claimTransfers.$inferSelect
-export type InsertClaimTransferEntity = typeof claimTransfers.$inferInsert

@@ -3,25 +3,42 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CopyHash } from '@/components/shared/copy-hash'
-import { Address } from '@/components/shared/address'
 import type { ProofEntity } from '@/lib/types'
+import { CheckCircle2, XCircle } from 'lucide-react'
 
 interface ProofInfoCardProps {
   proof: ProofEntity
-  chainId: number
 }
 
-export function ProofInfoCard({ proof, chainId }: ProofInfoCardProps) {
+export function ProofInfoCard({ proof }: ProofInfoCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-2xl font-bold">Proof Information</CardTitle>
-          {proof.verified !== undefined ? (
-            <Badge variant={proof.verified ? 'default' : 'destructive'} className="text-lg">
-              {proof.verified ? 'Valid' : 'Invalid'}
-            </Badge>
-          ) : null}
+          <div className="flex items-center gap-3">
+            {proof.verificationStats ? (
+              <div className="flex items-center gap-3 text-sm font-bold">
+                {proof.verificationStats.successful > 0 && (
+                  <span className="flex items-center gap-1 text-accent">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {proof.verificationStats.successful} verified
+                  </span>
+                )}
+                {proof.verificationStats.failed > 0 && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    <XCircle className="h-4 w-4" />
+                    {proof.verificationStats.failed} failed
+                  </span>
+                )}
+              </div>
+            ) : null}
+            {proof.verified !== undefined ? (
+              <Badge variant={proof.verified ? 'default' : 'destructive'} className="text-lg">
+                {proof.verified ? 'Valid' : 'Invalid'}
+              </Badge>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -44,27 +61,10 @@ export function ProofInfoCard({ proof, chainId }: ProofInfoCardProps) {
           </details>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <div className="text-sm font-bold text-muted-foreground">Transfers Root Hash</div>
-            <div className="mt-1">
-              <CopyHash hash={proof.transfersRootHash} />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-muted-foreground">Submitted</div>
-            <div className="mt-1">{new Date(proof.createdAt).toLocaleString()}</div>
-          </div>
+        <div>
+          <div className="text-sm font-bold text-muted-foreground">Submitted</div>
+          <div className="mt-1">{new Date(proof.createdAt).toLocaleString()}</div>
         </div>
-
-        {proof.proverAddress ? (
-          <div>
-            <div className="text-sm font-bold text-muted-foreground">Prover Address</div>
-            <div className="mt-1">
-              <Address address={proof.proverAddress} chainId={chainId} />
-            </div>
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   )

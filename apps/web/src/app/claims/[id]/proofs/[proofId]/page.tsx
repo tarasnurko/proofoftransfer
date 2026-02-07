@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { parseUnits } from 'viem'
+import { useAccount, useWalletClient } from 'wagmi'
+import { useAppKit } from '@reown/appkit/react'
 import { PageContainer } from '@/components/layout/page-container'
 import { LoadingState } from '@/components/shared/loading-state'
 import { ErrorState } from '@/components/shared/error-state'
@@ -12,12 +14,16 @@ import { PageHeader } from '@/components/shared/page-header'
 import { ClaimSummaryCard, ProofInfoCard, VerifyProofCard } from '@/components/features/proof-details'
 import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/lib/types'
 import { toast } from 'sonner'
-import { verifyProofAction } from '@/actions/proofs.actions'
+import { verifyProofAction, prepareVerificationSigningDataAction, processSignatureAction } from '@/actions/proofs.actions'
 
 export default function ProofDetailsPage() {
   const params = useParams()
   const claimId = params.id as string
   const proofId = params.proofId as string
+
+  const { address: walletAddress, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const { open } = useAppKit()
 
   const [claim, setClaim] = useState<ClaimEntity | null>(null)
   const [proof, setProof] = useState<ProofEntity | null>(null)
@@ -59,10 +65,102 @@ export default function ProofDetailsPage() {
     }
   }, [claimId, proofId])
 
+  // Collect all transfers from blockchain fetch + CSV uploads
+  const allTransfers = [
+    ...transfers,
+    ...csvFiles.flatMap((f) => f.transfers),
+  ]
+
   const handleVerify = useCallback(async () => {
+    if (!walletAddress || !walletClient || !claim) {
+      toast.error('Connect your wallet first')
+      return
+    }
+
+    if (!allTransfers.length) {
+      toast.error('Fetch or upload transfers first')
+      return
+    }
+
     setVerifying(true)
     try {
-      const result = await verifyProofAction({ id: proofId })
+      // Step 1: Prepare EIP-712 signing data (no proverAddress needed)
+      const prepResult = await prepareVerificationSigningDataAction({ claimId })
+      if (prepResult?.serverError) throw new Error(prepResult.serverError)
+      if (!prepResult?.data) throw new Error('Failed to prepare signing data')
+
+      const serverData = prepResult.data
+      const walletChainId = await walletClient.getChainId()
+
+      // Step 2: Sign EIP-712 typed data
+      const claimTypes = {
+        Claim: [
+          { name: 'claimId', type: 'bytes32' },
+          { name: 'claimMessageHash', type: 'bytes32' },
+          { name: 'tokenAddress', type: 'address' },
+          { name: 'recipientAddress', type: 'address' },
+          { name: 'minTransfersSum', type: 'uint128' },
+          { name: 'maxTransfersSum', type: 'uint128' },
+          { name: 'fromBlockTimestamp', type: 'uint64' },
+          { name: 'toBlockTimestamp', type: 'uint64' },
+          { name: 'transfersRootHash', type: 'bytes32' },
+        ],
+      } as const
+
+      const domain = {
+        name: 'ProofOfTransfer',
+        version: '1',
+        chainId: BigInt(walletChainId),
+        verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      }
+
+      const message = {
+        claimId: serverData.eip712.claimIdBytes32,
+        claimMessageHash: serverData.eip712.claimMessageHashBytes32,
+        tokenAddress: serverData.eip712.tokenAddress as `0x${string}`,
+        recipientAddress: serverData.eip712.recipientAddress as `0x${string}`,
+        minTransfersSum: BigInt(serverData.eip712.minTransfersSum),
+        maxTransfersSum: BigInt(serverData.eip712.maxTransfersSum),
+        fromBlockTimestamp: BigInt(serverData.eip712.fromBlockTimestamp),
+        toBlockTimestamp: BigInt(serverData.eip712.toBlockTimestamp),
+        transfersRootHash: serverData.eip712.merkleTreeRootBytes32,
+      }
+
+      const signature = await walletClient.signTypedData({
+        account: walletClient.account!,
+        domain,
+        types: claimTypes,
+        primaryType: 'Claim',
+        message,
+      })
+
+      // Step 3: Derive nullifier from signature
+      const sigResult = await processSignatureAction({ signature })
+      if (sigResult?.serverError) throw new Error(sigResult.serverError)
+      if (!sigResult?.data) throw new Error('Failed to process signature')
+
+      const derivedNullifier = sigResult.data.nullifier
+
+      // Step 4: Check nullifier match — cannot verify your own proof
+      if (derivedNullifier === proof?.nullifier) {
+        toast.error('Cannot verify your own proof')
+        return
+      }
+
+      // Step 5: Call server verify with nullifier + verifier-provided transfers
+      const verifyTransfers = allTransfers.map((t) => ({
+        from: t.from,
+        to: t.to,
+        contractAddress: t.contractAddress,
+        value: t.value,
+        timeStamp: t.timeStamp,
+      }))
+
+      const result = await verifyProofAction({
+        id: proofId,
+        nullifier: derivedNullifier,
+        transfers: verifyTransfers,
+      })
 
       if (result?.serverError) {
         throw new Error(result.serverError)
@@ -73,13 +171,14 @@ export default function ProofDetailsPage() {
         await fetchData()
       } else {
         toast.error(result?.data?.error || 'Proof verification failed')
+        await fetchData()
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to verify proof')
     } finally {
       setVerifying(false)
     }
-  }, [proofId, fetchData])
+  }, [walletAddress, walletClient, claim, claimId, proofId, proof?.nullifier, allTransfers, fetchData])
 
   const fetchTransfersForVerification = useCallback(async () => {
     setFetchingTransfers(true)
@@ -197,6 +296,8 @@ export default function ProofDetailsPage() {
   if (error) return <PageContainer><ErrorState message={error} /></PageContainer>
   if (!claim || !proof) return <PageContainer><ErrorState message="Proof not found" /></PageContainer>
 
+  const alreadyVerified = !!proof.verificationStats?.successful
+
   return (
     <PageContainer>
       <div className="mb-4 flex items-center justify-between">
@@ -208,7 +309,7 @@ export default function ProofDetailsPage() {
 
       <div className="space-y-6">
         <ClaimSummaryCard claim={claim} />
-        <ProofInfoCard proof={proof} chainId={claim.chainId} />
+        <ProofInfoCard proof={proof} />
         <VerifyProofCard
           proof={proof}
           claim={claim}
@@ -216,7 +317,11 @@ export default function ProofDetailsPage() {
           csvFiles={csvFiles}
           verifying={verifying}
           fetchingTransfers={fetchingTransfers}
+          isConnected={isConnected}
+          alreadyVerified={alreadyVerified}
+          hasTransfers={!!allTransfers.length}
           onVerify={handleVerify}
+          onConnectWallet={() => open()}
           onFetchTransfers={fetchTransfersForVerification}
           onCsvUpload={handleCsvUpload}
           onRemoveCsv={handleRemoveCsv}

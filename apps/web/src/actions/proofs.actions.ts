@@ -9,7 +9,11 @@ import { submitProofSchema } from '@/lib/validations/proof'
 import { getClaimById } from '@/db/queries/claims'
 import { getTransfersForClaim } from '@/db/queries/transfers'
 import { createProof, checkNullifierExists, getProofById } from '@/db/queries/proofs'
-import { createVerification } from '@/db/queries/verifications'
+import {
+  createVerification,
+  getSuccessfulVerificationByNullifier,
+  deleteFailedVerificationsByNullifier,
+} from '@/db/queries/verifications'
 import { etherscanClient } from '@/lib/etherscan'
 import type { InsertProofEntity } from '@/db/index.types'
 import { verifyProofServer } from '@/lib/proof-verifier-server'
@@ -31,8 +35,18 @@ import {
   processSignature,
 } from '@repo/circuit-utils'
 
-const proofIdSchema = z.object({
+const externalTransferSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  contractAddress: z.string(),
+  value: z.string(),
+  timeStamp: z.string(),
+})
+
+const verifyProofSchema = z.object({
   id: z.string().uuid('Invalid ID format'),
+  nullifier: z.string().regex(/^0x[a-fA-F0-9]+$/, 'Invalid nullifier format'),
+  transfers: z.array(externalTransferSchema).min(1, 'Transfers are required'),
 })
 
 
@@ -83,7 +97,6 @@ export const submitProofAction = actionClient
       nullifier: parsedInput.nullifier,
       proofData: parsedInput.proofData,
       publicInputs: parsedInput.publicInputs,
-      transfersRootHash: parsedInput.transfersRootHash,
     }
 
     const result = await createProof(proofData)
@@ -95,33 +108,44 @@ export const submitProofAction = actionClient
   })
 
 export const verifyProofAction = actionClient
-  .inputSchema(proofIdSchema)
-  .action(async ({ parsedInput: { id: proofId } }) => {
+  .inputSchema(verifyProofSchema)
+  .action(async ({ parsedInput: { id: proofId, nullifier, transfers } }) => {
     const proof = await getProofById(proofId)
 
     if (!proof) {
       throw new Error('Proof not found')
     }
 
-    const claim = await getClaimById(proof.claimId)
-    if (!claim) {
-      throw new Error('Claim not found')
+    if (!proof.claim?.merkleRoot) {
+      throw new Error('Claim merkle root not found')
+    }
+
+    if (proof.nullifier === nullifier) {
+      throw new Error('Cannot verify your own proof')
+    }
+
+    const existingSuccess = await getSuccessfulVerificationByNullifier(proofId, nullifier)
+    if (existingSuccess) {
+      throw new Error('You have already verified this proof')
     }
 
     const verification = await verifyProofServer({
       proofData: proof.proofData,
       publicInputs: proof.publicInputs as string[],
-      claimId: claim.id,
-      transfersRootHash: proof.transfersRootHash,
+      claimId: proof.claimId,
+      transfersRootHash: proof.claim.merkleRoot,
+      externalTransfers: transfers,
     })
 
     const isValid = verification.isValid
     const errorMessage = verification.error
 
     try {
+      await deleteFailedVerificationsByNullifier(proofId, nullifier)
       await createVerification({
-        proofId: proofId,
-        isValid: isValid,
+        proofId,
+        verifierNullifier: nullifier,
+        isValid,
         errorMessage: errorMessage || null,
       })
     } catch {
@@ -150,7 +174,7 @@ export const prepareClaimSigningDataAction = actionClient
 
     // Hash all transfers & build merkle tree
     const transferHashesBytes = await Promise.all(
-      claimTransfers.map(({ transfers: t }) =>
+      claimTransfers.map((t) =>
         hashTransfer(api, {
           from: t.senderAddress,
           to: t.recipientAddress,
@@ -174,7 +198,7 @@ export const prepareClaimSigningDataAction = actionClient
     const proverIndices: number[] = []
     const proverTransferData: Array<{ from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string }> = []
 
-    claimTransfers.forEach(({ transfers: t }, index) => {
+    claimTransfers.forEach((t, index) => {
       if (t.senderAddress.toLowerCase() === proverAddress.toLowerCase()) {
         proverIndices.push(index)
         proverTransferData.push({
@@ -252,6 +276,64 @@ export const prepareClaimSigningDataAction = actionClient
         paddedMerkleProofElements: paddedMerkleProofs.map((mp) => mp.pathElements),
         areTransferLeavesEven,
         proverTransferCount: proverTransferData.length,
+      },
+    }
+  })
+
+const verificationSigningSchema = z.object({
+  claimId: z.string().uuid(),
+})
+
+export const prepareVerificationSigningDataAction = actionClient
+  .inputSchema(verificationSigningSchema)
+  .action(async ({ parsedInput: { claimId } }) => {
+    const claim = await getClaimById(claimId)
+    if (!claim) throw new Error('Claim not found')
+
+    const claimTransfers = await getTransfersForClaim(claimId)
+    if (!claimTransfers.length) throw new Error('No transfers found for this claim')
+
+    const api = await Barretenberg.new({ threads: 1 })
+
+    const transferHashesBytes = await Promise.all(
+      claimTransfers.map((t) =>
+        hashTransfer(api, {
+          from: t.senderAddress,
+          to: t.recipientAddress,
+          contractAddress: t.tokenAddress,
+          value: t.amount,
+          timeStamp: t.blockTimestamp.toString(),
+        })
+      )
+    )
+    const transferHashes = transferHashesBytes.map((h) => fieldToBigint(h).toString())
+
+    const merkleTree = new MerkleTree(
+      MERKLE_TREE_HEIGHT,
+      ZERO_VALUES,
+      (left, right) => poseidon2HashStringsLeftRight(api, left, right)
+    )
+    await merkleTree.init(transferHashes)
+    const merkleRoot = merkleTree.root()
+
+    const claimMessageHashBytes = await hashString(api, claim.message)
+    const claimMessageHashBigInt = BigInt('0x' + Buffer.from(claimMessageHashBytes).toString('hex'))
+    const claimMessageHashBytes32 = bigintToBytes32(claimMessageHashBigInt)
+
+    const claimIdBytes32 = uuidToBytes32(claimId)
+    const merkleTreeRootBytes32 = bigintToBytes32(merkleRoot)
+
+    return {
+      eip712: {
+        claimIdBytes32,
+        claimMessageHashBytes32,
+        tokenAddress: claim.tokenAddress,
+        recipientAddress: claim.recipientAddress,
+        minTransfersSum: (BigInt(claim.minTransfersSum || '0')).toString(),
+        maxTransfersSum: (BigInt(claim.maxTransfersSum || '0')).toString(),
+        fromBlockTimestamp: (BigInt(claim.fromBlockTimestamp || 0)).toString(),
+        toBlockTimestamp: (BigInt(claim.toBlockTimestamp || 0)).toString(),
+        merkleTreeRootBytes32,
       },
     }
   })

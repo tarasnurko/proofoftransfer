@@ -71,20 +71,24 @@ export interface ClaimEntity extends BaseClaimEntity {
 
 export interface TokenEntity extends BaseTokenEntity {}
 
+export interface VerificationStats {
+  successful: number
+  failed: number
+}
+
 export interface ProofEntity {
   id: string
   claimId: string
   nullifier: string
   proofData: string
   publicInputs: object
-  transfersRootHash: string
-  proverAddress: string | null
   createdAt: Date
   verified?: boolean
   verificationResult?: {
     valid: boolean
     message?: string
   }
+  verificationStats?: VerificationStats
 }
 
 export interface EtherscanTransfer {

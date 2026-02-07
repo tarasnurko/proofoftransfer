@@ -45,6 +45,34 @@ export async function getVerificationStats(proofId: string) {
   }
 }
 
+export async function getSuccessfulVerificationByNullifier(proofId: string, nullifier: string) {
+  return entityOrNull(
+    await db
+      .select()
+      .from(proofVerifications)
+      .where(
+        and(
+          eq(proofVerifications.proofId, proofId),
+          eq(proofVerifications.verifierNullifier, nullifier),
+          eq(proofVerifications.isValid, true)
+        )
+      )
+      .limit(1)
+  )
+}
+
+export async function deleteFailedVerificationsByNullifier(proofId: string, nullifier: string) {
+  return db
+    .delete(proofVerifications)
+    .where(
+      and(
+        eq(proofVerifications.proofId, proofId),
+        eq(proofVerifications.verifierNullifier, nullifier),
+        eq(proofVerifications.isValid, false)
+      )
+    )
+}
+
 export async function getLatestVerification(proofId: string) {
   return entityOrNull(
     await db

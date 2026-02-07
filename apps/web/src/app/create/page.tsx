@@ -205,7 +205,6 @@ export default function CreateClaimPage() {
         ...formData,
         fromDate: formData.fromDate ?? undefined,
         toDate: formData.toDate ?? undefined,
-        creatorAddress: walletAddress || '',
       })
 
       if (result?.serverError) {

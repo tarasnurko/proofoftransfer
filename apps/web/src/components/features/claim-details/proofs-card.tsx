@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
 import type { ProofEntity } from '@/lib/types'
 import type { PreparedProofData } from '@/lib/proof-generator'
-import { FileSearch, Search } from 'lucide-react'
+import { FileSearch, Search, CheckCircle2, XCircle } from 'lucide-react'
 
 interface ProofsCardProps {
   claimId: string
@@ -101,8 +101,26 @@ export function ProofsCard({
                     )}
                   </div>
                   <div className="mb-2 font-mono text-xs">{proof.nullifier.slice(0, 20)}...</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(proof.createdAt).toLocaleDateString()}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(proof.createdAt).toLocaleDateString()}
+                    </div>
+                    {proof.verificationStats ? (
+                      <div className="flex items-center gap-2 text-xs font-bold">
+                        {proof.verificationStats.successful > 0 && (
+                          <span className="flex items-center gap-0.5 text-accent">
+                            <CheckCircle2 className="h-3 w-3" />
+                            {proof.verificationStats.successful}
+                          </span>
+                        )}
+                        {proof.verificationStats.failed > 0 && (
+                          <span className="flex items-center gap-0.5 text-destructive">
+                            <XCircle className="h-3 w-3" />
+                            {proof.verificationStats.failed}
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </Link>
               ))}
