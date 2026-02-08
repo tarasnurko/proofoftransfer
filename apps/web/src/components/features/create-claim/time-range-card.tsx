@@ -1,17 +1,18 @@
 'use client'
 
+import type { Control } from 'react-hook-form'
+import { Controller } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
+import type { CreateClaimClientInput } from '@/lib/validations/claim'
 
 interface TimeRangeCardProps {
-  fromDate: Date | null
-  toDate: Date | null
+  control: Control<CreateClaimClientInput>
   error?: string
-  onChange: (field: string, value: Date | null) => void
 }
 
-export function TimeRangeCard({ fromDate, toDate, error, onChange }: TimeRangeCardProps) {
+export function TimeRangeCard({ control, error }: TimeRangeCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
@@ -22,19 +23,31 @@ export function TimeRangeCard({ fromDate, toDate, error, onChange }: TimeRangeCa
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="fromDate">Start Date</Label>
-            <DatePicker
-              date={fromDate || undefined}
-              onSelect={(date) => onChange('fromDate', date || null)}
-              placeholder="Select start date"
+            <Controller
+              name="fromDate"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  date={field.value || undefined}
+                  onSelect={(date) => field.onChange(date || null)}
+                  placeholder="Select start date"
+                />
+              )}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="toDate">End Date</Label>
-            <DatePicker
-              date={toDate || undefined}
-              onSelect={(date) => onChange('toDate', date || null)}
-              placeholder="Select end date"
+            <Controller
+              name="toDate"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  date={field.value || undefined}
+                  onSelect={(date) => field.onChange(date || null)}
+                  placeholder="Select end date"
+                />
+              )}
             />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>

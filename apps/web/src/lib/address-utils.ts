@@ -3,8 +3,10 @@ export function truncateAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`
 }
 
+import { ethereumAddressSchema } from '@/lib/validations/address'
+
 export function isValidAddress(address: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
+  return ethereumAddressSchema.safeParse(address).success
 }
 
 import Big from 'big.js'

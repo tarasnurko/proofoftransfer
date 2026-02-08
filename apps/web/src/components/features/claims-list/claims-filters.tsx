@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SUPPORTED_CHAINS } from '@/lib/types'
 import { Search } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
+import { useSearchTransition } from './search-transition-context'
 
 export function ClaimsFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { startTransition } = useSearchTransition()
 
   const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const debouncedSearch = useDebounce(searchInput, 300)
@@ -24,8 +26,10 @@ export function ClaimsFilters() {
     }
     if (!('page' in updates)) params.delete('page')
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname)
-  }, [router, pathname, searchParams])
+    startTransition(() => {
+      router.replace(qs ? `${pathname}?${qs}` : pathname)
+    })
+  }, [router, pathname, searchParams, startTransition])
 
   useEffect(() => {
     const current = searchParams.get('search') ?? ''

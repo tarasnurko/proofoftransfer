@@ -3,7 +3,7 @@ import { PageContainer } from '@/components/layout/page-container'
 import { ClaimDetailsContent } from '@/components/features/claim-details/claim-details-content'
 import { getClaimById } from '@/db/queries/claims'
 import { getTransfersForClaim } from '@/db/queries/transfers'
-import type { EtherscanTransfer } from '@/lib/types'
+import { mapDbToEtherscanTransfer } from '@/lib/types'
 
 export default async function ClaimDetailsPage({
   params,
@@ -17,15 +17,7 @@ export default async function ClaimDetailsPage({
 
   const dbTransfers = await getTransfersForClaim(id)
 
-  const transfers: EtherscanTransfer[] = dbTransfers.map((t) => ({
-    hash: t.txHash,
-    from: t.senderAddress,
-    to: t.recipientAddress,
-    contractAddress: t.tokenAddress,
-    value: t.amount,
-    timeStamp: t.blockTimestamp.toString(),
-    blockNumber: t.blockNumber.toString(),
-  }))
+  const transfers = dbTransfers.map(mapDbToEtherscanTransfer)
 
   return (
     <PageContainer>

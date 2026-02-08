@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
+import { format } from 'date-fns'
 import type { ClaimEntity } from '@/lib/types'
 
 interface ClaimInfoCardProps {
@@ -40,7 +41,7 @@ export function ClaimInfoCard({ claim }: ClaimInfoCardProps) {
           </div>
           <div>
             <div className="text-sm font-bold text-muted-foreground">Created</div>
-            <div className="mt-1">{new Date(claim.createdAt).toLocaleString()}</div>
+            <div className="mt-1">{format(new Date(claim.createdAt), 'dd.MM.yyyy HH:mm')}</div>
           </div>
         </div>
 

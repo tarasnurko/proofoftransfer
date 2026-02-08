@@ -1,4 +1,4 @@
-import type { ClaimEntity as BaseClaimEntity, TokenEntity as BaseTokenEntity } from '@/db/index.types'
+import type { ClaimEntity as BaseClaimEntity, TokenEntity as BaseTokenEntity, TransferEntity } from '@/db/index.types'
 import type { Nullable } from '@/types/common.types'
 
 export interface Chain {
@@ -100,4 +100,16 @@ export interface EtherscanTransfer {
   value: string
   timeStamp: string
   blockNumber: string
+}
+
+export function mapDbToEtherscanTransfer(t: TransferEntity): EtherscanTransfer {
+  return {
+    hash: t.txHash,
+    from: t.senderAddress,
+    to: t.recipientAddress,
+    contractAddress: t.tokenAddress,
+    value: t.amount,
+    timeStamp: t.blockTimestamp.toString(),
+    blockNumber: t.blockNumber.toString(),
+  }
 }

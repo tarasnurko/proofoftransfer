@@ -1,18 +1,20 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
+import { checkNullifierExistsAction } from '@/actions/proofs.actions'
 import type { PreparedProofData } from '@/lib/proof-generator'
 import { Check, Loader2, Shield, Wallet } from 'lucide-react'
 
 interface GenerateProofCardProps {
+  claimId: string
   chainId: number
   isConnected: boolean
   walletAddress?: string
   preparedProof: PreparedProofData | null
-  nullifierAlreadyUsed: boolean
   userTransferCount: number
   signingClaim: boolean
   generatingProof: boolean
@@ -22,11 +24,11 @@ interface GenerateProofCardProps {
 }
 
 export function GenerateProofCard({
+  claimId,
   chainId,
   isConnected,
   walletAddress,
   preparedProof,
-  nullifierAlreadyUsed,
   userTransferCount,
   signingClaim,
   generatingProof,
@@ -34,6 +36,25 @@ export function GenerateProofCard({
   onSignClaim,
   onGenerateProof,
 }: GenerateProofCardProps) {
+  const [nullifierAlreadyUsed, setNullifierAlreadyUsed] = useState(false)
+
+  useEffect(() => {
+    if (!preparedProof) {
+      setNullifierAlreadyUsed(false)
+      return
+    }
+
+    let cancelled = false
+    checkNullifierExistsAction({ claimId, nullifier: preparedProof.nullifier })
+      .then((result) => {
+        if (!cancelled && result?.data) {
+          setNullifierAlreadyUsed(result.data.exists)
+        }
+      })
+
+    return () => { cancelled = true }
+  }, [claimId, preparedProof])
+
   return (
     <Card className="border-4">
       <CardHeader>

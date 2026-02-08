@@ -1,5 +1,7 @@
 'use client'
 
+import type { UseFormRegister, Control } from 'react-hook-form'
+import { Controller } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,27 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SUPPORTED_CHAINS } from '@/lib/types'
 import { Loader2 } from 'lucide-react'
 import type { TokenEntity } from '@/db/index.types'
+import type { CreateClaimClientInput } from '@/lib/validations/claim'
 
 interface TokenInfoCardProps {
-  chainId: number
-  tokenAddress: string
-  recipientAddress: string
+  register: UseFormRegister<CreateClaimClientInput>
+  control: Control<CreateClaimClientInput>
   isFetchingToken: boolean
   tokenData: TokenEntity | null
   tokenError: string | null
-  errors: Record<string, string>
-  onChange: (field: string, value: string | number) => void
+  errors: { tokenAddress?: string; recipientAddress?: string }
 }
 
 export function TokenInfoCard({
-  chainId,
-  tokenAddress,
-  recipientAddress,
+  register,
+  control,
   isFetchingToken,
   tokenData,
   tokenError,
   errors,
-  onChange,
 }: TokenInfoCardProps) {
   return (
     <Card className="border-4">
@@ -38,18 +37,24 @@ export function TokenInfoCard({
       <CardContent className="space-y-4">
         <div className="max-w-xs space-y-2">
           <Label htmlFor="chainId">Chain *</Label>
-          <Select value={chainId.toString()} onValueChange={(value) => onChange('chainId', Number.parseInt(value))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SUPPORTED_CHAINS.map((chain) => (
-                <SelectItem key={chain.id} value={chain.id.toString()}>
-                  {chain.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            name="chainId"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value.toString()} onValueChange={(value) => field.onChange(Number.parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CHAINS.map((chain) => (
+                    <SelectItem key={chain.id} value={chain.id.toString()}>
+                      {chain.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
 
         <div className="space-y-2">
@@ -58,8 +63,7 @@ export function TokenInfoCard({
             <Input
               id="tokenAddress"
               placeholder="0x..."
-              value={tokenAddress}
-              onChange={(e) => onChange('tokenAddress', e.target.value)}
+              {...register('tokenAddress')}
               className="font-mono"
             />
             {isFetchingToken ? (
@@ -82,8 +86,7 @@ export function TokenInfoCard({
           <Input
             id="recipientAddress"
             placeholder="0x..."
-            value={recipientAddress}
-            onChange={(e) => onChange('recipientAddress', e.target.value)}
+            {...register('recipientAddress')}
             className="font-mono"
           />
           {errors.recipientAddress ? <p className="text-sm text-destructive">{errors.recipientAddress}</p> : null}

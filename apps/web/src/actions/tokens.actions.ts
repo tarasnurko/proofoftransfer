@@ -2,13 +2,14 @@
 
 import { z } from "zod";
 import { actionClient } from "@/lib/safe-action";
+import { ethereumAddressSchema } from "@/lib/validations/address";
 import { createToken, getTokenByAddressAndChain } from "@/db/queries/tokens";
 import type { InsertTokenEntity } from "@/db/index.types";
 import type { Address } from "viem";
 import { BlockchainService } from "@/services/blockchain/blockchain.service";
 
 const fetchTokenSchema = z.object({
-  tokenAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  tokenAddress: ethereumAddressSchema,
   chainId: z.number(),
 });
 

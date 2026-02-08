@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAccount } from 'wagmi'
+import { useConnection } from 'wagmi'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
 import { isValidAddress } from '@/lib/address-utils'
@@ -14,6 +16,7 @@ import { ClaimDetailsCard, TokenInfoCard, AmountConstraintsCard, TimeRangeCard, 
 import { createClaimAction, fetchClaimTransfersAction } from '@/actions/claims.actions'
 import { fetchAndStoreTokenDataAction } from '@/actions'
 import { useDebounce } from '@/hooks/use-debounce'
+import { createClaimClientSchema, type CreateClaimClientInput } from '@/lib/validations/claim'
 import type { TokenEntity, TransferEntity } from '@/db/index.types'
 import { ChainId } from '@repo/types'
 
@@ -21,30 +24,45 @@ const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddr
 
 export default function CreateClaimPage() {
   const router = useRouter()
-  const { address: walletAddress, isConnected } = useAccount()
+  const { address: walletAddress, isConnected } = useConnection()
   const [loading, setLoading] = useState(false)
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
-  const [formData, setFormData] = useState({
-    claimMessage: '',
-    chainId: ChainId.BASE as number,
-    tokenAddress: '',
-    recipientAddress: '',
-    minTransfersSum: '0',
-    maxTransfersSum: '0',
-    fromDate: null as Date | null,
-    toDate: null as Date | null,
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    trigger,
+    formState: { errors },
+  } = useForm<CreateClaimClientInput>({
+    resolver: zodResolver(createClaimClientSchema),
+    defaultValues: {
+      claimMessage: '',
+      chainId: ChainId.ETHEREUM,
+      tokenAddress: '',
+      recipientAddress: '',
+      minTransfersSum: '0',
+      maxTransfersSum: '0',
+      fromDate: null,
+      toDate: null,
+    },
   })
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const watchedTokenAddress = watch('tokenAddress')
+  const watchedChainId = watch('chainId')
+  const watchedMinTransfersSum = watch('minTransfersSum')
+  const watchedMaxTransfersSum = watch('maxTransfersSum')
+
   const [tokenData, setTokenData] = useState<TokenEntity | null>(null)
   const [tokenError, setTokenError] = useState<string | null>(null)
   const [isFetchingToken, setIsFetchingToken] = useState(false)
   const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
   const [isFetchingTransfers, setIsFetchingTransfers] = useState(false)
-  const debouncedTokenAddress = useDebounce(formData.tokenAddress, 500)
+  const debouncedTokenAddress = useDebounce(watchedTokenAddress, 500)
 
   useEffect(() => {
-    if (!debouncedTokenAddress || !/^0x[a-fA-F0-9]{40}$/.test(debouncedTokenAddress)) {
+    if (!debouncedTokenAddress || !isValidAddress(debouncedTokenAddress)) {
       setTokenData(null)
       setTokenError(null)
       return
@@ -54,7 +72,7 @@ export default function CreateClaimPage() {
     setTokenError(null)
     fetchAndStoreTokenDataAction({
       tokenAddress: debouncedTokenAddress,
-      chainId: formData.chainId,
+      chainId: watchedChainId,
     })
       .then((result) => {
         if (result?.data?.data) {
@@ -70,19 +88,17 @@ export default function CreateClaimPage() {
         setTokenError('Token not found — check the address and chain')
       })
       .finally(() => setIsFetchingToken(false))
-  }, [debouncedTokenAddress, formData.chainId])
+  }, [debouncedTokenAddress, watchedChainId])
 
-  const handleChange = useCallback((field: string, value: string | number | Date | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (FETCH_RELEVANT_FIELDS.has(field)) {
-      setFetchedTransfers(null)
-    }
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const { [field]: _, ...rest } = prev
-      return rest
+  // Clear fetched transfers when relevant fields change
+  useEffect(() => {
+    const subscription = watch((_, { name }) => {
+      if (name && FETCH_RELEVANT_FIELDS.has(name)) {
+        setFetchedTransfers(null)
+      }
     })
-  }, [])
+    return () => subscription.unsubscribe()
+  }, [watch])
 
   const filteredTransfers = useMemo(() => {
     if (!fetchedTransfers) return null
@@ -95,8 +111,8 @@ export default function CreateClaimPage() {
         return BigInt(Math.floor(num * 10 ** decimals))
       } catch { return null }
     }
-    const min = parseAmount(formData.minTransfersSum)
-    const max = parseAmount(formData.maxTransfersSum)
+    const min = parseAmount(watchedMinTransfersSum)
+    const max = parseAmount(watchedMaxTransfersSum)
     if (!min && !max) return fetchedTransfers
     return fetchedTransfers.filter((t) => {
       const amount = BigInt(t.amount)
@@ -104,7 +120,7 @@ export default function CreateClaimPage() {
       if (max && amount > max) return false
       return true
     })
-  }, [fetchedTransfers, formData.minTransfersSum, formData.maxTransfersSum, tokenData?.decimals])
+  }, [fetchedTransfers, watchedMinTransfersSum, watchedMaxTransfersSum, tokenData?.decimals])
 
   const displayedTransfers = useMemo(() => {
     if (!filteredTransfers) return null
@@ -117,60 +133,22 @@ export default function CreateClaimPage() {
     return filteredTransfers.filter((t) => t.senderAddress.toLowerCase() === walletAddress.toLowerCase()).length
   }, [filteredTransfers, walletAddress])
 
-  const validateForm = useCallback(() => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.claimMessage || formData.claimMessage.length < 10) {
-      newErrors.claimMessage = 'Message must be at least 10 characters'
-    }
-    if (formData.claimMessage.length > 1000) {
-      newErrors.claimMessage = 'Message must be less than 1000 characters'
-    }
-
-    if (!isValidAddress(formData.tokenAddress)) {
-      newErrors.tokenAddress = 'Invalid token address'
-    }
-
-    if (!isValidAddress(formData.recipientAddress)) {
-      newErrors.recipientAddress = 'Invalid recipient address'
-    }
-
-    try {
-      if (formData.minTransfersSum && formData.maxTransfersSum) {
-        const min = BigInt(formData.minTransfersSum)
-        const max = BigInt(formData.maxTransfersSum)
-        if (max < min && max > 0n) {
-          newErrors.maxTransfersSum = 'Maximum must be greater than minimum'
-        }
-      }
-    } catch {
-      newErrors.maxTransfersSum = 'Invalid amount value'
-    }
-
-    if (formData.fromDate && formData.toDate) {
-      if (formData.toDate <= formData.fromDate) {
-        newErrors.toDate = 'End date must be after start date'
-      }
-    }
-
-    setErrors(newErrors)
-    return !Object.keys(newErrors).length
-  }, [formData])
-
   const handleFetchTransfers = useCallback(async () => {
-    if (!validateForm()) {
+    const valid = await trigger(['tokenAddress', 'recipientAddress', 'claimMessage', 'fromDate', 'toDate'])
+    if (!valid) {
       toast.error('Please fill the form correctly')
       return
     }
 
+    const formValues = watch()
     setIsFetchingTransfers(true)
     try {
       const result = await fetchClaimTransfersAction({
-        chainId: formData.chainId,
-        tokenAddress: formData.tokenAddress,
-        recipientAddress: formData.recipientAddress,
-        fromDate: formData.fromDate ?? undefined,
-        toDate: formData.toDate ?? undefined,
+        chainId: formValues.chainId,
+        tokenAddress: formValues.tokenAddress,
+        recipientAddress: formValues.recipientAddress,
+        fromDate: formValues.fromDate ?? undefined,
+        toDate: formValues.toDate ?? undefined,
       })
 
       if (result?.serverError) {
@@ -188,23 +166,16 @@ export default function CreateClaimPage() {
     } finally {
       setIsFetchingTransfers(false)
     }
-  }, [validateForm, formData])
+  }, [trigger, watch])
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!validateForm()) {
-      toast.error('Please fill the form correctly')
-      return
-    }
-
+  const onSubmit = useCallback(async (data: CreateClaimClientInput) => {
     setLoading(true)
 
     try {
       const result = await createClaimAction({
-        ...formData,
-        fromDate: formData.fromDate ?? undefined,
-        toDate: formData.toDate ?? undefined,
+        ...data,
+        fromDate: data.fromDate ?? undefined,
+        toDate: data.toDate ?? undefined,
       })
 
       if (result?.serverError) {
@@ -212,14 +183,7 @@ export default function CreateClaimPage() {
       }
 
       if (result?.validationErrors) {
-        const validationErrors: Record<string, string> = {}
-        Object.entries(result.validationErrors).forEach(([key, value]) => {
-          if (Array.isArray(value)) {
-            validationErrors[key] = value[0] || 'Invalid value'
-          }
-        })
-        setErrors(validationErrors)
-        toast.error('Please fill the form correctly')
+        toast.error('Please fix validation errors')
         return
       }
 
@@ -230,7 +194,7 @@ export default function CreateClaimPage() {
     } finally {
       setLoading(false)
     }
-  }, [validateForm, formData, router])
+  }, [router])
 
   return (
     <PageContainer>
@@ -243,36 +207,33 @@ export default function CreateClaimPage() {
         description="Set up a verifiable transfer claim that others can prove using zero-knowledge proofs"
       />
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-3xl space-y-6">
         <ClaimDetailsCard
-          claimMessage={formData.claimMessage}
-          error={errors.claimMessage}
-          onChange={handleChange}
+          register={register}
+          error={errors.claimMessage?.message}
+          charCount={watch('claimMessage').length}
         />
 
         <TokenInfoCard
-          chainId={formData.chainId}
-          tokenAddress={formData.tokenAddress}
-          recipientAddress={formData.recipientAddress}
+          register={register}
+          control={control}
           isFetchingToken={isFetchingToken}
           tokenData={tokenData}
           tokenError={tokenError}
-          errors={errors}
-          onChange={handleChange}
+          errors={{
+            tokenAddress: errors.tokenAddress?.message,
+            recipientAddress: errors.recipientAddress?.message,
+          }}
         />
 
         <AmountConstraintsCard
-          minTransfersSum={formData.minTransfersSum}
-          maxTransfersSum={formData.maxTransfersSum}
-          error={errors.maxTransfersSum}
-          onChange={handleChange}
+          register={register}
+          error={errors.maxTransfersSum?.message}
         />
 
         <TimeRangeCard
-          fromDate={formData.fromDate}
-          toDate={formData.toDate}
-          error={errors.toDate}
-          onChange={handleChange}
+          control={control}
+          error={errors.toDate?.message}
         />
 
         {displayedTransfers?.length ? (
@@ -280,7 +241,7 @@ export default function CreateClaimPage() {
             transfers={displayedTransfers}
             tokenData={tokenData}
             walletAddress={walletAddress}
-            chainId={formData.chainId}
+            chainId={watchedChainId}
             isConnected={isConnected}
             userTransferCount={userTransferCount}
             showOnlyMyTransfers={showOnlyMyTransfers}

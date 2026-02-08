@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { useAccount, useWalletClient } from 'wagmi'
+import { useConnection, useWalletClient } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
@@ -24,7 +24,7 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
   const claimId = claim.id
   const proofId = initialProof.id
 
-  const { address: walletAddress, isConnected } = useAccount()
+  const { address: walletAddress, isConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
   const { open } = useAppKit()
 

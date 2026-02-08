@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CopyHash } from '@/components/shared/copy-hash'
+import { format } from 'date-fns'
 import type { ProofEntity } from '@/lib/types'
 import { CheckCircle2, XCircle } from 'lucide-react'
 
@@ -63,7 +64,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
 
         <div>
           <div className="text-sm font-bold text-muted-foreground">Submitted</div>
-          <div className="mt-1">{new Date(proof.createdAt).toLocaleString()}</div>
+          <div className="mt-1">{format(new Date(proof.createdAt), 'dd.MM.yyyy HH:mm')}</div>
         </div>
       </CardContent>
     </Card>

@@ -1,16 +1,18 @@
 'use client'
 
+import type { UseFormRegister } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import type { CreateClaimClientInput } from '@/lib/validations/claim'
 
 interface ClaimDetailsCardProps {
-  claimMessage: string
+  register: UseFormRegister<CreateClaimClientInput>
   error?: string
-  onChange: (field: string, value: string) => void
+  charCount: number
 }
 
-export function ClaimDetailsCard({ claimMessage, error, onChange }: ClaimDetailsCardProps) {
+export function ClaimDetailsCard({ register, error, charCount }: ClaimDetailsCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
@@ -23,12 +25,11 @@ export function ClaimDetailsCard({ claimMessage, error, onChange }: ClaimDetails
           <Textarea
             id="message"
             placeholder="e.g., Donation to the community pool for Q1 2024"
-            value={claimMessage}
-            onChange={(e) => onChange('claimMessage', e.target.value)}
+            {...register('claimMessage')}
             className="min-h-24"
           />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <p className="text-sm text-muted-foreground">{claimMessage.length} / 1000 characters</p>
+          <p className="text-sm text-muted-foreground">{charCount} / 1000 characters</p>
         </div>
       </CardContent>
     </Card>

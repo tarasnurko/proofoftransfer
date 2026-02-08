@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useAccount, useWalletClient } from 'wagmi'
+import { useState, useMemo, useCallback } from 'react'
+import { useConnection, useWalletClient } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
@@ -11,15 +11,13 @@ import { PageHeader } from '@/components/shared/page-header'
 import { ClaimInfoCard } from './claim-info-card'
 import { TransfersCard } from './transfers-card'
 import { GenerateProofCard } from './generate-proof-card'
-import { ProofsCard } from './proofs-card'
-import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
+import { ProofsSection } from './proofs-section'
+import type { ClaimEntity, EtherscanTransfer } from '@/lib/types'
 import { toast } from 'sonner'
 import { assembleCircuitInputs, generateProofFromPrepared } from '@/lib/proof-generator'
 import type { PreparedProofData, ServerSigningData } from '@/lib/proof-generator'
 import { submitProofAction, prepareClaimSigningDataAction } from '@/actions/proofs.actions'
 import { signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/eip712-claim-signer'
-
-const PROOFS_PER_PAGE = 9
 
 interface ClaimDetailsContentProps {
   claim: ClaimEntity
@@ -28,7 +26,7 @@ interface ClaimDetailsContentProps {
 
 export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentProps) {
   const claimId = claim.id
-  const { address: walletAddress, isConnected } = useAccount()
+  const { address: walletAddress, isConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
   const { open } = useAppKit()
   const queryClient = useQueryClient()
@@ -37,20 +35,6 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
   const [preparedProof, setPreparedProof] = useState<PreparedProofData | null>(null)
   const [signingClaim, setSigningClaim] = useState(false)
   const [generatingProof, setGeneratingProof] = useState(false)
-
-  const [proofSearchQuery, setProofSearchQuery] = useState('')
-  const [proofSortBy, setProofSortBy] = useState('createdAt-desc')
-  const [proofPage, setProofPage] = useState(1)
-
-  // TanStack Query for proofs — enables refetch after proof generation
-  const { data: proofs = [] } = useQuery<ProofEntity[]>({
-    queryKey: ['proofs', claimId],
-    queryFn: async () => {
-      const res = await fetch(`/api/claims/${claimId}/proofs`)
-      if (!res.ok) throw new Error('Failed to fetch proofs')
-      return res.json()
-    },
-  })
 
   const displayedTransfers = useMemo(() => {
     if (!showOnlyMyTransfers || !walletAddress) return transfers
@@ -61,11 +45,6 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
     if (!walletAddress) return 0
     return transfers.filter(t => t.from.toLowerCase() === walletAddress.toLowerCase()).length
   }, [transfers, walletAddress])
-
-  const nullifierAlreadyUsed = useMemo(() => {
-    if (!preparedProof) return false
-    return proofs.some(p => p.nullifier === preparedProof.nullifier)
-  }, [preparedProof, proofs])
 
   const handleSignClaim = useCallback(async () => {
     if (!walletAddress || !walletClient || !claim) return
@@ -136,38 +115,6 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
     }
   }, [preparedProof, claimId, queryClient])
 
-  const filteredAndSortedProofs = useMemo(() => {
-    let filtered = [...proofs]
-
-    if (proofSearchQuery) {
-      const query = proofSearchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (proof) =>
-          proof.nullifier.toLowerCase().includes(query) ||
-          proof.id.toLowerCase().includes(query)
-      )
-    }
-
-    const [, sortOrder] = proofSortBy.split('-')
-    filtered.sort((a, b) => {
-      const aVal = new Date(a.createdAt).getTime()
-      const bVal = new Date(b.createdAt).getTime()
-      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal
-    })
-
-    return filtered
-  }, [proofs, proofSearchQuery, proofSortBy])
-
-  const totalProofPages = Math.ceil(filteredAndSortedProofs.length / PROOFS_PER_PAGE)
-  const paginatedProofs = filteredAndSortedProofs.slice(
-    (proofPage - 1) * PROOFS_PER_PAGE,
-    proofPage * PROOFS_PER_PAGE
-  )
-
-  useEffect(() => {
-    setProofPage(1)
-  }, [proofSearchQuery, proofSortBy])
-
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
@@ -201,11 +148,11 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
         />
 
         <GenerateProofCard
+          claimId={claimId}
           chainId={claim.chainId}
           isConnected={isConnected}
           walletAddress={walletAddress}
           preparedProof={preparedProof}
-          nullifierAlreadyUsed={nullifierAlreadyUsed}
           userTransferCount={userTransferCount}
           signingClaim={signingClaim}
           generatingProof={generatingProof}
@@ -214,19 +161,9 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
           onGenerateProof={handleGenerateProof}
         />
 
-        <ProofsCard
+        <ProofsSection
           claimId={claimId}
-          proofs={proofs}
-          filteredCount={filteredAndSortedProofs.length}
-          paginatedProofs={paginatedProofs}
           preparedProof={preparedProof}
-          searchQuery={proofSearchQuery}
-          sortBy={proofSortBy}
-          currentPage={proofPage}
-          totalPages={totalProofPages}
-          onSearchChange={setProofSearchQuery}
-          onSortChange={setProofSortBy}
-          onPageChange={setProofPage}
         />
       </div>
     </>

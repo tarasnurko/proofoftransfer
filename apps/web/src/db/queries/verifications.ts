@@ -14,14 +14,6 @@ export async function createVerification(data: InsertProofVerificationEntity): P
   )
 }
 
-export async function getVerificationsByProofId(proofId: string) {
-  return db
-    .select()
-    .from(proofVerifications)
-    .where(eq(proofVerifications.proofId, proofId))
-    .orderBy(desc(proofVerifications.verifiedAt))
-}
-
 export async function getVerificationStats(proofId: string) {
   const [totalResult, successfulResult, failedResult] = await Promise.all([
     db

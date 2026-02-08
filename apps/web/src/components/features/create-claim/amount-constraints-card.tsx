@@ -1,17 +1,17 @@
 'use client'
 
+import type { UseFormRegister } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { CreateClaimClientInput } from '@/lib/validations/claim'
 
 interface AmountConstraintsCardProps {
-  minTransfersSum: string
-  maxTransfersSum: string
+  register: UseFormRegister<CreateClaimClientInput>
   error?: string
-  onChange: (field: string, value: string) => void
 }
 
-export function AmountConstraintsCard({ minTransfersSum, maxTransfersSum, error, onChange }: AmountConstraintsCardProps) {
+export function AmountConstraintsCard({ register, error }: AmountConstraintsCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
@@ -25,8 +25,7 @@ export function AmountConstraintsCard({ minTransfersSum, maxTransfersSum, error,
             <Input
               id="minTransfersSum"
               placeholder="0"
-              value={minTransfersSum}
-              onChange={(e) => onChange('minTransfersSum', e.target.value)}
+              {...register('minTransfersSum')}
               className="font-mono"
             />
           </div>
@@ -36,8 +35,7 @@ export function AmountConstraintsCard({ minTransfersSum, maxTransfersSum, error,
             <Input
               id="maxTransfersSum"
               placeholder="0"
-              value={maxTransfersSum}
-              onChange={(e) => onChange('maxTransfersSum', e.target.value)}
+              {...register('maxTransfersSum')}
               className="font-mono"
             />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}

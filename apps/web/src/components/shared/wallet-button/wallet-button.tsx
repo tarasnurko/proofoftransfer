@@ -1,13 +1,13 @@
 'use client'
 
 import { useAppKit } from '@reown/appkit/react'
-import { useAccount } from 'wagmi'
+import { useConnection } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Wallet } from 'lucide-react'
 
 export function WalletButton() {
   const { open } = useAppKit()
-  const { address, isConnected } = useAccount()
+  const { address, isConnected } = useConnection()
 
   const truncatedAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`

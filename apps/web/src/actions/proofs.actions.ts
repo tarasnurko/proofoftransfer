@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { ethereumAddressSchema } from '@/lib/validations/address'
 import { Barretenberg } from '@aztec/bb.js'
 import { actionClient } from '@/lib/safe-action'
 import { returnValidationErrors } from 'next-safe-action'
@@ -15,6 +16,7 @@ import {
   deleteFailedVerificationsByNullifier,
 } from '@/db/queries/verifications'
 import { etherscanClient } from '@/lib/etherscan'
+import { mapDbToEtherscanTransfer } from '@/lib/types'
 import type { InsertProofEntity } from '@/db/index.types'
 import { verifyProofServer } from '@/lib/proof-verifier-server'
 import {
@@ -34,6 +36,17 @@ import {
   padMerkleProofsArray,
   processSignature,
 } from '@repo/circuit-utils'
+
+const checkNullifierSchema = z.object({
+  claimId: z.string().uuid(),
+  nullifier: z.string().min(1),
+})
+
+export const checkNullifierExistsAction = actionClient
+  .inputSchema(checkNullifierSchema)
+  .action(async ({ parsedInput }) => {
+    return { exists: await checkNullifierExists(parsedInput.claimId, parsedInput.nullifier) }
+  })
 
 const externalTransferSchema = z.object({
   from: z.string(),
@@ -79,15 +92,7 @@ export const fetchClaimTransfersFromDbAction = actionClient
   .action(async ({ parsedInput: { claimId } }) => {
     const transfers = await getTransfersForClaim(claimId)
 
-    return transfers.map((t) => ({
-      hash: t.txHash,
-      from: t.senderAddress,
-      to: t.recipientAddress,
-      contractAddress: t.tokenAddress,
-      value: t.amount,
-      timeStamp: t.blockTimestamp.toString(),
-      blockNumber: t.blockNumber.toString(),
-    }))
+    return transfers.map(mapDbToEtherscanTransfer)
   })
 
 export const submitProofAction = actionClient
@@ -174,7 +179,7 @@ export const verifyProofAction = actionClient
 
 const prepareSigningSchema = z.object({
   claimId: z.string().uuid(),
-  proverAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  proverAddress: ethereumAddressSchema,
 })
 
 export const prepareClaimSigningDataAction = actionClient
