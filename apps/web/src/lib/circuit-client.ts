@@ -1,6 +1,7 @@
-let cachedCircuit: any | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedCircuit: any = null
 
-export async function loadCircuitClient(): Promise<any> {
+export async function loadCircuitClient() {
   if (cachedCircuit) {
     return cachedCircuit
   }
@@ -11,9 +12,10 @@ export async function loadCircuitClient(): Promise<any> {
   }
 
   cachedCircuit = await response.json()
-  return cachedCircuit
+  return cachedCircuit!
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateProofClient(inputs: any, threads: number = 1) {
   const [{ Barretenberg, UltraHonkBackend }, { Noir }] = await Promise.all([
     import('@aztec/bb.js'),

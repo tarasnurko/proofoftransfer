@@ -9,7 +9,8 @@ export async function GET(
     const { id } = await params
     const proofs = await getProofsByClaimId(id)
     return NextResponse.json(proofs)
-  } catch {
+  } catch (error) {
+    console.error('GET /api/claims/[id]/proofs:', error)
     return NextResponse.json({ error: 'Failed to fetch proofs' }, { status: 500 })
   }
 }

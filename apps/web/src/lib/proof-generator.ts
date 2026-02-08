@@ -1,4 +1,5 @@
 import type { EtherscanERC20Transfer } from '@repo/types'
+import { recoverPublicKey, hashTypedData, keccak256, hexToBytes } from 'viem'
 import type { Address, WalletClient } from 'viem'
 
 export interface GenerateClaimProofParams {
@@ -16,7 +17,9 @@ export interface GenerateClaimProofParams {
 }
 
 export interface PreparedProofData {
-  circuitInputs: any
+  // Circuit inputs structure matches Noir circuit's expected InputMap
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  circuitInputs: Record<string, any>
   nullifier: string
   proverTransferCount: number
 }
@@ -24,7 +27,7 @@ export interface PreparedProofData {
 export interface GeneratedProof {
   proofData: string
   nullifier: string
-  publicInputs: any // Original Noir public inputs array for verification
+  publicInputs: string[]
   publicInputsFormatted: {
     claim_id: string
     token_address: string
@@ -217,8 +220,6 @@ export async function prepareClaimProof(
   if ('publicKey' in account && account.publicKey) {
     publicKey = account.publicKey
   } else {
-    const { recoverPublicKey, hashTypedData } = await import('viem')
-
     const hashToRecover = hashTypedData({
       domain,
       types,
@@ -236,7 +237,6 @@ export async function prepareClaimProof(
   const nullifier = signatureResult.nullifier
 
   // Verify public key matches prover address
-  const { keccak256, hexToBytes } = await import('viem')
   const publicKeyBytes = hexToBytes(publicKey)
   const publicKeyWithoutPrefix = publicKeyBytes.slice(1)
   const publicKeyHash = keccak256(publicKeyWithoutPrefix)
@@ -331,8 +331,8 @@ export interface ServerSigningData {
     merkleRoot: string
     claimIdBytes32: `0x${string}`
     claimMessageHashBytes32: `0x${string}`
-    paddedTransfers: any[]
-    paddedMerkleProofElements: any[]
+    paddedTransfers: unknown[]
+    paddedMerkleProofElements: unknown[]
     areTransferLeavesEven: boolean[][]
     proverTransferCount: number
   }
@@ -387,7 +387,7 @@ export async function generateProofFromPrepared(
 ): Promise<GeneratedProof> {
   const { generateProofClient, uint8ArrayToHex } = await import('./circuit-client')
 
-  const { proof, publicInputs } = await generateProofClient(prepared.circuitInputs as any)
+  const { proof, publicInputs } = await generateProofClient(prepared.circuitInputs)
 
   return {
     proofData: uint8ArrayToHex(proof),

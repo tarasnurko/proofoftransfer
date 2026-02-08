@@ -1,4 +1,5 @@
 import type { ClaimEntity as BaseClaimEntity, TokenEntity as BaseTokenEntity } from '@/db/index.types'
+import type { Nullable } from '@/types/common.types'
 
 export interface Chain {
   id: number
@@ -49,15 +50,15 @@ const EXPLORER_NAMES: Record<number, string> = {
   534352: 'Scrollscan',
 }
 
-export function getExplorerName(chainId: number): string | null {
+export function getExplorerName(chainId: number): Nullable<string> {
   return EXPLORER_NAMES[chainId] || null
 }
 
-export function getExplorerBaseUrl(chainId: number): string | null {
+export function getExplorerBaseUrl(chainId: number): Nullable<string> {
   return EXPLORER_URLS[chainId] || null
 }
 
-export function getExplorerAddressUrl(chainId: number, address: string): string | null {
+export function getExplorerAddressUrl(chainId: number, address: string): Nullable<string> {
   const base = EXPLORER_URLS[chainId]
   if (!base) return null
   return `${base}/address/${address}`
@@ -66,7 +67,7 @@ export function getExplorerAddressUrl(chainId: number, address: string): string 
 // Extended types with computed fields
 export interface ClaimEntity extends BaseClaimEntity {
   proofCount: number
-  token: BaseTokenEntity | null
+  token: Nullable<BaseTokenEntity>
 }
 
 export interface TokenEntity extends BaseTokenEntity {}

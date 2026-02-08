@@ -275,7 +275,7 @@ export default function CreateClaimPage() {
           onChange={handleChange}
         />
 
-        {displayedTransfers && displayedTransfers.length > 0 ? (
+        {displayedTransfers?.length ? (
           <TransfersPreviewCard
             transfers={displayedTransfers}
             tokenData={tokenData}

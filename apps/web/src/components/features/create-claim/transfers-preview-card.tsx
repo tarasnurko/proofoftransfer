@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
@@ -26,6 +27,20 @@ export function TransfersPreviewCard({
   showOnlyMyTransfers,
   onToggleMyTransfers,
 }: TransfersPreviewCardProps) {
+  const mappedTransfers = useMemo(
+    () => transfers.map((t) => ({
+      from: t.senderAddress,
+      amount: t.amount,
+      timestamp: t.blockTimestamp,
+    })),
+    [transfers],
+  )
+
+  const token = useMemo(
+    () => tokenData ? { decimals: tokenData.decimals, symbol: tokenData.symbol } : null,
+    [tokenData?.decimals, tokenData?.symbol],
+  )
+
   return (
     <Card className="border-4">
       <CardHeader>
@@ -49,12 +64,8 @@ export function TransfersPreviewCard({
       </CardHeader>
       <CardContent>
         <VirtualTransferList
-          transfers={transfers.map((t) => ({
-            from: t.senderAddress,
-            amount: t.amount,
-            timestamp: t.blockTimestamp,
-          }))}
-          token={tokenData ? { decimals: tokenData.decimals, symbol: tokenData.symbol } : null}
+          transfers={mappedTransfers}
+          token={token}
           walletAddress={walletAddress}
           chainId={chainId}
           maxHeight={300}

@@ -6,6 +6,7 @@ import { Address } from '@/components/shared/address'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatTokenAmount, formatTokenValue } from '@/lib/address-utils'
+import { format } from 'date-fns'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 export interface TransferDisplayItem {
@@ -95,7 +96,7 @@ export function VirtualTransferList({
                   )}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  {new Date(transfer.timestamp * 1000).toLocaleDateString()}
+                  {format(new Date(transfer.timestamp * 1000), 'dd.MM.yyyy')}
                 </div>
               </div>
               <CopyableAmount

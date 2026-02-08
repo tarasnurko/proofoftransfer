@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -51,6 +51,24 @@ export function VerifyProofCard({
   const canAddMore = csvFiles.length < 3
 
   const [activeTab, setActiveTab] = useState(csvFiles.length ? 'csv' : 'blockchain')
+
+  const mappedBlockchainTransfers = useMemo(
+    () => transfers.map((t) => ({
+      from: t.from,
+      amount: t.value,
+      timestamp: parseInt(t.timeStamp),
+    })),
+    [transfers],
+  )
+
+  const mappedCsvTransfers = useMemo(
+    () => csvFiles.flatMap(f => f.transfers).map((t) => ({
+      from: t.from,
+      amount: t.value,
+      timestamp: parseInt(t.timeStamp),
+    })),
+    [csvFiles],
+  )
   const decimals = claim.token?.decimals || 18
   const explorerBase = getExplorerBaseUrl(claim.chainId)
   const explorerName = getExplorerName(claim.chainId)
@@ -147,11 +165,7 @@ export function VerifyProofCard({
                       </summary>
                       <div className="mt-2">
                         <VirtualTransferList
-                          transfers={transfers.map((t) => ({
-                            from: t.from,
-                            amount: t.value,
-                            timestamp: parseInt(t.timeStamp),
-                          }))}
+                          transfers={mappedBlockchainTransfers}
                           token={claim.token}
                           chainId={claim.chainId}
                           maxHeight={300}
@@ -237,11 +251,7 @@ export function VerifyProofCard({
                       </summary>
                       <div className="mt-2">
                         <VirtualTransferList
-                          transfers={csvFiles.flatMap(f => f.transfers).map((t) => ({
-                            from: t.from,
-                            amount: t.value,
-                            timestamp: parseInt(t.timeStamp),
-                          }))}
+                          transfers={mappedCsvTransfers}
                           token={claim.token}
                           chainId={claim.chainId}
                           maxHeight={300}

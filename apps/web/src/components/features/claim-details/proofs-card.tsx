@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
+import { format } from 'date-fns'
 import type { ProofEntity } from '@/lib/types'
 import type { PreparedProofData } from '@/lib/proof-generator'
 import { FileSearch, Search, CheckCircle2, XCircle } from 'lucide-react'
@@ -103,7 +104,7 @@ export function ProofsCard({
                   <div className="mb-2 font-mono text-xs">{proof.nullifier.slice(0, 20)}...</div>
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                      {new Date(proof.createdAt).toLocaleDateString()}
+                      {format(new Date(proof.createdAt), 'dd.MM.yyyy')}
                     </div>
                     {proof.verificationStats ? (
                       <div className="flex items-center gap-2 text-xs font-bold">

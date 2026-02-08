@@ -74,6 +74,22 @@ export const fetchTransfersAction = actionClient
     return { transfers }
   })
 
+export const fetchClaimTransfersFromDbAction = actionClient
+  .inputSchema(claimIdSchema)
+  .action(async ({ parsedInput: { claimId } }) => {
+    const transfers = await getTransfersForClaim(claimId)
+
+    return transfers.map((t) => ({
+      hash: t.txHash,
+      from: t.senderAddress,
+      to: t.recipientAddress,
+      contractAddress: t.tokenAddress,
+      value: t.amount,
+      timeStamp: t.blockTimestamp.toString(),
+      blockNumber: t.blockNumber.toString(),
+    }))
+  })
+
 export const submitProofAction = actionClient
   .inputSchema(submitProofSchema)
   .action(async ({ parsedInput }) => {
@@ -148,8 +164,8 @@ export const verifyProofAction = actionClient
         isValid,
         errorMessage: errorMessage || null,
       })
-    } catch {
-      // verification recording is non-critical
+    } catch (error) {
+      console.error('verification recording failed:', error)
     }
 
     return { isValid, error: errorMessage }
@@ -234,7 +250,7 @@ export const prepareClaimSigningDataAction = actionClient
     }
 
     // Prepare circuit transfer data
-    const circuitTransfers = mapToCircuitTransfers(proverTransferData as any)
+    const circuitTransfers = mapToCircuitTransfers(proverTransferData as Parameters<typeof mapToCircuitTransfers>[0])
     const paddedTransfers = padTransfersArray(circuitTransfers, MAX_TRANSFERS)
     const paddedMerkleProofs = padMerkleProofsArray(merkleProofs, MAX_TRANSFERS, MERKLE_TREE_HEIGHT)
     const areTransferLeavesEven = paddedMerkleProofs.map((mp) =>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
+import { format } from 'date-fns'
 import { ClaimEntity } from '@/lib/types'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatTokenAmount } from '@/lib/address-utils'
@@ -42,7 +43,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
 
   const formatDate = (timestamp: number) => {
     if (timestamp === 0) return null
-    return new Date(timestamp * 1000).toLocaleDateString()
+    return format(new Date(timestamp * 1000), 'dd.MM.yyyy')
   }
 
   return (
@@ -104,7 +105,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <Target className="h-4 w-4 text-muted-foreground" />
             <span className="font-bold">Created:</span>
-            <span>{new Date(claim.createdAt).toLocaleDateString()}</span>
+            <span>{format(new Date(claim.createdAt), 'dd.MM.yyyy')}</span>
           </div>
         </div>
       </CardContent>
