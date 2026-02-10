@@ -1,5 +1,5 @@
 import { parseUnits } from 'viem'
-import type { EtherscanTransfer } from '@/lib/types'
+import type { EtherscanTransfer } from '@/types'
 
 const REQUIRED_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
 

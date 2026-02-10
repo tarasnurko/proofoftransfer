@@ -1,13 +1,15 @@
 import { getClaims } from '@/db/queries/claims'
 import { ClaimsList } from './claims-list'
+import type { ClaimsSortBy } from '@/constants'
+import type { SortOrder } from '@/types'
 
 const ITEMS_PER_PAGE = 10
 
 interface ClaimsResultsProps {
   search?: string
   chainId?: number
-  sortBy: 'createdAt' | 'proofCount'
-  sortOrder: 'asc' | 'desc'
+  sortBy: ClaimsSortBy
+  sortOrder: SortOrder
   page: number
 }
 

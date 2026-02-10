@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { actionClient } from "@/lib/safe-action";
-import { ethereumAddressSchema } from "@/lib/validations/address";
+import { ethereumAddressSchema } from "@/validations/address";
 import { createToken, getTokenByAddressAndChain } from "@/db/queries/tokens";
 import type { InsertTokenEntity } from "@/db/index.types";
 import type { Address } from "viem";

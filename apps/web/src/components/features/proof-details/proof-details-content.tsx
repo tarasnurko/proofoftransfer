@@ -9,11 +9,11 @@ import { PageHeader } from '@/components/shared/page-header'
 import { ClaimSummaryCard } from './claim-summary-card'
 import { ProofInfoCard } from './proof-info-card'
 import { VerifyProofCard } from './verify-proof-card'
-import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/lib/types'
+import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/types'
 import { toast } from 'sonner'
 import { verifyProofAction, prepareVerificationSigningDataAction, fetchClaimTransfersFromDbAction } from '@/actions/proofs.actions'
 import { signClaimAndDeriveNullifier } from '@/lib/eip712-claim-signer'
-import { parseCsvTransfers } from '@/lib/csv-parser'
+import { parseCsvTransfers } from '@/utils/csv-parser.utils'
 
 interface ProofDetailsContentProps {
   claim: ClaimEntity

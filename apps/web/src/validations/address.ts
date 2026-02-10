@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { isAddress } from 'viem'
 
 export const ethereumAddressSchema = z
   .string()
-  .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+  .refine((val): boolean => isAddress(val), 'Invalid Ethereum address')
 
 export const ethereumAddressLowercaseSchema = ethereumAddressSchema
   .transform((val) => val.toLowerCase())

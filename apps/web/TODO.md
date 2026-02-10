@@ -6,3 +6,6 @@
 - [] when creating claim - show how much users are with specified constraints, show users and their transfers
 - [] when sharing in (telegram, instagram etc) link to claim - show in image claim details
 - [] when sharing proof link - generate some deterministic abstract svg from this proof
+- [] Hono api endpoints
+- [] rate limits
+- [] pages metas

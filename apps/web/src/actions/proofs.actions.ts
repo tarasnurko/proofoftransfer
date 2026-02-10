@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { ethereumAddressSchema } from '@/lib/validations/address'
+import { ethereumAddressSchema } from '@/validations/address'
+import { isAddressEqual, type Address } from 'viem'
 import { Barretenberg } from '@aztec/bb.js'
 import { actionClient } from '@/lib/safe-action'
 import { returnValidationErrors } from 'next-safe-action'
-import { submitProofSchema } from '@/lib/validations/proof'
+import { submitProofSchema } from '@/validations/proof'
 import { getClaimById } from '@/db/queries/claims'
 import { getTransfersForClaim } from '@/db/queries/transfers'
 import { createProof, checkNullifierExists, getProofById } from '@/db/queries/proofs'
@@ -16,7 +17,7 @@ import {
   deleteFailedVerificationsByNullifier,
 } from '@/db/queries/verifications'
 import { etherscanClient } from '@/lib/etherscan'
-import { mapDbToEtherscanTransfer } from '@/lib/types'
+import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import type { InsertProofEntity } from '@/db/index.types'
 import { verifyProofServer } from '@/lib/proof-verifier-server'
 import {
@@ -42,7 +43,7 @@ const checkNullifierSchema = z.object({
   nullifier: z.string().min(1),
 })
 
-export const checkNullifierExistsAction = actionClient
+export const checkNullifierForClaimExistsAction = actionClient
   .inputSchema(checkNullifierSchema)
   .action(async ({ parsedInput }) => {
     return { exists: await checkNullifierExists(parsedInput.claimId, parsedInput.nullifier) }
@@ -220,7 +221,7 @@ export const prepareClaimSigningDataAction = actionClient
     const proverTransferData: Array<{ from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string }> = []
 
     claimTransfers.forEach((t, index) => {
-      if (t.senderAddress.toLowerCase() === proverAddress.toLowerCase()) {
+      if (isAddressEqual(t.senderAddress as Address, proverAddress as Address)) {
         proverIndices.push(index)
         proverTransferData.push({
           from: t.senderAddress,

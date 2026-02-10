@@ -4,7 +4,7 @@ import { ProofDetailsContent } from '@/components/features/proof-details/proof-d
 import { getClaimById } from '@/db/queries/claims'
 import { getProofById } from '@/db/queries/proofs'
 import { getVerificationStats } from '@/db/queries/verifications'
-import type { ProofEntity } from '@/lib/types'
+import type { ProofEntity } from '@/types'
 
 export default async function ProofDetailsPage({
   params,

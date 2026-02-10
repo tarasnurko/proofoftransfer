@@ -12,7 +12,7 @@ export async function GET(
     const page = Math.max(Number(searchParams.get('page') ?? 1), 1)
     const limit = Math.max(Number(searchParams.get('limit') ?? 9), 1)
     const search = searchParams.get('search') || undefined
-    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' as const : 'desc' as const
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'
 
     const offset = (page - 1) * limit
 

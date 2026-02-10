@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SUPPORTED_CHAINS } from '@/lib/types'
+import { SUPPORTED_CHAINS } from '@/constants'
 import { Loader2 } from 'lucide-react'
 import type { TokenEntity } from '@/db/index.types'
-import type { CreateClaimClientInput } from '@/lib/validations/claim'
+import type { CreateClaimClientInput } from '@/validations/claim'
 
 interface TokenInfoCardProps {
   register: UseFormRegister<CreateClaimClientInput>

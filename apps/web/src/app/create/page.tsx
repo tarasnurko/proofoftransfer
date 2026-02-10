@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useConnection } from 'wagmi'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { PageContainer } from '@/components/layout/page-container'
 import { Button } from '@/components/ui/button'
-import { isValidAddress } from '@/lib/address-utils'
+import { isAddressEqual, isAddress, type Address } from 'viem'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { BackLink } from '@/components/shared/back-link'
@@ -15,9 +16,10 @@ import { PageHeader } from '@/components/shared/page-header'
 import { ClaimDetailsCard, TokenInfoCard, AmountConstraintsCard, TimeRangeCard, TransfersPreviewCard } from '@/components/features/create-claim'
 import { createClaimAction, fetchClaimTransfersAction } from '@/actions/claims.actions'
 import { fetchAndStoreTokenDataAction } from '@/actions'
+import { QUERY_KEYS } from '@/constants'
 import { useDebounce } from '@/hooks/use-debounce'
-import { createClaimClientSchema, type CreateClaimClientInput } from '@/lib/validations/claim'
-import type { TokenEntity, TransferEntity } from '@/db/index.types'
+import { createClaimClientSchema, type CreateClaimClientInput } from '@/validations/claim'
+import type { TransferEntity } from '@/db/index.types'
 import { ChainId } from '@repo/types'
 
 const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddress', 'fromDate', 'toDate'])
@@ -54,41 +56,31 @@ export default function CreateClaimPage() {
   const watchedMinTransfersSum = watch('minTransfersSum')
   const watchedMaxTransfersSum = watch('maxTransfersSum')
 
-  const [tokenData, setTokenData] = useState<TokenEntity | null>(null)
-  const [tokenError, setTokenError] = useState<string | null>(null)
-  const [isFetchingToken, setIsFetchingToken] = useState(false)
-  const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
-  const [isFetchingTransfers, setIsFetchingTransfers] = useState(false)
   const debouncedTokenAddress = useDebounce(watchedTokenAddress, 500)
+  const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
 
-  useEffect(() => {
-    if (!debouncedTokenAddress || !isValidAddress(debouncedTokenAddress)) {
-      setTokenData(null)
-      setTokenError(null)
-      return
-    }
+  const isValidToken = !!debouncedTokenAddress && isAddress(debouncedTokenAddress)
 
-    setIsFetchingToken(true)
-    setTokenError(null)
-    fetchAndStoreTokenDataAction({
-      tokenAddress: debouncedTokenAddress,
-      chainId: watchedChainId,
-    })
-      .then((result) => {
-        if (result?.data?.data) {
-          setTokenData(result.data.data)
-          setTokenError(null)
-        } else {
-          setTokenData(null)
-          setTokenError(result?.serverError || 'Token not found on this chain')
-        }
+  const {
+    data: tokenData = null,
+    isLoading: isFetchingToken,
+    error: tokenQueryError,
+  } = useQuery({
+    queryKey: [QUERY_KEYS.TOKEN, debouncedTokenAddress, watchedChainId],
+    queryFn: async () => {
+      const result = await fetchAndStoreTokenDataAction({
+        tokenAddress: debouncedTokenAddress,
+        chainId: watchedChainId,
       })
-      .catch(() => {
-        setTokenData(null)
-        setTokenError('Token not found — check the address and chain')
-      })
-      .finally(() => setIsFetchingToken(false))
-  }, [debouncedTokenAddress, watchedChainId])
+      if (result?.data?.data) return result.data.data
+      throw new Error(result?.serverError || 'Token not found on this chain')
+    },
+    enabled: isValidToken,
+  })
+
+  const tokenError = isValidToken && tokenQueryError
+    ? (tokenQueryError instanceof Error ? tokenQueryError.message : 'Token not found — check the address and chain')
+    : null
 
   // Clear fetched transfers when relevant fields change
   useEffect(() => {
@@ -125,24 +117,17 @@ export default function CreateClaimPage() {
   const displayedTransfers = useMemo(() => {
     if (!filteredTransfers) return null
     if (!showOnlyMyTransfers || !walletAddress) return filteredTransfers
-    return filteredTransfers.filter((t) => t.senderAddress.toLowerCase() === walletAddress.toLowerCase())
+    return filteredTransfers.filter((t) => isAddressEqual(t.senderAddress as Address, walletAddress as Address))
   }, [filteredTransfers, showOnlyMyTransfers, walletAddress])
 
   const userTransferCount = useMemo(() => {
     if (!filteredTransfers || !walletAddress) return 0
-    return filteredTransfers.filter((t) => t.senderAddress.toLowerCase() === walletAddress.toLowerCase()).length
+    return filteredTransfers.filter((t) => isAddressEqual(t.senderAddress as Address, walletAddress as Address)).length
   }, [filteredTransfers, walletAddress])
 
-  const handleFetchTransfers = useCallback(async () => {
-    const valid = await trigger(['tokenAddress', 'recipientAddress', 'claimMessage', 'fromDate', 'toDate'])
-    if (!valid) {
-      toast.error('Please fill the form correctly')
-      return
-    }
-
-    const formValues = watch()
-    setIsFetchingTransfers(true)
-    try {
+  const transfersMutation = useMutation({
+    mutationFn: async () => {
+      const formValues = watch()
       const result = await fetchClaimTransfersAction({
         chainId: formValues.chainId,
         tokenAddress: formValues.tokenAddress,
@@ -150,23 +135,22 @@ export default function CreateClaimPage() {
         fromDate: formValues.fromDate ?? undefined,
         toDate: formValues.toDate ?? undefined,
       })
+      if (result?.serverError) throw new Error(result.serverError)
+      if (result?.validationErrors) throw new Error('Invalid form data')
+      return result?.data?.transfers ?? []
+    },
+    onSuccess: (data) => setFetchedTransfers(data),
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Failed to fetch transfers'),
+  })
 
-      if (result?.serverError) {
-        throw new Error(result.serverError)
-      }
-
-      if (result?.validationErrors) {
-        toast.error('Invalid form data')
-        return
-      }
-
-      setFetchedTransfers(result?.data?.transfers ?? [])
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch transfers')
-    } finally {
-      setIsFetchingTransfers(false)
+  const handleFetchTransfers = useCallback(async () => {
+    const valid = await trigger(['tokenAddress', 'recipientAddress', 'claimMessage', 'fromDate', 'toDate'])
+    if (!valid) {
+      toast.error('Please fill the form correctly')
+      return
     }
-  }, [trigger, watch])
+    transfersMutation.mutate()
+  }, [trigger, transfersMutation])
 
   const onSubmit = useCallback(async (data: CreateClaimClientInput) => {
     setLoading(true)
@@ -250,12 +234,12 @@ export default function CreateClaimPage() {
         ) : null}
 
         <div className="flex gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading || isFetchingTransfers}>
+          <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading || transfersMutation.isPending}>
             Cancel
           </Button>
           {fetchedTransfers === null ? (
-            <Button type="button" onClick={handleFetchTransfers} disabled={isFetchingTransfers} className="flex-1">
-              {isFetchingTransfers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            <Button type="button" onClick={handleFetchTransfers} disabled={transfersMutation.isPending} className="flex-1">
+              {transfersMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Fetch Transfers
             </Button>
           ) : (

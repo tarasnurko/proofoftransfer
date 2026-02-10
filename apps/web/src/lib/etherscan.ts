@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { EtherscanERC20Transfer } from "@repo/types";
+import { isAddressEqual, type Address } from "viem";
 
 const ETHERSCAN_API_V2_BASE = "https://api.etherscan.io/v2/api";
 const LATEST_BLOCK_FALLBACK = 99999999;
@@ -144,11 +145,11 @@ export class EtherscanClient {
     let filteredTransfers = allTransfers;
 
     filteredTransfers = filteredTransfers.filter(
-      (t) => t.to.toLowerCase() === recipientAddress.toLowerCase(),
+      (t) => isAddressEqual(t.to as Address, recipientAddress as Address),
     );
 
     filteredTransfers = filteredTransfers.filter(
-      (t) => t.contractAddress.toLowerCase() === tokenAddress.toLowerCase(),
+      (t) => isAddressEqual(t.contractAddress as Address, tokenAddress as Address),
     );
 
     if (fromTimestamp) {

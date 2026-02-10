@@ -1,5 +1,5 @@
-import type { WalletClient } from 'viem'
-import { recoverPublicKey, hashTypedData, keccak256, hexToBytes } from 'viem'
+import type { Address, WalletClient } from 'viem'
+import { recoverPublicKey, hashTypedData, keccak256, hexToBytes, isAddressEqual } from 'viem'
 import { processSignatureAction } from '@/actions/proofs.actions'
 
 export const CLAIM_TYPES = {
@@ -108,7 +108,7 @@ export async function recoverAndVerifyPublicKey(
   const pkHash = keccak256(pkBytes.slice(1))
   const derivedAddress = '0x' + pkHash.slice(-40)
 
-  if (derivedAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
+  if (!isAddressEqual(derivedAddress as Address, expectedAddress as Address)) {
     throw new Error('Public key does not match prover address')
   }
 

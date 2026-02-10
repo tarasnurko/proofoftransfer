@@ -1,4 +1,5 @@
-import { getChainName, CHAIN_COLORS } from '@/lib/types'
+import { getChainName } from '@/utils/explorer.utils'
+import { CHAIN_COLORS } from '@/constants'
 
 interface ChainBadgeProps {
   chainId: number

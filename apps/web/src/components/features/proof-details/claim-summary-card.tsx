@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { Address } from '@/components/shared/address'
 import { format } from 'date-fns'
-import type { ClaimEntity } from '@/lib/types'
+import type { ClaimEntity } from '@/types'
 
 interface ClaimSummaryCardProps {
   claim: ClaimEntity

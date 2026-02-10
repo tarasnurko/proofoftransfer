@@ -2,9 +2,10 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
-import type { ClaimEntity, EtherscanTransfer } from '@/lib/types'
+import type { ClaimEntity, EtherscanTransfer } from '@/types'
 import { FileSearch } from 'lucide-react'
 
 interface TransfersCardProps {
@@ -16,6 +17,7 @@ interface TransfersCardProps {
   showOnlyMyTransfers: boolean
   onToggleMyTransfers: () => void
   walletAddress?: string
+  isLoading?: boolean
 }
 
 export function TransfersCard({
@@ -27,6 +29,7 @@ export function TransfersCard({
   showOnlyMyTransfers,
   onToggleMyTransfers,
   walletAddress,
+  isLoading,
 }: TransfersCardProps) {
   return (
     <Card className="border-4">
@@ -35,10 +38,14 @@ export function TransfersCard({
           <div>
             <CardTitle className="text-2xl font-bold">Transfers</CardTitle>
             <CardDescription>
-              {transfers.length} transfer{transfers.length !== 1 ? 's' : ''} matching this claim
+              {isLoading ? (
+                <Skeleton className="mt-1 inline-block h-4 w-48" />
+              ) : (
+                <>{transfers.length} transfer{transfers.length !== 1 ? 's' : ''} matching this claim</>
+              )}
             </CardDescription>
           </div>
-          {isConnected && userTransferCount > 0 && (
+          {!isLoading && isConnected && userTransferCount > 0 && (
             <Button
               variant={showOnlyMyTransfers ? 'default' : 'outline'}
               size="sm"
@@ -51,7 +58,16 @@ export function TransfersCard({
         </div>
       </CardHeader>
       <CardContent>
-        {!displayedTransfers.length ? (
+        {isLoading ? (
+          <VirtualTransferList
+            transfers={[]}
+            token={claim.token}
+            walletAddress={walletAddress}
+            chainId={claim.chainId}
+            maxHeight={400}
+            isLoading
+          />
+        ) : !displayedTransfers.length ? (
           <EmptyState
             icon={<FileSearch className="h-12 w-12" />}
             title="No Transfers"

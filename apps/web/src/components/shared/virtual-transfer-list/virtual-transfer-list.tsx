@@ -4,8 +4,10 @@ import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Address } from '@/components/shared/address'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatTokenAmount, formatTokenValue } from '@/lib/address-utils'
+import { isAddressEqual, type Address as ViemAddress } from 'viem'
+import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
 import { format } from 'date-fns'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
@@ -22,6 +24,7 @@ interface VirtualTransferListProps {
   walletAddress?: string
   chainId?: number
   maxHeight?: number
+  isLoading?: boolean
 }
 
 function CopyableAmount({ amount, token }: { amount: string; token?: { decimals: number; symbol: string } | null }) {
@@ -43,6 +46,26 @@ function CopyableAmount({ amount, token }: { amount: string; token?: { decimals:
 
 const ESTIMATED_ITEM_HEIGHT = 76
 const DEFAULT_MAX_HEIGHT = 400
+const SKELETON_ROW_COUNT = 7
+
+function TransferListSkeleton({ maxHeight }: { maxHeight: number }) {
+  return (
+    <div className="space-y-1 overflow-y-auto" style={{ maxHeight }}>
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
+        <div key={i} className="flex w-full items-center justify-between border-2 border-border p-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-8" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <Skeleton className="mt-1 h-4 w-20" />
+          </div>
+          <Skeleton className="h-4 w-24" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function VirtualTransferList({
   transfers,
@@ -50,6 +73,7 @@ export function VirtualTransferList({
   walletAddress,
   chainId,
   maxHeight = DEFAULT_MAX_HEIGHT,
+  isLoading,
 }: VirtualTransferListProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -61,15 +85,20 @@ export function VirtualTransferList({
     gap: 4,
   })
 
+  if (isLoading) return <TransferListSkeleton maxHeight={maxHeight} />
+
   if (!transfers.length) return null
 
   const totalSize = virtualizer.getTotalSize()
+  const containerHeight = totalSize
+    ? Math.min(totalSize, maxHeight)
+    : maxHeight
 
   return (
     <div
       ref={parentRef}
       className="overflow-auto"
-      style={{ height: Math.min(totalSize, maxHeight) }}
+      style={{ height: containerHeight }}
     >
       <div
         className="relative w-full"
@@ -77,7 +106,7 @@ export function VirtualTransferList({
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const transfer = transfers[virtualItem.index]!
-          const isUser = walletAddress && transfer.from.toLowerCase() === walletAddress.toLowerCase()
+          const isUser = !!walletAddress && isAddressEqual(transfer.from as ViemAddress, walletAddress as ViemAddress)
 
           return (
             <div

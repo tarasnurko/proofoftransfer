@@ -1,4 +1,5 @@
 export type Nullable<T> = T | null | undefined
+export type SortOrder = 'asc' | 'desc'
 
 export interface Pagination {
   page: number

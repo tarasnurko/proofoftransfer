@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ClaimCard } from '@/components/features/claim-card'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
-import type { ClaimEntity } from '@/lib/types'
+import type { ClaimEntity } from '@/types'
 import { FileSearch } from 'lucide-react'
 
 interface ClaimsListProps {

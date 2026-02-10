@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { format } from 'date-fns'
-import type { ProofEntity } from '@/lib/types'
+import type { ProofEntity } from '@/types'
 import { CheckCircle2, XCircle } from 'lucide-react'
 
 interface ProofInfoCardProps {

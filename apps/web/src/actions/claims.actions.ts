@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { Barretenberg } from '@aztec/bb.js'
 import { actionClient } from '@/lib/safe-action'
-import { createClaimSchema, fetchTransfersSchema, dateToTimestamp, MAX_TRANSFERS } from '@/lib/validations/claim'
+import { createClaimSchema, fetchTransfersSchema, dateToTimestamp, MAX_TRANSFERS } from '@/validations/claim'
 import { createClaim, updateClaimMerkleRoot } from '@/db/queries/claims'
 import type { InsertClaimEntity, InsertTransferEntity } from '@/db/index.types'
 import { fetchAndStoreTokenDataAction } from './tokens.actions'

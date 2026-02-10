@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
-import { checkNullifierExistsAction } from '@/actions/proofs.actions'
+import { useQuery } from '@tanstack/react-query'
+import { QUERY_KEYS } from '@/constants'
+import { checkNullifierForClaimExistsAction } from '@/actions/proofs.actions'
 import type { PreparedProofData } from '@/lib/proof-generator'
+import { useAppKit } from '@reown/appkit/react'
 import { Check, Loader2, Shield, Wallet } from 'lucide-react'
 
 interface GenerateProofCardProps {
@@ -16,9 +19,9 @@ interface GenerateProofCardProps {
   walletAddress?: string
   preparedProof: PreparedProofData | null
   userTransferCount: number
+  transfersLoading?: boolean
   signingClaim: boolean
   generatingProof: boolean
-  onConnect: () => void
   onSignClaim: () => void
   onGenerateProof: () => void
 }
@@ -30,30 +33,25 @@ export function GenerateProofCard({
   walletAddress,
   preparedProof,
   userTransferCount,
+  transfersLoading,
   signingClaim,
   generatingProof,
-  onConnect,
   onSignClaim,
   onGenerateProof,
 }: GenerateProofCardProps) {
-  const [nullifierAlreadyUsed, setNullifierAlreadyUsed] = useState(false)
+  const { open } = useAppKit()
 
-  useEffect(() => {
-    if (!preparedProof) {
-      setNullifierAlreadyUsed(false)
-      return
-    }
-
-    let cancelled = false
-    checkNullifierExistsAction({ claimId, nullifier: preparedProof.nullifier })
-      .then((result) => {
-        if (!cancelled && result?.data) {
-          setNullifierAlreadyUsed(result.data.exists)
-        }
+  const { data: nullifierAlreadyUsed = false } = useQuery({
+    queryKey: [QUERY_KEYS.NULLIFIER_EXISTS, claimId, preparedProof?.nullifier],
+    queryFn: async () => {
+      const result = await checkNullifierForClaimExistsAction({
+        claimId,
+        nullifier: preparedProof!.nullifier,
       })
-
-    return () => { cancelled = true }
-  }, [claimId, preparedProof])
+      return result?.data?.exists ?? false
+    },
+    enabled: !!preparedProof,
+  })
 
   return (
     <Card className="border-4">
@@ -71,7 +69,7 @@ export function GenerateProofCard({
             <p className="mb-4 text-sm text-muted-foreground">
               Connect your wallet to generate a proof
             </p>
-            <Button onClick={onConnect} className="border-4 font-bold">
+            <Button onClick={() => open()} className="border-4 font-bold">
               <Wallet className="mr-2 h-4 w-4" />
               Connect Wallet
             </Button>
@@ -84,7 +82,16 @@ export function GenerateProofCard({
               <Address address={walletAddress!} chainId={chainId} />
             </div>
 
-            {userTransferCount > 0 ? (
+            {transfersLoading ? (
+              <div className="border-4 border-dashed border-border p-6">
+                <div className="flex flex-col items-center gap-4">
+                  <Skeleton className="h-12 w-12" />
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-56" />
+                  <Skeleton className="h-10 w-36" />
+                </div>
+              </div>
+            ) : userTransferCount > 0 ? (
               <div className="border-4 border-dashed border-border p-6 text-center">
                 <Shield className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                 <h3 className="mb-2 text-lg font-bold">Sign Claim</h3>

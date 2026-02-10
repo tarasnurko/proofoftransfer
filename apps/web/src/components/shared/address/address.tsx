@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Copy } from 'lucide-react'
-import { truncateAddress } from '@/lib/address-utils'
-import { getExplorerAddressUrl } from '@/lib/types'
+import { truncateAddress } from '@/utils/format.utils'
+import { getExplorerAddressUrl } from '@/utils/explorer.utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface AddressProps {

@@ -3,6 +3,7 @@ import { proofs, claims, proofVerifications } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
 import { eq, and, desc, asc, or, ilike, sql, count, type SQL } from 'drizzle-orm'
 import { entityOrError, entityOrNull } from '../helpers'
+import type { SortOrder } from '@/types'
 
 export async function createProof(data: InsertProofEntity): Promise<ProofEntity> {
   return entityOrError(
@@ -17,7 +18,7 @@ interface GetProofsOptions {
   limit?: number
   offset?: number
   search?: string
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: SortOrder
 }
 
 export async function getProofsByClaimId(claimId: string, options?: GetProofsOptions) {

@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { format } from 'date-fns'
-import { ClaimEntity } from '@/lib/types'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatTokenAmount } from '@/lib/address-utils'
+import { formatTokenAmount } from '@/utils/format.utils'
+import type { ClaimEntity } from '@/types'
 import { Clock, Target, TrendingUp } from 'lucide-react'
 
 interface ClaimCardProps {

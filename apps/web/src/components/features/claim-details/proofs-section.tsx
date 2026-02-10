@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { ProofsCard } from './proofs-card'
-import type { ProofEntity } from '@/lib/types'
+import { ProofsListCard } from './proofs-list-card'
+import { PROOFS_SORT_OPTIONS, QUERY_KEYS } from '@/constants'
+import { parseProofsSort } from '@/utils/claims.utils'
+import type { SortOrder } from '@/types'
+import type { ProofEntity } from '@/types'
 import type { PreparedProofData } from '@/lib/proof-generator'
 
 const PROOFS_PER_PAGE = 9
@@ -20,11 +23,11 @@ interface ProofsSectionProps {
 
 export function ProofsSection({ claimId, preparedProof }: ProofsSectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [page, setPage] = useState(1)
 
   const { data, isLoading, isFetching } = useQuery<ProofsApiResponse>({
-    queryKey: ['proofs', claimId, { search: searchQuery, sortOrder, page }],
+    queryKey: [QUERY_KEYS.PROOFS, claimId, { search: searchQuery, sortOrder, page }],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -50,13 +53,12 @@ export function ProofsSection({ claimId, preparedProof }: ProofsSectionProps) {
   }
 
   const handleSortChange = (sort: string) => {
-    const order = sort === 'createdAt-asc' ? 'asc' as const : 'desc' as const
-    setSortOrder(order)
+    setSortOrder(parseProofsSort(sort))
     setPage(1)
   }
 
   return (
-    <ProofsCard
+    <ProofsListCard
       claimId={claimId}
       totalCount={total}
       isLoading={isLoading}
@@ -64,7 +66,7 @@ export function ProofsSection({ claimId, preparedProof }: ProofsSectionProps) {
       proofs={proofs}
       preparedProof={preparedProof}
       searchQuery={searchQuery}
-      sortBy={`createdAt-${sortOrder}`}
+      sortBy={sortOrder === 'asc' ? PROOFS_SORT_OPTIONS.OLDEST : PROOFS_SORT_OPTIONS.NEWEST}
       currentPage={page}
       totalPages={totalPages}
       onSearchChange={handleSearchChange}

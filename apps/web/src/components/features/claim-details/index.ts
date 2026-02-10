@@ -1,5 +1,5 @@
 export { ClaimInfoCard } from './claim-info-card'
 export { TransfersCard } from './transfers-card'
 export { GenerateProofCard } from './generate-proof-card'
-export { ProofsCard } from './proofs-card'
+export { ProofsListCard } from './proofs-list-card'
 export { ClaimDetailsContent } from './claim-details-content'

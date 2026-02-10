@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
-import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/lib/types'
-import { getExplorerBaseUrl, getExplorerName } from '@/lib/types'
+import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/types'
+import { getExplorerBaseUrl, getExplorerName } from '@/utils/explorer.utils'
 import { Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X, ExternalLink, Wallet } from 'lucide-react'
 
 interface CsvFile {
@@ -142,26 +142,27 @@ export function VerifyProofCard({
                   Fetch transfers from the blockchain to view on-chain data for this proof.
                 </p>
 
-                {!transfers.length ? (
+                {!transfers.length && !fetchingTransfers ? (
                   <Button
                     onClick={onFetchTransfers}
                     disabled={fetchingTransfers}
                     variant="outline"
                     className="w-full border-2 font-bold"
                   >
-                    {fetchingTransfers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {fetchingTransfers ? 'Fetching...' : 'Fetch Transfers'}
+                    Fetch Transfers
                   </Button>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-accent" />
-                      <span className="font-bold">{transfers.length} transfers fetched</span>
-                    </div>
+                    {!fetchingTransfers && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-accent" />
+                        <span className="font-bold">{transfers.length} transfers fetched</span>
+                      </div>
+                    )}
 
-                    <details>
+                    <details open={fetchingTransfers}>
                       <summary className="cursor-pointer text-sm font-bold text-accent hover:underline">
-                        View transfers
+                        {fetchingTransfers ? 'Loading transfers...' : 'View transfers'}
                       </summary>
                       <div className="mt-2">
                         <VirtualTransferList
@@ -169,6 +170,7 @@ export function VerifyProofCard({
                           token={claim.token}
                           chainId={claim.chainId}
                           maxHeight={300}
+                          isLoading={fetchingTransfers}
                         />
                       </div>
                     </details>

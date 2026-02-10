@@ -5,7 +5,7 @@ import { Controller } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
-import type { CreateClaimClientInput } from '@/lib/validations/claim'
+import type { CreateClaimClientInput } from '@/validations/claim'
 
 interface TimeRangeCardProps {
   control: Control<CreateClaimClientInput>

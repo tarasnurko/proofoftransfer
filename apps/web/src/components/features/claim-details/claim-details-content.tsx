@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useConnection, useWalletClient } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
+import { QUERY_KEYS } from '@/constants'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
 import { PageHeader } from '@/components/shared/page-header'
@@ -12,24 +12,30 @@ import { ClaimInfoCard } from './claim-info-card'
 import { TransfersCard } from './transfers-card'
 import { GenerateProofCard } from './generate-proof-card'
 import { ProofsSection } from './proofs-section'
-import type { ClaimEntity, EtherscanTransfer } from '@/lib/types'
+import type { ClaimEntity } from '@/types'
+import { isAddressEqual, type Address } from 'viem'
 import { toast } from 'sonner'
 import { assembleCircuitInputs, generateProofFromPrepared } from '@/lib/proof-generator'
 import type { PreparedProofData, ServerSigningData } from '@/lib/proof-generator'
 import { submitProofAction, prepareClaimSigningDataAction } from '@/actions/proofs.actions'
 import { signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/eip712-claim-signer'
+import { useGetTransfersByClaimId } from '@/hooks/use-get-transfers-by-claim-id'
 
 interface ClaimDetailsContentProps {
   claim: ClaimEntity
-  transfers: EtherscanTransfer[]
 }
 
-export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentProps) {
+export function ClaimDetailsContent({ claim }: ClaimDetailsContentProps) {
   const claimId = claim.id
-  const { address: walletAddress, isConnected } = useConnection()
+  const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
-  const { open } = useAppKit()
   const queryClient = useQueryClient()
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  const isConnected = mounted && rawIsConnected
+
+  const { transfers, isLoading: transfersLoading } = useGetTransfersByClaimId(claimId)
 
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
   const [preparedProof, setPreparedProof] = useState<PreparedProofData | null>(null)
@@ -38,12 +44,12 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
 
   const displayedTransfers = useMemo(() => {
     if (!showOnlyMyTransfers || !walletAddress) return transfers
-    return transfers.filter(t => t.from.toLowerCase() === walletAddress.toLowerCase())
+    return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address))
   }, [transfers, showOnlyMyTransfers, walletAddress])
 
   const userTransferCount = useMemo(() => {
     if (!walletAddress) return 0
-    return transfers.filter(t => t.from.toLowerCase() === walletAddress.toLowerCase()).length
+    return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address)).length
   }, [transfers, walletAddress])
 
   const handleSignClaim = useCallback(async () => {
@@ -107,7 +113,7 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
       }
 
       toast.success('Proof generated and submitted!')
-      await queryClient.invalidateQueries({ queryKey: ['proofs', claimId] })
+      await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROOFS, claimId] })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to generate proof')
     } finally {
@@ -145,6 +151,7 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
           showOnlyMyTransfers={showOnlyMyTransfers}
           onToggleMyTransfers={() => setShowOnlyMyTransfers(prev => !prev)}
           walletAddress={walletAddress}
+          isLoading={transfersLoading}
         />
 
         <GenerateProofCard
@@ -154,9 +161,9 @@ export function ClaimDetailsContent({ claim, transfers }: ClaimDetailsContentPro
           walletAddress={walletAddress}
           preparedProof={preparedProof}
           userTransferCount={userTransferCount}
+          transfersLoading={transfersLoading}
           signingClaim={signingClaim}
           generatingProof={generatingProof}
-          onConnect={() => open()}
           onSignClaim={handleSignClaim}
           onGenerateProof={handleGenerateProof}
         />

@@ -9,11 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
 import { format } from 'date-fns'
-import type { ProofEntity } from '@/lib/types'
+import type { ProofEntity } from '@/types'
 import type { PreparedProofData } from '@/lib/proof-generator'
+import { PROOFS_SORT_LABELS, type ProofsSortValue } from '@/constants'
 import { FileSearch, Search, CheckCircle2, XCircle } from 'lucide-react'
 
-interface ProofsCardProps {
+interface ProofsListCardProps {
   claimId: string
   totalCount: number
   isLoading: boolean
@@ -29,7 +30,7 @@ interface ProofsCardProps {
   onPageChange: (page: number) => void
 }
 
-export function ProofsCard({
+export function ProofsListCard({
   claimId,
   totalCount,
   isLoading,
@@ -43,7 +44,7 @@ export function ProofsCard({
   onSearchChange,
   onSortChange,
   onPageChange,
-}: ProofsCardProps) {
+}: ProofsListCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
@@ -69,8 +70,9 @@ export function ProofsCard({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="createdAt-desc">Newest First</SelectItem>
-                <SelectItem value="createdAt-asc">Oldest First</SelectItem>
+                {(Object.entries(PROOFS_SORT_LABELS) as [ProofsSortValue, string][]).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -1,15 +1,9 @@
+import Big from 'big.js'
+
 export function truncateAddress(address: string, chars = 4): string {
   if (!address) return ''
   return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`
 }
-
-import { ethereumAddressSchema } from '@/lib/validations/address'
-
-export function isValidAddress(address: string): boolean {
-  return ethereumAddressSchema.safeParse(address).success
-}
-
-import Big from 'big.js'
 
 export function formatTokenValue(amount: string, decimals: number): string {
   const raw = new Big(amount)

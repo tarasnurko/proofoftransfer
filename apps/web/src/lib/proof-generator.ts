@@ -1,5 +1,5 @@
 import type { EtherscanERC20Transfer } from '@repo/types'
-import { recoverPublicKey, hashTypedData, keccak256, hexToBytes } from 'viem'
+import { recoverPublicKey, hashTypedData, keccak256, hexToBytes, isAddressEqual } from 'viem'
 import type { Address, WalletClient } from 'viem'
 
 export interface GenerateClaimProofParams {
@@ -69,7 +69,7 @@ export async function prepareClaimProof(
 
   // Step 1: Filter prover's transfers
   const proverTransfers = allTransfers.filter(
-    (t) => t.from.toLowerCase() === proverAddress.toLowerCase()
+    (t) => isAddressEqual(t.from as Address, proverAddress as Address)
   )
 
   if (!proverTransfers.length) {
@@ -82,8 +82,8 @@ export async function prepareClaimProof(
 
   const invalidTransfers = allTransfers.filter(
     (t) =>
-      t.to.toLowerCase() !== recipientAddress.toLowerCase() ||
-      t.contractAddress.toLowerCase() !== tokenAddress.toLowerCase()
+      !isAddressEqual(t.to as Address, recipientAddress as Address) ||
+      !isAddressEqual(t.contractAddress as Address, tokenAddress as Address)
   )
   if (invalidTransfers.length) {
     throw new Error(`Found ${invalidTransfers.length} transfers that don't match claim parameters`)
@@ -242,7 +242,7 @@ export async function prepareClaimProof(
   const publicKeyHash = keccak256(publicKeyWithoutPrefix)
   const derivedAddress = '0x' + publicKeyHash.slice(-40)
 
-  if (derivedAddress.toLowerCase() !== proverAddress.toLowerCase()) {
+  if (!isAddressEqual(derivedAddress as Address, proverAddress as Address)) {
     throw new Error('Public key does not match prover address')
   }
 

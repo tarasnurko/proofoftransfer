@@ -4,7 +4,9 @@ import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams, usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SUPPORTED_CHAINS } from '@/lib/types'
+import { SUPPORTED_CHAINS } from '@/constants'
+import { CLAIMS_SORT_OPTIONS, CLAIMS_SORT_LABELS, type ClaimsSortValue } from '@/constants'
+import { parseClaimsSort } from '@/utils/claims.utils'
 import { Search } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useSearchTransition } from './search-transition-context'
@@ -47,8 +49,8 @@ export function ClaimsFilters() {
   }
 
   const handleSortChange = (value: string) => {
-    const [sort, order] = value.split('-')
-    updateParams({ sort, order })
+    const { sortBy, sortOrder } = parseClaimsSort(value)
+    updateParams({ sort: sortBy, order: sortOrder })
   }
 
   return (
@@ -80,10 +82,9 @@ export function ClaimsFilters() {
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="createdAt-desc">Newest First</SelectItem>
-          <SelectItem value="createdAt-asc">Oldest First</SelectItem>
-          <SelectItem value="proofCount-desc">Most Proofs</SelectItem>
-          <SelectItem value="proofCount-asc">Least Proofs</SelectItem>
+          {(Object.entries(CLAIMS_SORT_LABELS) as [ClaimsSortValue, string][]).map(([value, label]) => (
+            <SelectItem key={value} value={value}>{label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

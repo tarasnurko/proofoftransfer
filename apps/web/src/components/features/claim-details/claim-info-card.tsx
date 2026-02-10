@@ -3,7 +3,7 @@ import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { format } from 'date-fns'
-import type { ClaimEntity } from '@/lib/types'
+import type { ClaimEntity } from '@/types'
 
 interface ClaimInfoCardProps {
   claim: ClaimEntity
