@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useConnection, useWalletClient } from 'wagmi'
+import { useState, useMemo, useCallback } from 'react'
+import { useConnection, useWalletClient, useSwitchChain } from 'wagmi'
+import { useMounted } from '@/hooks/use-mounted'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { QUERY_KEYS } from '@/constants'
@@ -15,11 +16,11 @@ import { ProofsSection } from './proofs-section'
 import type { ClaimEntity } from '@/types'
 import { isAddressEqual, type Address } from 'viem'
 import { toast } from 'sonner'
-import { assembleCircuitInputs, generateProofFromPrepared } from '@/lib/proof-generator'
-import type { PreparedProofData, ServerSigningData } from '@/lib/proof-generator'
-import { submitProofAction, prepareClaimSigningDataAction } from '@/actions/proofs.actions'
-import { signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/eip712-claim-signer'
-import { useGetTransfersByClaimId } from '@/hooks/use-get-transfers-by-claim-id'
+import { assembleCircuitInputs, generateProofFromPrepared, signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/proof'
+import type { PreparedProofData, ServerSigningData } from '@/lib/proof'
+import { submitProofAction } from '@/actions/proofs.actions'
+import { api } from '@/lib/api/client'
+import { useGetTransfersByClaimId } from '@/hooks/queries'
 
 interface ClaimDetailsContentProps {
   claim: ClaimEntity
@@ -29,51 +30,57 @@ export function ClaimDetailsContent({ claim }: ClaimDetailsContentProps) {
   const claimId = claim.id
   const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
+  const switchChain = useSwitchChain()
   const queryClient = useQueryClient()
-
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useMounted()
   const isConnected = mounted && rawIsConnected
 
-  const { transfers, isLoading: transfersLoading } = useGetTransfersByClaimId(claimId)
+  const { data: transfers = [], isLoading: transfersLoading } = useGetTransfersByClaimId(claimId)
 
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
   const [preparedProof, setPreparedProof] = useState<PreparedProofData | null>(null)
   const [signingClaim, setSigningClaim] = useState(false)
   const [generatingProof, setGeneratingProof] = useState(false)
 
-  const displayedTransfers = useMemo(() => {
-    if (!showOnlyMyTransfers || !walletAddress) return transfers
+  const userTransfers = useMemo(() => {
+    if (!walletAddress) return []
     return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address))
-  }, [transfers, showOnlyMyTransfers, walletAddress])
-
-  const userTransferCount = useMemo(() => {
-    if (!walletAddress) return 0
-    return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address)).length
   }, [transfers, walletAddress])
+
+  const displayedTransfers = showOnlyMyTransfers ? userTransfers : transfers
+  const userTransferCount = userTransfers.length
 
   const handleSignClaim = useCallback(async () => {
     if (!walletAddress || !walletClient || !claim) return
 
     setSigningClaim(true)
     try {
-      const result = await prepareClaimSigningDataAction({ claimId, proverAddress: walletAddress })
-      if (result?.serverError) throw new Error(result.serverError)
-      if (!result?.data) throw new Error('Failed to prepare signing data')
+      const res = await api.api.claims[':id']['prover-signing-data'].$post({
+        param: { id: claimId },
+        json: { proverAddress: walletAddress },
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Failed to prepare signing data' }))
+        throw new Error((body as { error?: string }).error || 'Failed to prepare signing data')
+      }
 
-      const serverData = result.data as ServerSigningData
-      const signResult = await signClaimAndDeriveNullifier(walletClient, serverData.eip712)
+      const serverData = await res.json() as ServerSigningData
+
+      const walletChainId = await walletClient.getChainId()
+      if (walletChainId !== serverData.chainId) {
+        await switchChain.mutateAsync({ chainId: serverData.chainId })
+      }
+
+      const signResult = await signClaimAndDeriveNullifier(walletClient, serverData.eip712, serverData.chainId)
       const pubKeyComponents = await recoverAndVerifyPublicKey(
         signResult.signature,
-        signResult.domain,
-        signResult.message,
+        signResult.typedData,
         walletAddress,
       )
 
       const prepared = assembleCircuitInputs(
         serverData,
         { nullifier: signResult.nullifier, fullSignature: signResult.fullSignature },
-        signResult.walletChainId,
         pubKeyComponents,
       )
 
@@ -84,7 +91,7 @@ export function ClaimDetailsContent({ claim }: ClaimDetailsContentProps) {
     } finally {
       setSigningClaim(false)
     }
-  }, [walletAddress, walletClient, claim, claimId])
+  }, [walletAddress, walletClient, claim, claimId, switchChain.mutateAsync])
 
   const handleGenerateProof = useCallback(async () => {
     if (!preparedProof) return

@@ -10,7 +10,7 @@ import { Noir } from "@noir-lang/noir_js";
 import type { EtherscanERC20Transfer } from "@repo/types";
 
 import {
-  hashString,
+  poseidon2HashString,
   hashTransfer,
   poseidon2HashLeftRight,
   poseidon2HashStringsLeftRight,
@@ -80,8 +80,8 @@ describe("Circuit tests", () => {
     noir = new Noir(circuit);
     ultraHonkBackend = new UltraHonkBackend(circuit.bytecode, barretenbergApi);
 
-    const zeroValueHash = await hashString(barretenbergApi, "proofoftransfer");
-    const claimMessageHash = await hashString(barretenbergApi, claimMessage);
+    const zeroValueHash = await poseidon2HashString(barretenbergApi, "proofoftransfer");
+    const claimMessageHash = await poseidon2HashString(barretenbergApi, claimMessage);
     claimMessageHashBytes32 = bigintToBytes32(fieldToBigint(claimMessageHash));
 
     merkleTreeZeroValues = await generateZeroValuesField(

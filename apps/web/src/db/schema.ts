@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-export const tokens = pgTable(
+export const tokensTable = pgTable(
   'tokens',
   {
     id: uuid().primaryKey().defaultRandom(),
@@ -17,7 +17,7 @@ export const tokens = pgTable(
   ]
 )
 
-export const claims = pgTable(
+export const claimsTable = pgTable(
   'claims',
   {
     id: uuid().primaryKey().defaultRandom(),
@@ -30,7 +30,7 @@ export const claims = pgTable(
     fromBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
     toBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
     chainId: integer().notNull(),
-    merkleRoot: varchar({ length: 78 }),
+    merkleRoot: varchar({ length: 78 }).notNull(),
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
@@ -43,13 +43,13 @@ export const claims = pgTable(
   ]
 )
 
-export const proofs = pgTable(
+export const proofsTable = pgTable(
   'proofs',
   {
     id: uuid().primaryKey().defaultRandom(),
     claimId: uuid()
       .notNull()
-      .references(() => claims.id, { onDelete: 'cascade' }),
+      .references(() => claimsTable.id, { onDelete: 'cascade' }),
     nullifier: varchar({ length: 78 }).notNull(),
     proofData: text().notNull(),
     publicInputs: jsonb().notNull(),
@@ -62,13 +62,13 @@ export const proofs = pgTable(
   ]
 )
 
-export const proofVerifications = pgTable(
+export const proofVerificationsTable = pgTable(
   'proof_verifications',
   {
     id: uuid().primaryKey().defaultRandom(),
     proofId: uuid()
       .notNull()
-      .references(() => proofs.id, { onDelete: 'cascade' }),
+      .references(() => proofsTable.id, { onDelete: 'cascade' }),
     verifierNullifier: varchar({ length: 78 }),
     isValid: boolean().notNull(),
     verifiedAt: timestamp().notNull().defaultNow(),
@@ -81,7 +81,7 @@ export const proofVerifications = pgTable(
   ]
 )
 
-export const transfers = pgTable(
+export const transfersTable = pgTable(
   'transfers',
   {
     id: uuid().primaryKey().defaultRandom(),
@@ -111,22 +111,21 @@ export const transfers = pgTable(
   ]
 )
 
-export const claimsRelations = relations(claims, ({ many }) => ({
-  proofs: many(proofs),
+export const claimsRelations = relations(claimsTable, ({ many }) => ({
+  proofs: many(proofsTable),
 }))
 
-export const proofsRelations = relations(proofs, ({ one, many }) => ({
-  claim: one(claims, {
-    fields: [proofs.claimId],
-    references: [claims.id],
+export const proofsRelations = relations(proofsTable, ({ one, many }) => ({
+  claim: one(claimsTable, {
+    fields: [proofsTable.claimId],
+    references: [claimsTable.id],
   }),
-  verifications: many(proofVerifications),
+  verifications: many(proofVerificationsTable),
 }))
 
-export const proofVerificationsRelations = relations(proofVerifications, ({ one }) => ({
-  proof: one(proofs, {
-    fields: [proofVerifications.proofId],
-    references: [proofs.id],
+export const proofVerificationsRelations = relations(proofVerificationsTable, ({ one }) => ({
+  proof: one(proofsTable, {
+    fields: [proofVerificationsTable.proofId],
+    references: [proofsTable.id],
   }),
 }))
-

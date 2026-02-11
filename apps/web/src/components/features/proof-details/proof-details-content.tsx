@@ -1,18 +1,19 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { useConnection, useWalletClient } from 'wagmi'
+import { useConnection, useWalletClient, useSwitchChain } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
 import { PageHeader } from '@/components/shared/page-header'
-import { ClaimSummaryCard } from './claim-summary-card'
+import { ClaimInfoCard } from '@/components/features/claim-details/claim-info-card'
 import { ProofInfoCard } from './proof-info-card'
 import { VerifyProofCard } from './verify-proof-card'
 import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/types'
 import { toast } from 'sonner'
-import { verifyProofAction, prepareVerificationSigningDataAction, fetchClaimTransfersFromDbAction } from '@/actions/proofs.actions'
-import { signClaimAndDeriveNullifier } from '@/lib/eip712-claim-signer'
+import { verifyProofAction } from '@/actions/proofs.actions'
+import { api } from '@/lib/api/client'
+import { signClaimAndDeriveNullifier } from '@/lib/proof'
 import { parseCsvTransfers } from '@/utils/csv-parser.utils'
 
 interface ProofDetailsContentProps {
@@ -26,6 +27,7 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
 
   const { address: walletAddress, isConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
+  const switchChain = useSwitchChain()
   const { open } = useAppKit()
 
   const [proof, setProof] = useState(initialProof)
@@ -52,11 +54,19 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
 
     setVerifying(true)
     try {
-      const prepResult = await prepareVerificationSigningDataAction({ claimId })
-      if (prepResult?.serverError) throw new Error(prepResult.serverError)
-      if (!prepResult?.data) throw new Error('Failed to prepare signing data')
+      const prepRes = await api.api.claims[':id']['verifier-signing-data'].$get({
+        param: { id: claimId },
+      })
+      if (!prepRes.ok) throw new Error('Failed to prepare signing data')
 
-      const signResult = await signClaimAndDeriveNullifier(walletClient, prepResult.data.eip712)
+      const { eip712, chainId } = await prepRes.json()
+
+      const walletChainId = await walletClient.getChainId()
+      if (walletChainId !== chainId) {
+        await switchChain.mutateAsync({ chainId })
+      }
+
+      const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
       const derivedNullifier = signResult.nullifier
 
       if (derivedNullifier === proof.nullifier) {
@@ -99,15 +109,17 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
     } finally {
       setVerifying(false)
     }
-  }, [walletAddress, walletClient, claim, claimId, proofId, proof.nullifier, allTransfers])
+  }, [walletAddress, walletClient, claim, claimId, proofId, proof.nullifier, allTransfers, switchChain.mutateAsync])
 
   const fetchTransfersForVerification = useCallback(async () => {
     setFetchingTransfers(true)
     try {
-      const result = await fetchClaimTransfersFromDbAction({ claimId })
-      if (result?.serverError) throw new Error(result.serverError)
-      if (!result?.data) throw new Error('Failed to fetch transfers')
-      setTransfers(result.data)
+      const res = await api.api.claims[':id'].transfers.$get({
+        param: { id: claimId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch transfers')
+      const data = await res.json()
+      setTransfers(data as EtherscanTransfer[])
     } catch (error) {
       console.error('fetchTransfersForVerification:', error)
       toast.error('Failed to fetch transfers')
@@ -157,7 +169,7 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
       <PageHeader title="Proof Details" />
 
       <div className="space-y-6">
-        <ClaimSummaryCard claim={claim} />
+        <ClaimInfoCard claim={claim} title="Claim Information" />
         <ProofInfoCard proof={proof} />
         <VerifyProofCard
           proof={proof}

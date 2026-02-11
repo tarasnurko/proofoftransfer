@@ -1,22 +1,21 @@
 import { db, type DB } from '../client'
-import { claims, proofs, tokens } from '../schema'
+import { claimsTable, proofsTable, tokensTable } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
 import { eq, desc, asc, count, and, or, ilike, sql, type SQL } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../helpers'
+import { entityOrError, entityOrNull, getClient } from '../helpers'
 import type { ClaimsSortBy } from '@/constants'
 import type { SortOrder } from '@/types'
 
 export async function createClaim(data: InsertClaimEntity, tx?: DB): Promise<ClaimEntity> {
-  const dbInstance = tx ?? db
   return entityOrError(
-    await dbInstance.insert(claims).values(data).returning(),
+    await getClient(tx).insert(claimsTable).values(data).returning(),
     'Failed to create claim'
   )
 }
 
 const MAX_QUERY_LIMIT = 100
 
-interface GetClaimsOptions {
+interface GetClaimsParams {
   limit?: number
   offset?: number
   search?: string
@@ -25,85 +24,80 @@ interface GetClaimsOptions {
   sortOrder?: SortOrder
 }
 
-export async function getClaims(options?: GetClaimsOptions) {
+export async function getClaims(options?: GetClaimsParams) {
   const limit = Math.min(options?.limit ?? 10, MAX_QUERY_LIMIT)
   const offset = Math.max(options?.offset ?? 0, 0)
 
   const conditions: SQL[] = []
 
   if (options?.chainId) {
-    conditions.push(eq(claims.chainId, options.chainId))
+    conditions.push(eq(claimsTable.chainId, options.chainId))
   }
 
   if (options?.search) {
     const pattern = `%${options.search}%`
     const searchCondition = or(
-      ilike(claims.message, pattern),
-      ilike(claims.recipientAddress, pattern),
-      ilike(claims.tokenAddress, pattern),
-      ilike(claims.messageHash, pattern),
-      sql`${claims.id}::text ILIKE ${pattern}`,
+      ilike(claimsTable.message, pattern),
+      ilike(claimsTable.recipientAddress, pattern),
+      ilike(claimsTable.tokenAddress, pattern),
+      ilike(claimsTable.messageHash, pattern),
+      sql`${claimsTable.id}::text ILIKE ${pattern}`,
     )
     if (searchCondition) conditions.push(searchCondition)
   }
 
   const whereClause = conditions.length ? and(...conditions) : undefined
 
+  const proofCount = db.$count(proofsTable, eq(proofsTable.claimId, claimsTable.id))
   const sortFn = options?.sortOrder === 'asc' ? asc : desc
   const orderByClause = options?.sortBy === 'proofCount'
-    ? sortFn(count(proofs.id))
-    : sortFn(claims.createdAt)
+    ? sortFn(proofCount)
+    : sortFn(claimsTable.createdAt)
 
   const result = await db
     .select({
-      claim: claims,
-      proofCount: count(proofs.id),
-      token: tokens,
+      claim: claimsTable,
+      proofCount,
+      token: tokensTable,
     })
-    .from(claims)
-    .leftJoin(proofs, eq(claims.id, proofs.claimId))
+    .from(claimsTable)
     .leftJoin(
-      tokens,
-      and(eq(claims.tokenAddress, tokens.address), eq(claims.chainId, tokens.chainId))
+      tokensTable,
+      and(eq(claimsTable.tokenAddress, tokensTable.address), eq(claimsTable.chainId, tokensTable.chainId))
     )
     .where(whereClause)
-    .groupBy(claims.id, tokens.id)
     .orderBy(orderByClause)
     .limit(limit)
     .offset(offset)
 
-  const totalQuery = db.select({ total: count(claims.id) }).from(claims)
-  const totalResult = whereClause
-    ? await totalQuery.where(whereClause)
-    : await totalQuery
-
-  const total = totalResult[0]?.total ?? 0
+  const totalResult = await db
+    .select({ total: count() })
+    .from(claimsTable)
+    .where(whereClause)
 
   return {
     claims: result.map((r) => ({
       ...r.claim,
-      proofCount: Number(r.proofCount),
+      proofCount: r.proofCount,
       token: r.token,
     })),
-    total: Number(total),
+    total: totalResult[0]?.total ?? 0,
   }
 }
 
 export async function getClaimById(id: string) {
   const result = await db
     .select({
-      claim: claims,
-      proofCount: count(proofs.id),
-      token: tokens,
+      claim: claimsTable,
+      proofCount: db.$count(proofsTable, eq(proofsTable.claimId, claimsTable.id)),
+      token: tokensTable,
     })
-    .from(claims)
-    .leftJoin(proofs, eq(claims.id, proofs.claimId))
+    .from(claimsTable)
     .leftJoin(
-      tokens,
-      and(eq(claims.tokenAddress, tokens.address), eq(claims.chainId, tokens.chainId))
+      tokensTable,
+      and(eq(claimsTable.tokenAddress, tokensTable.address), eq(claimsTable.chainId, tokensTable.chainId))
     )
-    .where(eq(claims.id, id))
-    .groupBy(claims.id, tokens.id)
+    .where(eq(claimsTable.id, id))
     .limit(1)
 
   const claimResult = entityOrNull(result)
@@ -114,7 +108,7 @@ export async function getClaimById(id: string) {
 
   return {
     ...claimResult.claim,
-    proofCount: Number(claimResult.proofCount),
+    proofCount: claimResult.proofCount,
     token: claimResult.token,
   }
 }
@@ -123,17 +117,8 @@ export async function getClaimByMessageHash(messageHash: string) {
   return entityOrNull(
     await db
       .select()
-      .from(claims)
-      .where(eq(claims.messageHash, messageHash))
+      .from(claimsTable)
+      .where(eq(claimsTable.messageHash, messageHash))
       .limit(1)
   )
-}
-
-export async function updateClaimMerkleRoot(
-  claimId: string,
-  merkleRoot: string,
-  tx?: DB
-): Promise<void> {
-  const dbInstance = tx ?? db
-  await dbInstance.update(claims).set({ merkleRoot }).where(eq(claims.id, claimId))
 }

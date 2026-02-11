@@ -1,20 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { ProofsListCard } from './proofs-list-card'
-import { PROOFS_SORT_OPTIONS, QUERY_KEYS } from '@/constants'
+import { PROOFS_SORT_OPTIONS } from '@/constants'
 import { parseProofsSort } from '@/utils/claims.utils'
+import { useGetProofsByClaimId } from '@/hooks/queries'
 import type { SortOrder } from '@/types'
-import type { ProofEntity } from '@/types'
-import type { PreparedProofData } from '@/lib/proof-generator'
+import type { PreparedProofData } from '@/lib/proof'
 
 const PROOFS_PER_PAGE = 9
-
-interface ProofsApiResponse {
-  proofs: ProofEntity[]
-  total: number
-}
 
 interface ProofsSectionProps {
   claimId: string
@@ -26,21 +20,12 @@ export function ProofsSection({ claimId, preparedProof }: ProofsSectionProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [page, setPage] = useState(1)
 
-  const { data, isLoading, isFetching } = useQuery<ProofsApiResponse>({
-    queryKey: [QUERY_KEYS.PROOFS, claimId, { search: searchQuery, sortOrder, page }],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(PROOFS_PER_PAGE),
-        sortOrder,
-      })
-      if (searchQuery) params.set('search', searchQuery)
-
-      const res = await fetch(`/api/claims/${claimId}/proofs?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch proofs')
-      return res.json()
-    },
-    placeholderData: keepPreviousData,
+  const { data, isLoading, isFetching } = useGetProofsByClaimId({
+    claimId,
+    search: searchQuery,
+    sortOrder,
+    page,
+    limit: PROOFS_PER_PAGE,
   })
 
   const proofs = data?.proofs ?? []

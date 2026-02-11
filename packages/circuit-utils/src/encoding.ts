@@ -28,3 +28,19 @@ export const stringToField = (value: string): Uint8Array => {
 
   return buffer;
 };
+
+export function hexToUint8Array(hex: string): Uint8Array {
+  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const matches = clean.match(/.{1,2}/g);
+  if (!matches) throw new Error("Invalid hex string");
+  return new Uint8Array(matches.map((byte) => parseInt(byte, 16)));
+}
+
+export function uint8ArrayToHex(bytes: Uint8Array): string {
+  return (
+    "0x" +
+    Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}

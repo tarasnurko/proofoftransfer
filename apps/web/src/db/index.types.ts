@@ -1,16 +1,17 @@
-import { tokens, claims, proofs, proofVerifications, transfers } from './schema'
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm'
+import { tokensTable, claimsTable, proofsTable, proofVerificationsTable, transfersTable } from './schema'
 
-export type TokenEntity = typeof tokens.$inferSelect
-export type InsertTokenEntity = typeof tokens.$inferInsert
+export type TokenEntity = InferSelectModel<typeof tokensTable>
+export type InsertTokenEntity = InferInsertModel<typeof tokensTable>
 
-export type ClaimEntity = typeof claims.$inferSelect
-export type InsertClaimEntity = typeof claims.$inferInsert
+export type ClaimEntity = InferSelectModel<typeof claimsTable>
+export type InsertClaimEntity = InferInsertModel<typeof claimsTable>
 
-export type ProofEntity = typeof proofs.$inferSelect
-export type InsertProofEntity = typeof proofs.$inferInsert
+export type ProofEntity = InferSelectModel<typeof proofsTable>
+export type InsertProofEntity = InferInsertModel<typeof proofsTable>
 
-export type ProofVerificationEntity = typeof proofVerifications.$inferSelect
-export type InsertProofVerificationEntity = typeof proofVerifications.$inferInsert
+export type ProofVerificationEntity = InferSelectModel<typeof proofVerificationsTable>
+export type InsertProofVerificationEntity = InferInsertModel<typeof proofVerificationsTable>
 
-export type TransferEntity = typeof transfers.$inferSelect
-export type InsertTransferEntity = typeof transfers.$inferInsert
+export type TransferEntity = InferSelectModel<typeof transfersTable>
+export type InsertTransferEntity = InferInsertModel<typeof transfersTable>

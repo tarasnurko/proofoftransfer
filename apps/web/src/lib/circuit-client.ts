@@ -36,9 +36,3 @@ export async function generateProofClient(inputs: any, threads: number = 1) {
     publicInputs: proofData.publicInputs,
   }
 }
-
-export function uint8ArrayToHex(bytes: Uint8Array): string {
-  return '0x' + Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-}

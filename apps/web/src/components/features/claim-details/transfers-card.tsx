@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
 import type { ClaimEntity, EtherscanTransfer } from '@/types'
+import { mapTransferToDisplayItem } from '@/utils/transfer.utils'
 import { FileSearch } from 'lucide-react'
 
 interface TransfersCardProps {
@@ -75,11 +76,7 @@ export function TransfersCard({
           />
         ) : (
           <VirtualTransferList
-            transfers={displayedTransfers.map((t) => ({
-              from: t.from,
-              amount: t.value,
-              timestamp: parseInt(t.timeStamp),
-            }))}
+            transfers={displayedTransfers.map(mapTransferToDisplayItem)}
             token={claim.token}
             walletAddress={walletAddress}
             chainId={claim.chainId}

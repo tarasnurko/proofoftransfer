@@ -1,17 +1,17 @@
-import { db } from '../client'
-import { tokens } from '../schema'
+import { type DB } from '../client'
+import { tokensTable } from '../schema'
 import type { InsertTokenEntity, TokenEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../helpers'
+import { entityOrError, entityOrNull, getClient } from '../helpers'
 
-export async function createToken(data: InsertTokenEntity): Promise<TokenEntity> {
+export async function createToken(data: InsertTokenEntity, tx?: DB): Promise<TokenEntity> {
   return entityOrError(
-    await db
-      .insert(tokens)
+    await getClient(tx)
+      .insert(tokensTable)
       .values(data)
       .onConflictDoUpdate({
-        target: [tokens.address, tokens.chainId],
+        target: [tokensTable.address, tokensTable.chainId],
         set: {
           name: data.name,
           symbol: data.symbol,
@@ -23,15 +23,19 @@ export async function createToken(data: InsertTokenEntity): Promise<TokenEntity>
   )
 }
 
-export async function getTokenByAddressAndChain(
-  address: string,
+interface GetTokenByAddressAndChainParams {
+  address: string
   chainId: number
+}
+
+export async function getTokenByAddressAndChain(
+  { address, chainId }: GetTokenByAddressAndChainParams
 ): Promise<Nullable<TokenEntity>> {
   return entityOrNull(
-    await db
+    await getClient()
       .select()
-      .from(tokens)
-      .where(and(eq(tokens.address, address.toLowerCase()), eq(tokens.chainId, chainId)))
+      .from(tokensTable)
+      .where(and(eq(tokensTable.address, address.toLowerCase()), eq(tokensTable.chainId, chainId)))
       .limit(1)
   )
 }

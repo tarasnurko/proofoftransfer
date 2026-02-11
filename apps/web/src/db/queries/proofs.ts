@@ -1,61 +1,68 @@
-import { db } from '../client'
-import { proofs, claims, proofVerifications } from '../schema'
+import { db, type DB } from '../client'
+import { proofsTable, claimsTable, proofVerificationsTable } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
 import { eq, and, desc, asc, or, ilike, sql, count, type SQL } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../helpers'
+import { entityOrError, entityOrNull, getClient } from '../helpers'
 import type { SortOrder } from '@/types'
 
-export async function createProof(data: InsertProofEntity): Promise<ProofEntity> {
+export async function createProof(data: InsertProofEntity, tx?: DB): Promise<ProofEntity> {
   return entityOrError(
-    await db.insert(proofs).values(data).returning(),
+    await getClient(tx).insert(proofsTable).values(data).returning(),
     'Failed to create proof'
   )
 }
 
 const MAX_QUERY_LIMIT = 100
 
-interface GetProofsOptions {
+interface GetProofsByClaimIdParams {
   limit?: number
   offset?: number
   search?: string
   sortOrder?: SortOrder
 }
 
-export async function getProofsByClaimId(claimId: string, options?: GetProofsOptions) {
+export async function getProofsByClaimId(claimId: string, options?: GetProofsByClaimIdParams) {
   const limit = Math.min(options?.limit ?? 9, MAX_QUERY_LIMIT)
   const offset = Math.max(options?.offset ?? 0, 0)
   const sortFn = options?.sortOrder === 'asc' ? asc : desc
 
-  const conditions: SQL[] = [eq(proofs.claimId, claimId)]
+  const conditions: SQL[] = [eq(proofsTable.claimId, claimId)]
 
   if (options?.search) {
     const pattern = `%${options.search}%`
     const searchCondition = or(
-      ilike(proofs.nullifier, pattern),
-      sql`${proofs.id}::text ILIKE ${pattern}`,
+      ilike(proofsTable.nullifier, pattern),
+      sql`${proofsTable.id}::text ILIKE ${pattern}`,
     )
     if (searchCondition) conditions.push(searchCondition)
   }
 
   const whereClause = and(...conditions)
 
+  const successfulCount = db.$count(
+    proofVerificationsTable,
+    and(eq(proofVerificationsTable.proofId, proofsTable.id), eq(proofVerificationsTable.isValid, true))
+  )
+  const failedCount = db.$count(
+    proofVerificationsTable,
+    and(eq(proofVerificationsTable.proofId, proofsTable.id), eq(proofVerificationsTable.isValid, false))
+  )
+
   const result = await db
     .select({
-      proof: proofs,
-      successfulCount: sql<number>`count(case when ${proofVerifications.isValid} = true then 1 end)`.mapWith(Number),
-      failedCount: sql<number>`count(case when ${proofVerifications.isValid} = false then 1 end)`.mapWith(Number),
+      proof: proofsTable,
+      successfulCount,
+      failedCount,
     })
-    .from(proofs)
-    .leftJoin(proofVerifications, eq(proofs.id, proofVerifications.proofId))
+    .from(proofsTable)
     .where(whereClause)
-    .groupBy(proofs.id)
-    .orderBy(sortFn(proofs.createdAt))
+    .orderBy(sortFn(proofsTable.createdAt))
     .limit(limit)
     .offset(offset)
 
   const totalResult = await db
-    .select({ total: count(proofs.id) })
-    .from(proofs)
+    .select({ total: count() })
+    .from(proofsTable)
     .where(whereClause)
 
   return {
@@ -73,12 +80,12 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsOpt
 export async function getProofById(id: string) {
   const result = await db
     .select({
-      proof: proofs,
-      claim: claims,
+      proof: proofsTable,
+      claim: claimsTable,
     })
-    .from(proofs)
-    .innerJoin(claims, eq(proofs.claimId, claims.id))
-    .where(eq(proofs.id, id))
+    .from(proofsTable)
+    .innerJoin(claimsTable, eq(proofsTable.claimId, claimsTable.id))
+    .where(eq(proofsTable.id, id))
     .limit(1)
 
   const proofResult = entityOrNull(result)
@@ -93,13 +100,17 @@ export async function getProofById(id: string) {
   }
 }
 
-export async function checkNullifierExists(claimId: string, nullifier: string): Promise<boolean> {
+interface CheckNullifierExistsParams {
+  claimId: string
+  nullifier: string
+}
+
+export async function checkNullifierExists({ claimId, nullifier }: CheckNullifierExistsParams): Promise<boolean> {
   const result = await db
-    .select({ id: proofs.id })
-    .from(proofs)
-    .where(and(eq(proofs.claimId, claimId), eq(proofs.nullifier, nullifier)))
+    .select({ id: proofsTable.id })
+    .from(proofsTable)
+    .where(and(eq(proofsTable.claimId, claimId), eq(proofsTable.nullifier, nullifier)))
     .limit(1)
 
   return !!entityOrNull(result)
 }
-

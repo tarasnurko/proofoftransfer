@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CopyHash } from '@/components/shared/copy-hash'
-import { format } from 'date-fns'
+import { VerificationStats } from '@/components/shared/verification-stats'
+import { formatDateTime } from '@/utils/format.utils'
 import type { ProofEntity } from '@/types'
-import { CheckCircle2, XCircle } from 'lucide-react'
 
 interface ProofInfoCardProps {
   proof: ProofEntity
@@ -19,20 +19,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
           <CardTitle className="text-2xl font-bold">Proof Information</CardTitle>
           <div className="flex items-center gap-3">
             {proof.verificationStats ? (
-              <div className="flex items-center gap-3 text-sm font-bold">
-                {proof.verificationStats.successful > 0 && (
-                  <span className="flex items-center gap-1 text-accent">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {proof.verificationStats.successful} verified
-                  </span>
-                )}
-                {proof.verificationStats.failed > 0 && (
-                  <span className="flex items-center gap-1 text-destructive">
-                    <XCircle className="h-4 w-4" />
-                    {proof.verificationStats.failed} failed
-                  </span>
-                )}
-              </div>
+              <VerificationStats stats={proof.verificationStats} />
             ) : null}
             {proof.verified !== undefined ? (
               <Badge variant={proof.verified ? 'default' : 'destructive'} className="text-lg">
@@ -64,7 +51,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
 
         <div>
           <div className="text-sm font-bold text-muted-foreground">Submitted</div>
-          <div className="mt-1">{format(new Date(proof.createdAt), 'dd.MM.yyyy HH:mm')}</div>
+          <div className="mt-1">{formatDateTime(proof.createdAt)}</div>
         </div>
       </CardContent>
     </Card>

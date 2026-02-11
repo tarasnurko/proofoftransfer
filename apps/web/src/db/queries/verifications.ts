@@ -1,13 +1,13 @@
-import { db } from '../client'
-import { proofVerifications } from '../schema'
+import { db, type DB } from '../client'
+import { proofVerificationsTable } from '../schema'
 import type { InsertProofVerificationEntity, ProofVerificationEntity } from '../index.types'
-import { eq, and, desc, count } from 'drizzle-orm'
-import { entityOrError, entityOrNull } from '../helpers'
+import { eq, and, desc, count, sql } from 'drizzle-orm'
+import { entityOrError, entityOrNull, getClient } from '../helpers'
 
-export async function createVerification(data: InsertProofVerificationEntity): Promise<ProofVerificationEntity> {
+export async function createVerification(data: InsertProofVerificationEntity, tx?: DB): Promise<ProofVerificationEntity> {
   return entityOrError(
-    await db
-      .insert(proofVerifications)
+    await getClient(tx)
+      .insert(proofVerificationsTable)
       .values(data)
       .returning(),
     'Failed to create verification'
@@ -15,52 +15,51 @@ export async function createVerification(data: InsertProofVerificationEntity): P
 }
 
 export async function getVerificationStats(proofId: string) {
-  const [totalResult, successfulResult, failedResult] = await Promise.all([
-    db
-      .select({ count: count() })
-      .from(proofVerifications)
-      .where(eq(proofVerifications.proofId, proofId)),
-    db
-      .select({ count: count() })
-      .from(proofVerifications)
-      .where(and(eq(proofVerifications.proofId, proofId), eq(proofVerifications.isValid, true))),
-    db
-      .select({ count: count() })
-      .from(proofVerifications)
-      .where(and(eq(proofVerifications.proofId, proofId), eq(proofVerifications.isValid, false))),
-  ])
+  const result = await db
+    .select({
+      total: count(),
+      successful: sql<number>`count(case when ${proofVerificationsTable.isValid} = true then 1 end)`.mapWith(Number),
+      failed: sql<number>`count(case when ${proofVerificationsTable.isValid} = false then 1 end)`.mapWith(Number),
+    })
+    .from(proofVerificationsTable)
+    .where(eq(proofVerificationsTable.proofId, proofId))
 
   return {
-    total: totalResult[0]?.count ?? 0,
-    successful: successfulResult[0]?.count ?? 0,
-    failed: failedResult[0]?.count ?? 0,
+    total: result[0]?.total ?? 0,
+    successful: result[0]?.successful ?? 0,
+    failed: result[0]?.failed ?? 0,
   }
 }
 
-export async function getSuccessfulVerificationByNullifier(proofId: string, nullifier: string) {
+interface ProofNullifierParams {
+  proofId: string
+  nullifier: string
+}
+
+export async function getSuccessfulVerificationByNullifier({ proofId, nullifier }: ProofNullifierParams) {
   return entityOrNull(
     await db
       .select()
-      .from(proofVerifications)
+      .from(proofVerificationsTable)
       .where(
         and(
-          eq(proofVerifications.proofId, proofId),
-          eq(proofVerifications.verifierNullifier, nullifier),
-          eq(proofVerifications.isValid, true)
+          eq(proofVerificationsTable.proofId, proofId),
+          eq(proofVerificationsTable.verifierNullifier, nullifier),
+          eq(proofVerificationsTable.isValid, true)
         )
       )
       .limit(1)
   )
 }
 
-export async function deleteFailedVerificationsByNullifier(proofId: string, nullifier: string) {
-  return db
-    .delete(proofVerifications)
+export async function deleteFailedVerificationsByNullifier({ proofId, nullifier }: ProofNullifierParams, tx?: DB) {
+  return getClient(tx)
+    .delete(proofVerificationsTable)
     .where(
       and(
-        eq(proofVerifications.proofId, proofId),
-        eq(proofVerifications.verifierNullifier, nullifier),
-        eq(proofVerifications.isValid, false)
+        eq(proofVerificationsTable.proofId, proofId),
+        eq(proofVerificationsTable.verifierNullifier, nullifier),
+        eq(proofVerificationsTable.isValid, false)
       )
     )
 }
@@ -69,9 +68,9 @@ export async function getLatestVerification(proofId: string) {
   return entityOrNull(
     await db
       .select()
-      .from(proofVerifications)
-      .where(eq(proofVerifications.proofId, proofId))
-      .orderBy(desc(proofVerifications.verifiedAt))
+      .from(proofVerificationsTable)
+      .where(eq(proofVerificationsTable.proofId, proofId))
+      .orderBy(desc(proofVerificationsTable.verifiedAt))
       .limit(1)
   )
 }

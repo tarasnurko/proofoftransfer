@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
+import { VerificationStats } from '@/components/shared/verification-stats'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/types'
+import { mapTransferToDisplayItem } from '@/utils/transfer.utils'
 import { getExplorerBaseUrl, getExplorerName } from '@/utils/explorer.utils'
-import { Check, Loader2, CheckCircle2, XCircle, Upload, FileText, X, ExternalLink, Wallet } from 'lucide-react'
+import { Check, Loader2, CheckCircle2, Upload, FileText, X, ExternalLink, Wallet } from 'lucide-react'
 
 interface CsvFile {
   name: string
@@ -53,20 +55,12 @@ export function VerifyProofCard({
   const [activeTab, setActiveTab] = useState(csvFiles.length ? 'csv' : 'blockchain')
 
   const mappedBlockchainTransfers = useMemo(
-    () => transfers.map((t) => ({
-      from: t.from,
-      amount: t.value,
-      timestamp: parseInt(t.timeStamp),
-    })),
+    () => transfers.map(mapTransferToDisplayItem),
     [transfers],
   )
 
   const mappedCsvTransfers = useMemo(
-    () => csvFiles.flatMap(f => f.transfers).map((t) => ({
-      from: t.from,
-      amount: t.value,
-      timestamp: parseInt(t.timeStamp),
-    })),
+    () => csvFiles.flatMap(f => f.transfers).map(mapTransferToDisplayItem),
     [csvFiles],
   )
   const decimals = claim.token?.decimals || 18
@@ -88,22 +82,7 @@ export function VerifyProofCard({
               Anyone except the prover can verify this proof
             </CardDescription>
           </div>
-          {stats ? (
-            <div className="flex items-center gap-3 text-sm font-bold">
-              {stats.successful > 0 && (
-                <span className="flex items-center gap-1 text-accent">
-                  <CheckCircle2 className="h-4 w-4" />
-                  {stats.successful} verified
-                </span>
-              )}
-              {stats.failed > 0 && (
-                <span className="flex items-center gap-1 text-destructive">
-                  <XCircle className="h-4 w-4" />
-                  {stats.failed} failed
-                </span>
-              )}
-            </div>
-          ) : null}
+          {stats ? <VerificationStats stats={stats} /> : null}
         </div>
       </CardHeader>
       <CardContent>

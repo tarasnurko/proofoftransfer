@@ -12,3 +12,7 @@ export function mapDbToEtherscanTransfer(t: TransferEntity): EtherscanTransfer {
     blockNumber: t.blockNumber.toString(),
   }
 }
+
+export function mapTransferToDisplayItem(t: EtherscanTransfer) {
+  return { from: t.from, amount: t.value, timestamp: parseInt(t.timeStamp) }
+}

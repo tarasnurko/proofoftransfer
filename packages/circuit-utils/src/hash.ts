@@ -3,7 +3,7 @@ import type { EtherscanERC20Transfer } from "@repo/types";
 
 import { bigintToField, fieldToBigint, stringToField } from "./encoding.js";
 
-export const hashString = async (
+export const poseidon2HashString = async (
   api: Barretenberg,
   value: string,
 ): Promise<Uint8Array> => {

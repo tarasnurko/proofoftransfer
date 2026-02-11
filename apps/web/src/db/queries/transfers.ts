@@ -1,12 +1,11 @@
 import { db, type DB } from '../client'
-import { transfers } from '../schema'
-import { claims } from '../schema'
+import { transfersTable, claimsTable } from '../schema'
 import type { InsertTransferEntity, TransferEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq, and, gte, lte } from 'drizzle-orm'
-import { entityOrNull } from '../helpers'
+import { entityOrNull, getClient } from '../helpers'
 
-export async function bulkUpsertTransfers(
+export async function upsertTransfers(
   transfersData: InsertTransferEntity[],
   tx?: DB
 ): Promise<TransferEntity[]> {
@@ -14,25 +13,21 @@ export async function bulkUpsertTransfers(
     return []
   }
 
-  const dbInstance = tx ?? db
-
-  const result = await dbInstance
-    .insert(transfers)
+  return getClient(tx)
+    .insert(transfersTable)
     .values(transfersData)
     .onConflictDoUpdate({
-      target: [transfers.chainId, transfers.txHash, transfers.logIndex],
-      set: { createdAt: transfers.createdAt },
+      target: [transfersTable.chainId, transfersTable.txHash, transfersTable.logIndex],
+      set: { createdAt: transfersTable.createdAt },
     })
     .returning()
-
-  return result
 }
 
 export async function getTransfersForClaim(
   claimId: string
 ): Promise<TransferEntity[]> {
   const claim = entityOrNull(
-    await db.select().from(claims).where(eq(claims.id, claimId)).limit(1)
+    await db.select().from(claimsTable).where(eq(claimsTable.id, claimId)).limit(1)
   )
   if (!claim) throw new Error('Claim not found')
 
@@ -57,27 +52,27 @@ export async function getTransfersByConstraints(
   params: GetTransfersByConstraintsParams
 ): Promise<TransferEntity[]> {
   const conditions = [
-    eq(transfers.chainId, params.chainId),
-    eq(transfers.tokenAddress, params.tokenAddress.toLowerCase()),
-    eq(transfers.recipientAddress, params.recipientAddress.toLowerCase()),
+    eq(transfersTable.chainId, params.chainId),
+    eq(transfersTable.tokenAddress, params.tokenAddress.toLowerCase()),
+    eq(transfersTable.recipientAddress, params.recipientAddress.toLowerCase()),
   ]
 
   if (params.fromTimestamp) {
-    conditions.push(gte(transfers.blockTimestamp, params.fromTimestamp))
+    conditions.push(gte(transfersTable.blockTimestamp, params.fromTimestamp))
   }
   if (params.toTimestamp) {
-    conditions.push(lte(transfers.blockTimestamp, params.toTimestamp))
+    conditions.push(lte(transfersTable.blockTimestamp, params.toTimestamp))
   }
 
   return db
     .select()
-    .from(transfers)
+    .from(transfersTable)
     .where(and(...conditions))
-    .orderBy(transfers.blockTimestamp)
+    .orderBy(transfersTable.blockTimestamp)
 }
 
 export async function getTransferById(id: string): Promise<Nullable<TransferEntity>> {
   return entityOrNull(
-    await db.select().from(transfers).where(eq(transfers.id, id)).limit(1)
+    await db.select().from(transfersTable).where(eq(transfersTable.id, id)).limit(1)
   )
 }

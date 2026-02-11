@@ -1,11 +1,12 @@
-- [] add some button so user can toggle showing personal data (YOUR TRANSFERS: 2 | highlight transfers in all transfers tab)
-- [] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
-- [] add sorting for transfers when generating proof, filter transfers by amount. Check how much who transfered (token amount and count)
-- [] multichain/multitoken claims - allow to fetch same recipitn transfers from multiple chains
-- [] export all proofs for claim in csv/json
-- [] when creating claim - show how much users are with specified constraints, show users and their transfers
-- [] when sharing in (telegram, instagram etc) link to claim - show in image claim details
-- [] when sharing proof link - generate some deterministic abstract svg from this proof
 - [] Hono api endpoints
 - [] rate limits
-- [] pages metas
+- [] pages metadata
+- [] when creating claim - show how much users are with specified constraints, show users and their transfers
+- [] add sorting for transfers when generating proof, filter transfers by amount. Check how much who transfered (token amount and count)
+- [] export all proofs for claim in csv/json
+- [?] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
+- [] when sharing in (telegram, instagram etc) link to claim - show in image claim details
+- [] when sharing proof link - generate some deterministic abstract svg from this proof
+- [] connect ethereum name space
+- [] (superclaim) multichain/multitoken claims - allow to fetch same recipitn transfers from multiple chains
+- [] add some button so user can toggle showing personal data (YOUR TRANSFERS: 2 | highlight transfers in all transfers tab)

@@ -1,9 +1,10 @@
-import { keccak256, encodePacked, hexToBytes, hashTypedData } from "viem";
+import { hexToBytes, hashTypedData } from "viem";
 import type { Barretenberg } from "@aztec/bb.js";
 import type { EtherscanERC20Transfer } from "@repo/types";
 
 import type { MerkleProof, CircuitTransfer, ClaimConstraints } from "./types.js";
 import { bigintToField, fieldToBigint } from "./encoding.js";
+import { EIP712_CLAIM_TYPES, buildEip712Domain } from "./eip712.js";
 
 export const uuidToBytes32 = (uuid: string): `0x${string}` => {
   const formattedClaimId = `${uuid.replace(/-/g, "")}`;
@@ -91,51 +92,25 @@ export const constructClaimMessage = (params: {
     merkleTreeRootBytes32,
   } = params;
 
-  // Convert bytes32 addresses (32 bytes padded) to 20-byte addresses
-  // bytes32 format: 0x000000000000000000000000<20-byte-address>
-  // Extract last 20 bytes (40 hex chars)
+  // Extract 20-byte addresses from bytes32
   const tokenAddress = ('0x' + tokenAddressBytes32.slice(-40)) as `0x${string}`;
   const recipientAddress = ('0x' + userAddressBytes32.slice(-40)) as `0x${string}`;
 
-  // EIP-712 Typed Data Signing
-  const domain = {
-    name: 'ProofOfTransfer',
-    version: '1',
-    chainId, // Use wallet's actual chain ID
-    verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-  } as const;
-
-  const types = {
-    Claim: [
-      { name: 'claimId', type: 'bytes32' },
-      { name: 'claimMessageHash', type: 'bytes32' },
-      { name: 'tokenAddress', type: 'address' },
-      { name: 'recipientAddress', type: 'address' },
-      { name: 'minTransfersSum', type: 'uint128' },
-      { name: 'maxTransfersSum', type: 'uint128' },
-      { name: 'fromBlockTimestamp', type: 'uint64' },
-      { name: 'toBlockTimestamp', type: 'uint64' },
-      { name: 'transfersRootHash', type: 'bytes32' },
-    ],
-  } as const;
-
-  const message = {
-    claimId: claimIdBytes32,
-    claimMessageHash: claimMessageHashBytes32,
-    tokenAddress,
-    recipientAddress,
-    minTransfersSum: claimConstraints.minTransfersSum,
-    maxTransfersSum: claimConstraints.maxTransfersSum,
-    fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
-    toBlockTimestamp: claimConstraints.toBlockTimestamp,
-    transfersRootHash: merkleTreeRootBytes32,
-  };
-
   return hashTypedData({
-    domain,
-    types,
+    domain: buildEip712Domain(chainId),
+    types: EIP712_CLAIM_TYPES,
     primaryType: 'Claim',
-    message,
+    message: {
+      claimId: claimIdBytes32,
+      claimMessageHash: claimMessageHashBytes32,
+      tokenAddress,
+      recipientAddress,
+      minTransfersSum: claimConstraints.minTransfersSum,
+      maxTransfersSum: claimConstraints.maxTransfersSum,
+      fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
+      toBlockTimestamp: claimConstraints.toBlockTimestamp,
+      transfersRootHash: merkleTreeRootBytes32,
+    },
   });
 };
 

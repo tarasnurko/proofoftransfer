@@ -1,4 +1,6 @@
 import Big from 'big.js'
+import { format } from 'date-fns'
+import { DATE_FORMAT, DATE_TIME_FORMAT } from '@/constants'
 
 export function truncateAddress(address: string, chars = 4): string {
   if (!address) return ''
@@ -19,4 +21,12 @@ export function formatTokenAmount(
 ): string {
   const value = formatTokenValue(amount, decimals)
   return symbol ? `${value} ${symbol}` : value
+}
+
+export function formatDate(date: Date | string | number): string {
+  return format(new Date(date), DATE_FORMAT)
+}
+
+export function formatDateTime(date: Date | string | number): string {
+  return format(new Date(date), DATE_TIME_FORMAT)
 }

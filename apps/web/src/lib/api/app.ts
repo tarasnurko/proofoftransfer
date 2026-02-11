@@ -1,0 +1,17 @@
+import { Hono } from 'hono'
+import { claimsRoutes } from './routes/claims.routes'
+import { tokensRoutes } from './routes/tokens.routes'
+import { signatureRoutes } from './routes/signature.routes'
+
+export const honoApp = new Hono()
+  .basePath('/api')
+  .route('/claims', claimsRoutes)
+  .route('/tokens', tokensRoutes)
+  .route('/signature', signatureRoutes)
+
+honoApp.onError((err, c) => {
+  console.error('API error:', err.message)
+  return c.json({ error: err.message }, 500)
+})
+
+export type HonoAppType = typeof honoApp

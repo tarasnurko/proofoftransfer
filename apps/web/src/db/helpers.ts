@@ -1,5 +1,10 @@
 import type { Nullable } from '@/types'
 import { EntityNotFoundException } from '@/exceptions'
+import { db, type DB } from './client'
+
+export function getClient(tx?: DB): DB {
+  return tx ?? db
+}
 
 export function entityOrError<T>(
   entity: Nullable<T> | T[],

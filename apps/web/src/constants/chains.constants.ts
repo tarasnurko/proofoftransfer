@@ -1,9 +1,9 @@
-export interface Chain {
+export interface ChainData {
   id: number
   name: string
 }
 
-export const SUPPORTED_CHAINS: Chain[] = [
+export const SUPPORTED_CHAINS: ChainData[] = [
   { id: 1, name: 'Ethereum' },
   { id: 10, name: 'Optimism' },
   { id: 56, name: 'BNB Chain' },

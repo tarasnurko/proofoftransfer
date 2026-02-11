@@ -2,18 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { format } from 'date-fns'
+import { formatDateTime } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
 
 interface ClaimInfoCardProps {
   claim: ClaimEntity
+  title?: string
 }
 
-export function ClaimInfoCard({ claim }: ClaimInfoCardProps) {
+export function ClaimInfoCard({
+  claim,
+  title = 'Information',
+}: ClaimInfoCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">Information</CardTitle>
+        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -41,7 +45,7 @@ export function ClaimInfoCard({ claim }: ClaimInfoCardProps) {
           </div>
           <div>
             <div className="text-sm font-bold text-muted-foreground">Created</div>
-            <div className="mt-1">{format(new Date(claim.createdAt), 'dd.MM.yyyy HH:mm')}</div>
+            <div className="mt-1">{formatDateTime(claim.createdAt)}</div>
           </div>
         </div>
 

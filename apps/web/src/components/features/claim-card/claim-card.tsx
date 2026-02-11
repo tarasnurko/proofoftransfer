@@ -1,50 +1,53 @@
 'use client';
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
-import { format } from 'date-fns'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatTokenAmount } from '@/utils/format.utils'
+import { formatTokenAmount, formatDate } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
 import { Clock, Target, TrendingUp } from 'lucide-react'
+
+function formatClaimTimestamp(timestamp: number) {
+  if (timestamp === 0) return null
+  return formatDate(timestamp * 1000)
+}
+
+function formatClaimAmount(
+  amount: string,
+  token: ClaimEntity['token'],
+) {
+  if (amount === '0') return null
+  return token
+    ? formatTokenAmount(amount, token.decimals, token.symbol)
+    : `${BigInt(amount)}`
+}
+
+function getAmountConstraint(minAmount: string | null, maxAmount: string | null) {
+  if (minAmount && maxAmount) return `${minAmount} - ${maxAmount}`
+  if (minAmount) return `Min: ${minAmount}`
+  if (maxAmount) return `Max: ${maxAmount}`
+  return 'No constraints'
+}
 
 interface ClaimCardProps {
   claim: ClaimEntity
 }
 
 export function ClaimCard({ claim }: ClaimCardProps) {
-  // Check if recipient is an ENS name
   const isENS = claim.recipientAddress.endsWith('.eth')
 
-  const tokenDisplay = claim.token
-    ? `${claim.token.name} (${claim.token.symbol})`
-    : <Address address={claim.tokenAddress} chars={6} showCopy={false} />
+  const tokenDisplay = useMemo(() => {
+    if (claim.token) return `${claim.token.name} (${claim.token.symbol})`
+    return <Address address={claim.tokenAddress} chars={6} showCopy={false} />
+  }, [claim.token, claim.tokenAddress])
 
-  const formatAmount = (amount: string) => {
-    if (amount === '0') return null
-    return claim.token 
-      ? formatTokenAmount(amount, claim.token.decimals, claim.token.symbol)
-      : `${BigInt(amount)}`
-  }
-
-  const minAmount = formatAmount(claim.minTransfersSum)
-  const maxAmount = formatAmount(claim.maxTransfersSum)
-
-  const getAmountConstraint = () => {
-    if (minAmount && maxAmount) return `${minAmount} - ${maxAmount}`
-    if (minAmount) return `Min: ${minAmount}`
-    if (maxAmount) return `Max: ${maxAmount}`
-    return 'No constraints'
-  }
-
-  const formatDate = (timestamp: number) => {
-    if (timestamp === 0) return null
-    return format(new Date(timestamp * 1000), 'dd.MM.yyyy')
-  }
+  const minAmount = formatClaimAmount(claim.minTransfersSum, claim.token)
+  const maxAmount = formatClaimAmount(claim.maxTransfersSum, claim.token)
 
   return (
     <Card className="flex flex-col border-4 transition-all hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(200,200,200,0.3)]">
@@ -89,7 +92,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <span className="font-bold">Amount:</span>
-            <span>{getAmountConstraint()}</span>
+            <span>{getAmountConstraint(minAmount, maxAmount)}</span>
           </div>
 
           {(claim.fromBlockTimestamp !== 0 || claim.toBlockTimestamp !== 0) && (
@@ -97,7 +100,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="font-bold">Period:</span>
               <span>
-                {formatDate(claim.fromBlockTimestamp) || 'Any'} - {formatDate(claim.toBlockTimestamp) || 'Any'}
+                {formatClaimTimestamp(claim.fromBlockTimestamp) || 'Any'} - {formatClaimTimestamp(claim.toBlockTimestamp) || 'Any'}
               </span>
             </div>
           )}
@@ -105,7 +108,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <Target className="h-4 w-4 text-muted-foreground" />
             <span className="font-bold">Created:</span>
-            <span>{format(new Date(claim.createdAt), 'dd.MM.yyyy')}</span>
+            <span>{formatDate(claim.createdAt)}</span>
           </div>
         </div>
       </CardContent>

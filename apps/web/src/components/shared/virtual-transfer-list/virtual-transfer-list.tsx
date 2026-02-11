@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { isAddressEqual, type Address as ViemAddress } from 'viem'
 import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
-import { format } from 'date-fns'
+import { formatDate } from '@/utils/format.utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 export interface TransferDisplayItem {
@@ -125,7 +125,7 @@ export function VirtualTransferList({
                   )}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  {format(new Date(transfer.timestamp * 1000), 'dd.MM.yyyy')}
+                  {formatDate(transfer.timestamp * 1000)}
                 </div>
               </div>
               <CopyableAmount

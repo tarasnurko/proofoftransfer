@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
-import { format } from 'date-fns'
+import { formatDate } from '@/utils/format.utils'
 import type { ProofEntity } from '@/types'
-import type { PreparedProofData } from '@/lib/proof-generator'
+import type { PreparedProofData } from '@/lib/proof'
 import { PROOFS_SORT_LABELS, type ProofsSortValue } from '@/constants'
-import { FileSearch, Search, CheckCircle2, XCircle } from 'lucide-react'
+import { VerificationStats } from '@/components/shared/verification-stats'
+import { FileSearch, Search } from 'lucide-react'
 
 interface ProofsListCardProps {
   claimId: string
@@ -125,23 +126,10 @@ export function ProofsListCard({
                   <div className="mb-2 font-mono text-xs">{proof.nullifier.slice(0, 20)}...</div>
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                      {format(new Date(proof.createdAt), 'dd.MM.yyyy')}
+                      {formatDate(proof.createdAt)}
                     </div>
                     {proof.verificationStats ? (
-                      <div className="flex items-center gap-2 text-xs font-bold">
-                        {proof.verificationStats.successful > 0 && (
-                          <span className="flex items-center gap-0.5 text-accent">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {proof.verificationStats.successful}
-                          </span>
-                        )}
-                        {proof.verificationStats.failed > 0 && (
-                          <span className="flex items-center gap-0.5 text-destructive">
-                            <XCircle className="h-3 w-3" />
-                            {proof.verificationStats.failed}
-                          </span>
-                        )}
-                      </div>
+                      <VerificationStats stats={proof.verificationStats} size="sm" />
                     ) : null}
                   </div>
                 </Link>

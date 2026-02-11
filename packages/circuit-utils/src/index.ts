@@ -8,7 +8,23 @@ export type {
 } from "./types.js";
 
 // Encoding utilities
-export { bigintToField, fieldToBigint, stringToField } from "./encoding.js";
+export {
+  bigintToField,
+  fieldToBigint,
+  stringToField,
+  hexToUint8Array,
+  uint8ArrayToHex,
+} from "./encoding.js";
+
+// EIP-712
+export type {
+  Eip712Domain,
+  ClaimEip712Message,
+} from "./eip712.js";
+export {
+  EIP712_CLAIM_TYPES,
+  buildEip712Domain,
+} from "./eip712.js";
 
 // Merkle tree
 export {
@@ -19,7 +35,7 @@ export {
 
 // Hash utilities
 export {
-  hashString,
+  poseidon2HashString,
   poseidon2HashLeftRight,
   poseidon2HashStringsLeftRight,
   hashTransfer,

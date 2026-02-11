@@ -5,12 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
-import { useQuery } from '@tanstack/react-query'
-import { QUERY_KEYS } from '@/constants'
-import { checkNullifierForClaimExistsAction } from '@/actions/proofs.actions'
-import type { PreparedProofData } from '@/lib/proof-generator'
+import { useCheckNullifierExists } from '@/hooks/queries'
+import type { PreparedProofData } from '@/lib/proof'
 import { useAppKit } from '@reown/appkit/react'
 import { Check, Loader2, Shield, Wallet } from 'lucide-react'
+
+function ConnectedAddress({ address, chainId }: { address: string; chainId: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Check className="h-4 w-4 text-accent" />
+      <span className="font-bold">Connected:</span>
+      <Address address={address} chainId={chainId} />
+    </div>
+  )
+}
 
 interface GenerateProofCardProps {
   claimId: string
@@ -41,16 +49,9 @@ export function GenerateProofCard({
 }: GenerateProofCardProps) {
   const { open } = useAppKit()
 
-  const { data: nullifierAlreadyUsed = false } = useQuery({
-    queryKey: [QUERY_KEYS.NULLIFIER_EXISTS, claimId, preparedProof?.nullifier],
-    queryFn: async () => {
-      const result = await checkNullifierForClaimExistsAction({
-        claimId,
-        nullifier: preparedProof!.nullifier,
-      })
-      return result?.data?.exists ?? false
-    },
-    enabled: !!preparedProof,
+  const { data: nullifierAlreadyUsed = false } = useCheckNullifierExists({
+    claimId,
+    nullifier: preparedProof?.nullifier,
   })
 
   return (
@@ -76,11 +77,7 @@ export function GenerateProofCard({
           </div>
         ) : !preparedProof ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-accent" />
-              <span className="font-bold">Connected:</span>
-              <Address address={walletAddress!} chainId={chainId} />
-            </div>
+            {walletAddress && <ConnectedAddress address={walletAddress} chainId={chainId} />}
 
             {transfersLoading ? (
               <div className="border-4 border-dashed border-border p-6">
@@ -114,11 +111,7 @@ export function GenerateProofCard({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-accent" />
-              <span className="font-bold">Connected:</span>
-              <Address address={walletAddress!} chainId={chainId} />
-            </div>
+            {walletAddress && <ConnectedAddress address={walletAddress} chainId={chainId} />}
 
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-accent" />
