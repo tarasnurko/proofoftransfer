@@ -1,1 +1,0 @@
-DROP TABLE "claim_transfers" CASCADE;

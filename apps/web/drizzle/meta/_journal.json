@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1770473328443,
-      "tag": "0000_stale_robin_chapel",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1770486007661,
-      "tag": "0001_soft_the_stranger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1770486601644,
-      "tag": "0002_condemned_ravenous",
+      "when": 1770839331253,
+      "tag": "0000_new_the_twelve",
       "breakpoints": true
     }
   ]

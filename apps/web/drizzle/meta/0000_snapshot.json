@@ -1,105 +1,9 @@
 {
-  "id": "aeaf4650-aef7-4b4e-acdb-7c6800ee426e",
+  "id": "69d560db-29c3-47b7-ae2f-854f9a8b2dcd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.claim_transfers": {
-      "name": "claim_transfers",
-      "schema": "",
-      "columns": {
-        "claimId": {
-          "name": "claimId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "transferId": {
-          "name": "transferId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "merkleLeafIndex": {
-          "name": "merkleLeafIndex",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "claim_transfers_leaf_idx": {
-          "name": "claim_transfers_leaf_idx",
-          "columns": [
-            {
-              "expression": "claimId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "merkleLeafIndex",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "claim_transfers_claimId_claims_id_fk": {
-          "name": "claim_transfers_claimId_claims_id_fk",
-          "tableFrom": "claim_transfers",
-          "tableTo": "claims",
-          "columnsFrom": [
-            "claimId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "claim_transfers_transferId_transfers_id_fk": {
-          "name": "claim_transfers_transferId_transfers_id_fk",
-          "tableFrom": "claim_transfers",
-          "tableTo": "transfers",
-          "columnsFrom": [
-            "transferId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "claim_transfer_pk": {
-          "name": "claim_transfer_pk",
-          "nullsNotDistinct": false,
-          "columns": [
-            "claimId",
-            "transferId"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.claims": {
       "name": "claims",
       "schema": "",
@@ -169,17 +73,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "creatorAddress": {
-          "name": "creatorAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "merkleRoot": {
           "name": "merkleRoot",
           "type": "varchar(78)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -231,21 +129,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "creator_idx": {
-          "name": "creator_idx",
-          "columns": [
-            {
-              "expression": "creatorAddress",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {},
@@ -271,12 +154,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "verifierAddress": {
-          "name": "verifierAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": false
         },
         "verifierNullifier": {
           "name": "verifierNullifier",
@@ -413,18 +290,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "transfersRootHash": {
-          "name": "transfersRootHash",
-          "type": "varchar(78)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "proverAddress": {
-          "name": "proverAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -454,21 +319,6 @@
           "columns": [
             {
               "expression": "nullifier",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prover_address_idx": {
-          "name": "prover_address_idx",
-          "columns": [
-            {
-              "expression": "proverAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

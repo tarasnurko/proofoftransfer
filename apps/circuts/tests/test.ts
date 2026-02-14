@@ -35,7 +35,7 @@ import {
   mergeAndShuffle,
   generateTransfers,
   buildCircuitInputs,
-} from "./testUtils";
+} from "@repo/test-utils";
 
 import { randomUUID } from "node:crypto";
 

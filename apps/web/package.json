@@ -12,7 +12,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aztec/bb.js": "^3.0.1",
@@ -87,8 +92,11 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@repo/eslint-config": "workspace:*",
+    "@repo/test-utils": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@synthetixio/synpress": "^4.1.2",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/big.js": "^6.2.2",
     "@types/node": "^22",
@@ -98,9 +106,12 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.2.4",
     "drizzle-kit": "^0.31.8",
+    "msw": "2",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.0",
+    "vitest": "^4.0.18"
   }
 }

@@ -1,20 +1,27 @@
+/**
+ * Parses Etherscan ERC20 token transfer CSV exports.
+ *
+ * Expected CSV format (from etherscan.io "Download CSV Export"):
+ *   "Transaction Hash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","Quantity","Method"
+ */
 import Papa from 'papaparse'
 import { parseUnits } from 'viem'
 import type { EtherscanTransfer } from '@/types'
 
+/** Normalized header names after lowercasing + stripping non-alphanumeric chars */
 const REQUIRED_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
 
-export interface ParseCsvTransfersParams {
+export interface ParseEtherscanCsvParams {
   text: string
   tokenAddress: string
   tokenDecimals: number
 }
 
-export function parseCsvTransfers({
+export function parseEtherscanCsv({
   text,
   tokenAddress,
   tokenDecimals,
-}: ParseCsvTransfersParams): EtherscanTransfer[] {
+}: ParseEtherscanCsvParams): EtherscanTransfer[] {
   const { data, errors } = Papa.parse<Record<string, string>>(text, {
     header: true,
     skipEmptyLines: true,
@@ -36,24 +43,24 @@ export function parseCsvTransfers({
 
   if (!hasValidFormat) {
     throw new Error(
-      'Invalid CSV format. Expected columns: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity',
+      'Invalid CSV format. Expected Etherscan ERC20 transfer CSV with columns: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity',
     )
   }
 
   const parsed: EtherscanTransfer[] = data.map((row) => {
-    const rawQuantity = row['quantity'] || row['value'] || row['amount'] || ''
+    const rawQuantity = row['quantity'] || ''
     const rawValue = rawQuantity.includes('.')
       ? parseUnits(rawQuantity, tokenDecimals).toString()
       : rawQuantity
 
     return {
-      hash: row['transactionhash'] || row['txhash'] || row['hash'] || '',
+      hash: row['transactionhash'] || '',
       from: row['from'] || '',
       to: row['to'] || '',
       contractAddress: tokenAddress,
       value: rawValue,
-      timeStamp: row['unixtimestamp'] || row['timestamp'] || '',
-      blockNumber: row['blockno'] || row['blocknumber'] || row['block'] || '',
+      timeStamp: row['unixtimestamp'] || '',
+      blockNumber: row['blockno'] || '',
     }
   })
 

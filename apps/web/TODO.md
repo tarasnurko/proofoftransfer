@@ -1,4 +1,4 @@
-- [] Hono api endpoints
+- [?] Hono api endpoints
 - [] rate limits
 - [] pages metadata
 - [] when creating claim - show how much users are with specified constraints, show users and their transfers
@@ -7,6 +7,6 @@
 - [?] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
 - [] when sharing in (telegram, instagram etc) link to claim - show in image claim details
 - [] when sharing proof link - generate some deterministic abstract svg from this proof
-- [] connect ethereum name space
+- [] integrate ENS - allow in recipient paste ENS name or address, and show it on Details page
 - [] (superclaim) multichain/multitoken claims - allow to fetch same recipitn transfers from multiple chains
 - [] add some button so user can toggle showing personal data (YOUR TRANSFERS: 2 | highlight transfers in all transfers tab)

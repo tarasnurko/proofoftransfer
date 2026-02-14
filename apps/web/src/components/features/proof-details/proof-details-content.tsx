@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { verifyProofAction } from '@/actions/proofs.actions'
 import { api } from '@/lib/api/client'
 import { signClaimAndDeriveNullifier } from '@/lib/proof'
-import { parseCsvTransfers } from '@/utils/csv-parser.utils'
+import { parseEtherscanCsv } from '@/lib/etherscan-csv'
 
 interface ProofDetailsContentProps {
   claim: ClaimEntity
@@ -140,7 +140,7 @@ export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetails
 
     try {
       const text = await file.text()
-      const parsed = parseCsvTransfers({
+      const parsed = parseEtherscanCsv({
         text,
         tokenAddress: claim.tokenAddress,
         tokenDecimals: claim.token?.decimals ?? 18,

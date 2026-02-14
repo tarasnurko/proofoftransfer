@@ -34,3 +34,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# synpress
+.cache-synpress/
+
+# e2e fixtures (generated)
+e2e/.fixtures/
+
+# playwright
+/test-results/
+/playwright-report/
+
+# e2e debug artifacts
+e2e/debug-*.png
