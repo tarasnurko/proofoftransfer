@@ -20,7 +20,9 @@ import {
   mapDbTransferToHashInput,
 } from '@/lib/proof.server'
 import type { InsertTransferEntity } from '@/db/index.types'
+import { RATE_LIMITS } from '@/services/rate-limit'
 import { fetchAndStoreToken } from './tokens.routes'
+import { createRateLimitMiddleware } from '../middleware/rate-limit.middleware'
 
 // --- Param / query schemas ---
 
@@ -56,6 +58,7 @@ const loadTransfersBody = z.object({
 export const claimsRoutes = new Hono()
   .get(
     '/:id/proofs',
+    createRateLimitMiddleware('getProofs', RATE_LIMITS.GET_PROOFS),
     zValidator('param', claimIdParam),
     zValidator('query', proofsQuery),
     async (c) => {
@@ -71,6 +74,7 @@ export const claimsRoutes = new Hono()
   )
   .get(
     '/:id/transfers',
+    createRateLimitMiddleware('getTransfers', RATE_LIMITS.GET_TRANSFERS),
     zValidator('param', claimIdParam),
     async (c) => {
       const { id } = c.req.valid('param')
@@ -80,6 +84,7 @@ export const claimsRoutes = new Hono()
   )
   .get(
     '/:id/nullifier-exists',
+    createRateLimitMiddleware('getNullifierExists', RATE_LIMITS.GET_NULLIFIER_EXISTS),
     zValidator('param', claimIdParam),
     zValidator('query', nullifierQuery),
     async (c) => {
@@ -91,6 +96,7 @@ export const claimsRoutes = new Hono()
   )
   .get(
     '/:id/etherscan-transfers',
+    createRateLimitMiddleware('getEtherscanTransfers', RATE_LIMITS.GET_ETHERSCAN_TRANSFERS),
     zValidator('param', claimIdParam),
     async (c) => {
       const { id } = c.req.valid('param')
@@ -110,6 +116,7 @@ export const claimsRoutes = new Hono()
   )
   .post(
     '/:id/prover-signing-data',
+    createRateLimitMiddleware('proverSigningData', RATE_LIMITS.PROVER_SIGNING_DATA),
     zValidator('param', claimIdParam),
     zValidator('json', proverSigningBody),
     async (c) => {
@@ -187,6 +194,7 @@ export const claimsRoutes = new Hono()
   )
   .get(
     '/:id/verifier-signing-data',
+    createRateLimitMiddleware('verifierSigningData', RATE_LIMITS.VERIFIER_SIGNING_DATA),
     zValidator('param', claimIdParam),
     async (c) => {
       const { id } = c.req.valid('param')
@@ -196,6 +204,7 @@ export const claimsRoutes = new Hono()
   )
   .post(
     '/load-transfers',
+    createRateLimitMiddleware('loadTransfers', RATE_LIMITS.LOAD_TRANSFERS),
     zValidator('json', loadTransfersBody),
     async (c) => {
       const body = c.req.valid('json')

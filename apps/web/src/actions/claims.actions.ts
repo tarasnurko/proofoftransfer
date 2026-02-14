@@ -2,17 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { Barretenberg } from "@aztec/bb.js";
-import { actionClient } from "@/lib/safe-action";
+import { poseidon2HashString, fieldToBigint } from "@repo/circuit-utils";
+import { createRateLimitedActionClient } from "@/lib/safe-action";
+import { RATE_LIMITS } from "@/services/rate-limit";
 import { createClaimSchema, dateToTimestamp } from "@/validations/claim";
 import { createClaim } from "@/db/queries/claims";
-import { poseidon2HashString, fieldToBigint } from "@repo/circuit-utils";
 import { getTransfersByConstraints } from "@/db/queries/transfers";
 import {
   buildTransfersMerkleTree,
   mapDbTransferToHashInput,
 } from "@/lib/proof.server";
 
-export const createClaimAction = actionClient
+export const createClaimAction = createRateLimitedActionClient('createClaim', RATE_LIMITS.CREATE_CLAIM)
   .inputSchema(createClaimSchema)
   .action(async ({ parsedInput }) => {
     const api = await Barretenberg.new({ threads: 1 });

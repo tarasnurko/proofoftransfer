@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { actionClient } from "@/lib/safe-action";
 import { returnValidationErrors } from "next-safe-action";
+import { createRateLimitedActionClient } from "@/lib/safe-action";
+import { RATE_LIMITS } from "@/services/rate-limit";
 import { submitProofSchema } from "@/validations/proof";
 import { getClaimById } from "@/db/queries/claims";
 import {
@@ -33,7 +34,7 @@ const verifyProofSchema = z.object({
   transfers: z.array(externalTransferSchema).min(1, "Transfers are required"),
 });
 
-export const submitProofAction = actionClient
+export const submitProofAction = createRateLimitedActionClient('submitProof', RATE_LIMITS.SUBMIT_PROOF)
   .inputSchema(submitProofSchema)
   .action(async ({ parsedInput }) => {
     const claim = await getClaimById(parsedInput.claimId);
@@ -71,7 +72,7 @@ export const submitProofAction = actionClient
     return { proofId: result.id };
   });
 
-export const verifyProofAction = actionClient
+export const verifyProofAction = createRateLimitedActionClient('verifyProof', RATE_LIMITS.VERIFY_PROOF)
   .inputSchema(verifyProofSchema)
   .action(async ({ parsedInput: { id: proofId, nullifier, transfers } }) => {
     const proof = await getProofById(proofId);

@@ -4,6 +4,8 @@ import { z } from 'zod'
 import type { Address } from 'viem'
 import { Barretenberg } from '@aztec/bb.js'
 import { processSignature } from '@repo/circuit-utils'
+import { RATE_LIMITS } from '@/services/rate-limit'
+import { createRateLimitMiddleware } from '../middleware/rate-limit.middleware'
 
 const processSignatureBody = z.object({
   signature: z.string().regex(/^0x[a-fA-F0-9]+$/),
@@ -12,6 +14,7 @@ const processSignatureBody = z.object({
 export const signatureRoutes = new Hono()
   .post(
     '/process',
+    createRateLimitMiddleware('processSignature', RATE_LIMITS.PROCESS_SIGNATURE),
     zValidator('json', processSignatureBody),
     async (c) => {
       const { signature } = c.req.valid('json')
