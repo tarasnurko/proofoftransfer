@@ -66,11 +66,11 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
     .where(whereClause)
 
   return {
-    proofs: result.map((r) => ({
-      ...r.proof,
+    proofs: result.map((row) => ({
+      ...row.proof,
       verificationStats: {
-        successful: r.successfulCount,
-        failed: r.failedCount,
+        successful: row.successfulCount,
+        failed: row.failedCount,
       },
     })),
     total: totalResult[0]?.total ?? 0,

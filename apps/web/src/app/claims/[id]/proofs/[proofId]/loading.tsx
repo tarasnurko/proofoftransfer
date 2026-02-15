@@ -15,7 +15,7 @@ export default function ProofLoading() {
       </div>
 
       <div className="space-y-6">
-        {/* ClaimSummaryCard */}
+        {/* ClaimInfoCard */}
         <Card className="border-4">
           <CardHeader>
             <Skeleton className="h-7 w-44" />

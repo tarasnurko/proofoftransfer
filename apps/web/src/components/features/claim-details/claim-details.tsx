@@ -23,12 +23,12 @@ import { submitProofAction } from '@/actions/proofs.actions'
 import { api } from '@/lib/api/client'
 import { useGetTransfersByClaimId } from '@/hooks/queries'
 
-interface ClaimDetailsContentProps {
+interface ClaimDetailsProps {
   claim: ClaimEntity
   ensName?: Nullable<string>
 }
 
-export function ClaimDetailsContent({ claim, ensName }: ClaimDetailsContentProps) {
+export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
   const claimId = claim.id
   const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()

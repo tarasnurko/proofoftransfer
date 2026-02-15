@@ -1,5 +1,6 @@
-export { ClaimDetailsCard } from './claim-details-card'
+export { ClaimMessageCard } from './claim-message-card'
 export { TokenInfoCard } from './token-info-card'
 export { AmountConstraintsCard } from './amount-constraints-card'
 export { TimeRangeCard } from './time-range-card'
 export { TransfersPreviewCard } from './transfers-preview-card'
+export { CreateClaimForm } from './create-claim-form'

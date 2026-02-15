@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { CreateClaimClientInput } from '@/validations/claim'
 
-interface ClaimDetailsCardProps {
+interface ClaimMessageCardProps {
   register: UseFormRegister<CreateClaimClientInput>
   error?: string
   charCount: number
 }
 
-export function ClaimDetailsCard({ register, error, charCount }: ClaimDetailsCardProps) {
+export function ClaimMessageCard({ register, error, charCount }: ClaimMessageCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>

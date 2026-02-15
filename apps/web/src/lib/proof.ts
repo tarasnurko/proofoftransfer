@@ -70,16 +70,16 @@ export async function signClaimAndDeriveNullifier(
     ...typedData,
   })
 
-  const sigRes = await api.api.signature.process.$post({
+  const signatureResponse = await api.api.signature.process.$post({
     json: { signature },
   })
-  if (!sigRes.ok) throw new Error('Failed to process signature')
-  const sigData = await sigRes.json()
+  if (!signatureResponse.ok) throw new Error('Failed to process signature')
+  const signatureData = await signatureResponse.json()
 
   return {
     signature,
-    nullifier: sigData.nullifier,
-    fullSignature: sigData.fullSignature,
+    nullifier: signatureData.nullifier,
+    fullSignature: signatureData.fullSignature,
     typedData,
   }
 }

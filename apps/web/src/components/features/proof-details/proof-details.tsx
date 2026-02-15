@@ -16,12 +16,12 @@ import { api } from '@/lib/api/client'
 import { signClaimAndDeriveNullifier } from '@/lib/proof'
 import { parseEtherscanCsv } from '@/lib/etherscan-csv'
 
-interface ProofDetailsContentProps {
+interface ProofDetailsProps {
   claim: ClaimEntity
   proof: ProofEntity
 }
 
-export function ProofDetailsContent({ claim, proof: initialProof }: ProofDetailsContentProps) {
+export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) {
   const claimId = claim.id
   const proofId = initialProof.id
 

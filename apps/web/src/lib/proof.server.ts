@@ -28,23 +28,23 @@ export interface TransferHashInput {
 }
 
 
-export function mapDbTransferToHashInput(t: TransferEntity): TransferHashInput {
+export function mapDbTransferToHashInput(transfer: TransferEntity): TransferHashInput {
   return {
-    from: t.senderAddress,
-    to: t.recipientAddress,
-    contractAddress: t.tokenAddress,
-    value: t.amount,
-    timeStamp: t.blockTimestamp.toString(),
+    from: transfer.senderAddress,
+    to: transfer.recipientAddress,
+    contractAddress: transfer.tokenAddress,
+    value: transfer.amount,
+    timeStamp: transfer.blockTimestamp.toString(),
   }
 }
 
 
 export async function buildTransfersMerkleTree(
-  api: Barretenberg,
+  bb: Barretenberg,
   transfers: TransferHashInput[],
 ) {
   const transferHashesBytes = await Promise.all(
-    transfers.map((t) => hashTransfer(api, t)),
+    transfers.map((transfer) => hashTransfer(bb, transfer)),
   )
   const transferHashes = transferHashesBytes.map((h) =>
     fieldToBigint(h).toString(),
@@ -53,7 +53,7 @@ export async function buildTransfersMerkleTree(
   const merkleTree = new MerkleTree(
     MERKLE_TREE_HEIGHT,
     ZERO_VALUES,
-    (left, right) => poseidon2HashStringsLeftRight(api, left, right),
+    (left, right) => poseidon2HashStringsLeftRight(bb, left, right),
   )
   await merkleTree.init(transferHashes)
 
@@ -62,7 +62,7 @@ export async function buildTransfersMerkleTree(
 
 
 export async function buildEip712ClaimFields(
-  api: Barretenberg,
+  bb: Barretenberg,
   claim: {
     message: string
     tokenAddress: string
@@ -75,7 +75,7 @@ export async function buildEip712ClaimFields(
   claimId: string,
   merkleRoot: string | bigint,
 ): Promise<Eip712ClaimFields> {
-  const claimMessageHashBytes = await poseidon2HashString(api, claim.message)
+  const claimMessageHashBytes = await poseidon2HashString(bb, claim.message)
   const claimMessageHashBigInt = BigInt(
     '0x' + Buffer.from(claimMessageHashBytes).toString('hex'),
   )
@@ -106,7 +106,7 @@ export async function verifyProofServer(params: {
   externalTransfers?: TransferHashInput[]
 }): Promise<{ isValid: boolean; error?: string }> {
   try {
-    const api = await BarretenbergImpl.new({ threads: 1 })
+    const bb = await BarretenbergImpl.new({ threads: 1 })
 
     let transfers: TransferHashInput[]
 
@@ -119,7 +119,7 @@ export async function verifyProofServer(params: {
       transfers = claimTransfers.map(mapDbTransferToHashInput)
     }
 
-    const { merkleRoot } = await buildTransfersMerkleTree(api, transfers)
+    const { merkleRoot } = await buildTransfersMerkleTree(bb, transfers)
 
     const computedRootBigInt = BigInt(merkleRoot)
     const expectedRootBigInt = BigInt(params.transfersRootHash)
@@ -135,7 +135,7 @@ export async function verifyProofServer(params: {
     const circuitRaw = await readFile(circuitPath, 'utf-8')
     const circuit = JSON.parse(circuitRaw)
 
-    const backend = new UltraHonkBackend(circuit.bytecode, api)
+    const backend = new UltraHonkBackend(circuit.bytecode, bb)
 
     const verified = await backend.verifyProof({
       proof: hexToUint8Array(params.proofData),
@@ -157,14 +157,14 @@ export async function prepareSigningBase(claimId: string) {
   const claimTransfers = await getTransfersForClaim(claimId)
   if (!claimTransfers.length) throw new Error('No transfers found for this claim')
 
-  const api = await BarretenbergImpl.new({ threads: 1 })
+  const bb = await BarretenbergImpl.new({ threads: 1 })
 
   const { merkleTree, merkleRoot } = await buildTransfersMerkleTree(
-    api,
+    bb,
     claimTransfers.map(mapDbTransferToHashInput),
   )
 
-  const eip712 = await buildEip712ClaimFields(api, claim, claimId, merkleRoot)
+  const eip712 = await buildEip712ClaimFields(bb, claim, claimId, merkleRoot)
 
   return { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId: claim.chainId }
 }

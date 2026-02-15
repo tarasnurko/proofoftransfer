@@ -23,9 +23,9 @@ export async function generateProofClient(inputs: any, threads: number = 1) {
   ])
 
   const circuit = await loadCircuitClient()
-  const api = await Barretenberg.new({ threads })
+  const bb = await Barretenberg.new({ threads })
   const noir = new Noir(circuit)
-  const backend = new UltraHonkBackend(circuit.bytecode, api)
+  const backend = new UltraHonkBackend(circuit.bytecode, bb)
 
   const { witness } = await noir.execute(inputs)
 

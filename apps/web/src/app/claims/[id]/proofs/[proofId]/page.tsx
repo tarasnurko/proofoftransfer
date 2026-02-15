@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { PageContainer } from '@/components/layout/page-container'
-import { ProofDetailsContent } from '@/components/features/proof-details/proof-details-content'
+import { ProofDetails } from '@/components/features/proof-details/proof-details'
 import { getClaimById } from '@/db/queries/claims'
 import { getProofById } from '@/db/queries/proofs'
 import { getVerificationStats } from '@/db/queries/verifications'
@@ -35,7 +35,7 @@ export default async function ProofDetailsPage({
 
   return (
     <PageContainer>
-      <ProofDetailsContent claim={claim} proof={proof} />
+      <ProofDetails claim={claim} proof={proof} />
     </PageContainer>
   )
 }

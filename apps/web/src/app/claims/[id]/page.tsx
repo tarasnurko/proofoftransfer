@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { PageContainer } from '@/components/layout/page-container'
-import { ClaimDetailsContent } from '@/components/features/claim-details/claim-details-content'
+import { ClaimDetails } from '@/components/features/claim-details/claim-details'
 import { getClaimById } from '@/db/queries/claims'
 import { EnsService } from '@/services/ens'
 
@@ -18,7 +18,7 @@ export default async function ClaimDetailsPage({
 
   return (
     <PageContainer>
-      <ClaimDetailsContent claim={claim} ensName={ensName} />
+      <ClaimDetails claim={claim} ensName={ensName} />
     </PageContainer>
   )
 }

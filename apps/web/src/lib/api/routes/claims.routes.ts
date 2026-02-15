@@ -137,16 +137,16 @@ export const claimsRoutes = new Hono()
         hash: string
       }> = []
 
-      claimTransfers.forEach((t, index) => {
-        if (isAddressEqual(t.senderAddress as Address, proverAddress as Address)) {
+      claimTransfers.forEach((transfer, index) => {
+        if (isAddressEqual(transfer.senderAddress as Address, proverAddress as Address)) {
           proverIndices.push(index)
           proverTransferData.push({
-            from: t.senderAddress,
-            to: t.recipientAddress,
-            contractAddress: t.tokenAddress,
-            value: t.amount,
-            timeStamp: t.blockTimestamp.toString(),
-            hash: t.txHash,
+            from: transfer.senderAddress,
+            to: transfer.recipientAddress,
+            contractAddress: transfer.tokenAddress,
+            value: transfer.amount,
+            timeStamp: transfer.blockTimestamp.toString(),
+            hash: transfer.txHash,
           })
         }
       })
@@ -162,20 +162,20 @@ export const claimsRoutes = new Hono()
       )
       const paddedTransfers = padTransfersArray(circuitTransfers, MAX_TRANSFERS)
       const paddedMerkleProofs = padMerkleProofsArray(merkleProofs, MAX_TRANSFERS, MERKLE_TREE_HEIGHT)
-      const areTransferLeavesEven = paddedMerkleProofs.map((mp) =>
-        mp.pathIndices.map((idx) => idx === 0),
+      const areTransferLeavesEven = paddedMerkleProofs.map((merkleProof) =>
+        merkleProof.pathIndices.map((idx) => idx === 0),
       )
 
-      const totalSum = proverTransferData.reduce((sum, t) => sum + BigInt(t.value), 0n)
+      const totalSum = proverTransferData.reduce((sum, transfer) => sum + BigInt(transfer.value), 0n)
       const minSum = BigInt(claim.minTransfersSum || '0')
       const maxSum = BigInt(claim.maxTransfersSum || '0')
       const fromTs = BigInt(claim.fromBlockTimestamp || 0)
       const toTs = BigInt(claim.toBlockTimestamp || 0)
 
-      for (const t of proverTransferData) {
-        const ts = BigInt(t.timeStamp)
-        if (fromTs && ts < fromTs) throw new Error('Transfer timestamp before fromBlockTimestamp')
-        if (toTs && ts > toTs) throw new Error('Transfer timestamp after toBlockTimestamp')
+      for (const transfer of proverTransferData) {
+        const timestamp = BigInt(transfer.timeStamp)
+        if (fromTs && timestamp < fromTs) throw new Error('Transfer timestamp before fromBlockTimestamp')
+        if (toTs && timestamp > toTs) throw new Error('Transfer timestamp after toBlockTimestamp')
       }
       if (minSum && totalSum < minSum) throw new Error(`Sum ${totalSum} below minimum ${minSum}`)
       if (maxSum && totalSum > maxSum) throw new Error(`Sum ${totalSum} above maximum ${maxSum}`)
@@ -238,16 +238,16 @@ export const claimsRoutes = new Hono()
         )
       }
 
-      const transfersData: InsertTransferEntity[] = fetchedTransfers.map((t) => ({
+      const transfersData: InsertTransferEntity[] = fetchedTransfers.map((transfer) => ({
         chainId,
-        txHash: t.hash,
-        logIndex: parseInt(t.transactionIndex, 10),
-        blockNumber: parseInt(t.blockNumber, 10),
-        blockTimestamp: parseInt(t.timeStamp, 10),
-        senderAddress: t.from.toLowerCase(),
-        recipientAddress: t.to.toLowerCase(),
-        tokenAddress: t.contractAddress.toLowerCase(),
-        amount: t.value,
+        txHash: transfer.hash,
+        logIndex: parseInt(transfer.transactionIndex, 10),
+        blockNumber: parseInt(transfer.blockNumber, 10),
+        blockTimestamp: parseInt(transfer.timeStamp, 10),
+        senderAddress: transfer.from.toLowerCase(),
+        recipientAddress: transfer.to.toLowerCase(),
+        tokenAddress: transfer.contractAddress.toLowerCase(),
+        amount: transfer.value,
       }))
 
       const stored = await upsertTransfers(transfersData)

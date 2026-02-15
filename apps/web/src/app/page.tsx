@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import {
-  ClaimsResults,
+  ClaimsListFetcher,
   ClaimsListSkeleton,
-  ClaimsPageContent,
+  ClaimsPageLayout,
 } from "@/components/features/claims-list";
 import { parseClaimsSearchParams } from "@/utils/claims.utils";
 
@@ -22,12 +22,12 @@ export default async function HomePage({
         title="Transfer Claims"
         description="Create verifiable on-chain transfer claims using zero-knowledge proofs"
       />
-      <ClaimsPageContent>
+      <ClaimsPageLayout>
         <Suspense
           key={`${search}-${chainId}-${sortBy}-${sortOrder}-${page}`}
           fallback={<ClaimsListSkeleton />}
         >
-          <ClaimsResults
+          <ClaimsListFetcher
             search={search}
             chainId={chainId}
             sortBy={sortBy}
@@ -35,7 +35,7 @@ export default async function HomePage({
             page={page}
           />
         </Suspense>
-      </ClaimsPageContent>
+      </ClaimsPageLayout>
     </PageContainer>
   );
 }

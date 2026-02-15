@@ -4,7 +4,7 @@ import { ClaimsList, ITEMS_PER_PAGE } from './claims-list'
 import type { ClaimsSortBy } from '@/constants'
 import type { SortOrder } from '@/types'
 
-interface ClaimsResultsProps {
+interface ClaimsListFetcherProps {
   search?: string
   chainId?: number
   sortBy: ClaimsSortBy
@@ -12,7 +12,7 @@ interface ClaimsResultsProps {
   page: number
 }
 
-export async function ClaimsResults({ search, chainId, sortBy, sortOrder, page }: ClaimsResultsProps) {
+export async function ClaimsListFetcher({ search, chainId, sortBy, sortOrder, page }: ClaimsListFetcherProps) {
   let resolvedSearch = search
   if (search?.endsWith('.eth')) {
     const resolved = await EnsService.resolveInput(search)

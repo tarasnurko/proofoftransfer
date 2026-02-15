@@ -76,10 +76,10 @@ export async function getClaims(options?: GetClaimsParams) {
     .where(whereClause)
 
   return {
-    claims: result.map((r) => ({
-      ...r.claim,
-      proofCount: r.proofCount,
-      token: r.token,
+    claims: result.map((row) => ({
+      ...row.claim,
+      proofCount: row.proofCount,
+      token: row.token,
     })),
     total: totalResult[0]?.total ?? 0,
   }

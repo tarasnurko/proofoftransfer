@@ -1,5 +1,5 @@
 export { ClaimsList } from './claims-list'
 export { ClaimsFilters } from './claims-filters'
-export { ClaimsResults } from './claims-results'
+export { ClaimsListFetcher } from './claims-list-fetcher'
 export { ClaimsListSkeleton } from './claims-list-skeleton'
-export { ClaimsPageContent } from './claims-page-content'
+export { ClaimsPageLayout } from './claims-page-layout'

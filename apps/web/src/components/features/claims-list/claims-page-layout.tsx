@@ -15,7 +15,7 @@ function ClaimsPageInner({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function ClaimsPageContent({ children }: { children: React.ReactNode }) {
+export function ClaimsPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <SearchTransitionProvider>
       <ClaimsPageInner>{children}</ClaimsPageInner>
