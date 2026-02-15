@@ -13,9 +13,10 @@ import { ClaimInfoCard } from './claim-info-card'
 import { TransfersCard } from './transfers-card'
 import { GenerateProofCard } from './generate-proof-card'
 import { ProofsSection } from './proofs-section'
-import type { ClaimEntity } from '@/types'
 import { isAddressEqual, type Address } from 'viem'
 import { toast } from 'sonner'
+import type { ClaimEntity } from '@/types'
+import type { Nullable } from '@/types/common.types'
 import { assembleCircuitInputs, generateProofFromPrepared, signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/proof'
 import type { PreparedProofData, ServerSigningData } from '@/lib/proof'
 import { submitProofAction } from '@/actions/proofs.actions'
@@ -24,9 +25,10 @@ import { useGetTransfersByClaimId } from '@/hooks/queries'
 
 interface ClaimDetailsContentProps {
   claim: ClaimEntity
+  ensName?: Nullable<string>
 }
 
-export function ClaimDetailsContent({ claim }: ClaimDetailsContentProps) {
+export function ClaimDetailsContent({ claim, ensName }: ClaimDetailsContentProps) {
   const claimId = claim.id
   const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
@@ -147,7 +149,7 @@ export function ClaimDetailsContent({ claim }: ClaimDetailsContentProps) {
       />
 
       <div className="space-y-6">
-        <ClaimInfoCard claim={claim} />
+        <ClaimInfoCard claim={claim} ensName={ensName} />
 
         <TransfersCard
           claim={claim}

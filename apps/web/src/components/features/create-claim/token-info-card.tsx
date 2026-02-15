@@ -8,15 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SUPPORTED_CHAINS } from '@/constants'
 import { Loader2 } from 'lucide-react'
+import { truncateAddress } from '@/utils/format.utils'
 import type { TokenEntity } from '@/db/index.types'
 import type { CreateClaimClientInput } from '@/validations/claim'
+import type { Nullable } from '@/types/common.types'
+import type { EnsResolution } from '@/types/blockchain.types'
 
 interface TokenInfoCardProps {
   register: UseFormRegister<CreateClaimClientInput>
   control: Control<CreateClaimClientInput>
   isFetchingToken: boolean
-  tokenData: TokenEntity | null
-  tokenError: string | null
+  tokenData: Nullable<TokenEntity>
+  tokenError: Nullable<string>
+  ensResolution: Nullable<EnsResolution>
+  isResolvingEns: boolean
+  ensError: Nullable<string>
   errors: { tokenAddress?: string; recipientAddress?: string }
 }
 
@@ -26,6 +32,9 @@ export function TokenInfoCard({
   isFetchingToken,
   tokenData,
   tokenError,
+  ensResolution,
+  isResolvingEns,
+  ensError,
   errors,
 }: TokenInfoCardProps) {
   return (
@@ -82,14 +91,27 @@ export function TokenInfoCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="recipientAddress">Recipient Address *</Label>
-          <Input
-            id="recipientAddress"
-            placeholder="0x..."
-            {...register('recipientAddress')}
-            className="font-mono"
-          />
+          <Label htmlFor="recipientAddress">Recipient *</Label>
+          <div className="relative">
+            <Input
+              id="recipientAddress"
+              placeholder="0x... or name.eth"
+              {...register('recipientAddress')}
+              className="font-mono"
+            />
+            {isResolvingEns ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : null}
+          </div>
           {errors.recipientAddress ? <p className="text-sm text-destructive">{errors.recipientAddress}</p> : null}
+          {ensError ? <p className="text-sm text-destructive">{ensError}</p> : null}
+          {ensResolution?.ensName ? (
+            <p className="text-sm font-bold text-accent">
+              {ensResolution.ensName} <span className="font-normal text-muted-foreground">({truncateAddress(ensResolution.address, 6)})</span>
+            </p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

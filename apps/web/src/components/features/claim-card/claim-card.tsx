@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Address } from '@/components/shared/address'
+import { EnsAddress } from '@/components/shared/ens-address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatTokenAmount, formatDate } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
+import type { Nullable } from '@/types/common.types'
 import { Clock, Target, TrendingUp } from 'lucide-react'
 
 function formatClaimTimestamp(timestamp: number) {
-  if (timestamp === 0) return null
+  if (!timestamp) return null
   return formatDate(timestamp * 1000)
 }
 
@@ -36,11 +38,10 @@ function getAmountConstraint(minAmount: string | null, maxAmount: string | null)
 
 interface ClaimCardProps {
   claim: ClaimEntity
+  ensName?: Nullable<string>
 }
 
-export function ClaimCard({ claim }: ClaimCardProps) {
-  const isENS = claim.recipientAddress.endsWith('.eth')
-
+export function ClaimCard({ claim, ensName }: ClaimCardProps) {
   const tokenDisplay = useMemo(() => {
     if (claim.token) return `${claim.token.name} (${claim.token.symbol})`
     return <Address address={claim.tokenAddress} chars={6} showCopy={false} />
@@ -78,13 +79,9 @@ export function ClaimCard({ claim }: ClaimCardProps) {
               <CopyHash hash={claim.tokenAddress} chars={0} />
             </div>
           </div>
-          <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+          <div className="grid grid-cols-[80px_1fr] items-start gap-2">
             <span className="font-bold">Recipient:</span>
-            {isENS ? (
-              <span className="font-mono text-sm">{claim.recipientAddress}</span>
-            ) : (
-              <Address address={claim.recipientAddress} showCopy={true} chainId={claim.chainId} />
-            )}
+            <EnsAddress address={claim.recipientAddress} ensName={ensName} chainId={claim.chainId} />
           </div>
         </div>
 
@@ -95,7 +92,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
             <span>{getAmountConstraint(minAmount, maxAmount)}</span>
           </div>
 
-          {(claim.fromBlockTimestamp !== 0 || claim.toBlockTimestamp !== 0) && (
+          {(claim.fromBlockTimestamp || claim.toBlockTimestamp) && (
             <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="font-bold">Period:</span>

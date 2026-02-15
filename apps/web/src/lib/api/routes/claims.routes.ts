@@ -15,6 +15,7 @@ import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import { etherscanService } from '@/services/etherscan'
 import { ethereumAddressSchema } from '@/validations/address'
+import { MAX_CLAIM_TRANSFERS } from '@/validations/claim'
 import {
   prepareSigningBase,
   mapDbTransferToHashInput,
@@ -231,7 +232,7 @@ export const claimsRoutes = new Hono()
         throw new Error('No transfers found matching these constraints')
       }
 
-      if (fetchedTransfers.length > MAX_TRANSFERS) {
+      if (fetchedTransfers.length > MAX_CLAIM_TRANSFERS) {
         throw new Error(
           `Too many transfers (${fetchedTransfers.length}). Narrow your constraints.`,
         )

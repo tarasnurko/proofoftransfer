@@ -5,21 +5,22 @@ import { useRouter } from 'next/navigation'
 import { useConnection } from 'wagmi'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PageContainer } from '@/components/layout/page-container'
-import { Button } from '@/components/ui/button'
 import { isAddressEqual, isAddress, type Address } from 'viem'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { PageContainer } from '@/components/layout/page-container'
+import { Button } from '@/components/ui/button'
 import { BackLink } from '@/components/shared/back-link'
 import { PageHeader } from '@/components/shared/page-header'
 import { ClaimDetailsCard, TokenInfoCard, AmountConstraintsCard, TimeRangeCard, TransfersPreviewCard } from '@/components/features/create-claim'
 import { createClaimAction } from '@/actions/claims.actions'
 import { useDebounce } from '@/hooks/use-debounce'
-import { useGetTokenData, useLoadClaimTransfers } from '@/hooks/queries'
+import { useGetTokenData, useLoadClaimTransfers, useResolveEns } from '@/hooks/queries'
 import { createClaimClientSchema, type CreateClaimClientInput } from '@/validations/claim'
 import type { TransferEntity } from '@/db/index.types'
 import { ChainId } from '@repo/types'
 
+const DEBOUNCE_MS = 500
 const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddress', 'fromDate', 'toDate'])
 
 export default function CreateClaimPage() {
@@ -53,9 +54,23 @@ export default function CreateClaimPage() {
   const watchedChainId = watch('chainId')
   const watchedMinTransfersSum = watch('minTransfersSum')
   const watchedMaxTransfersSum = watch('maxTransfersSum')
+  const watchedRecipientAddress = watch('recipientAddress')
 
-  const debouncedTokenAddress = useDebounce(watchedTokenAddress, 500)
+  const debouncedTokenAddress = useDebounce(watchedTokenAddress, DEBOUNCE_MS)
+  const debouncedRecipient = useDebounce(watchedRecipientAddress, DEBOUNCE_MS)
   const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
+
+  const {
+    data: ensResolution = null,
+    isLoading: isResolvingEns,
+    error: ensQueryError,
+  } = useResolveEns({ input: debouncedRecipient })
+
+  const ensError = ensQueryError
+    ? (debouncedRecipient.trim().endsWith('.eth') ? 'Could not resolve ENS name' : null)
+    : null
+
+  const resolvedRecipientAddress = ensResolution?.address ?? null
 
   const isValidToken = !!debouncedTokenAddress && isAddress(debouncedTokenAddress)
 
@@ -73,7 +88,6 @@ export default function CreateClaimPage() {
     ? (tokenQueryError instanceof Error ? tokenQueryError.message : 'Token not found — check the address and chain')
     : null
 
-  // Clear fetched transfers when relevant fields change
   useEffect(() => {
     const subscription = watch((_, { name }) => {
       if (name && FETCH_RELEVANT_FIELDS.has(name)) {
@@ -123,22 +137,31 @@ export default function CreateClaimPage() {
       toast.error('Please fill the form correctly')
       return
     }
+    if (!resolvedRecipientAddress) {
+      toast.error('Please enter a valid recipient address or ENS name')
+      return
+    }
     const formValues = watch()
     loadTransfersMutation.mutate({
       chainId: formValues.chainId,
       tokenAddress: formValues.tokenAddress,
-      recipientAddress: formValues.recipientAddress,
+      recipientAddress: resolvedRecipientAddress,
       fromDate: formValues.fromDate ?? undefined,
       toDate: formValues.toDate ?? undefined,
     })
-  }, [trigger, loadTransfersMutation, watch])
+  }, [trigger, loadTransfersMutation, watch, resolvedRecipientAddress])
 
   const onSubmit = useCallback(async (data: CreateClaimClientInput) => {
+    if (!resolvedRecipientAddress) {
+      toast.error('Please enter a valid recipient address or ENS name')
+      return
+    }
     setLoading(true)
 
     try {
       const result = await createClaimAction({
         ...data,
+        recipientAddress: resolvedRecipientAddress,
         fromDate: data.fromDate ?? undefined,
         toDate: data.toDate ?? undefined,
       })
@@ -159,7 +182,7 @@ export default function CreateClaimPage() {
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [router, resolvedRecipientAddress])
 
   return (
     <PageContainer>
@@ -185,6 +208,9 @@ export default function CreateClaimPage() {
           isFetchingToken={isFetchingToken}
           tokenData={tokenData}
           tokenError={tokenError}
+          ensResolution={ensResolution}
+          isResolvingEns={isResolvingEns}
+          ensError={ensError}
           errors={{
             tokenAddress: errors.tokenAddress?.message,
             recipientAddress: errors.recipientAddress?.message,

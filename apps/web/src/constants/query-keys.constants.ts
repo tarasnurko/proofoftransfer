@@ -3,4 +3,5 @@ export const QUERY_KEYS = {
   CLAIM_TRANSFERS: 'claim-transfers',
   TOKEN: 'token',
   NULLIFIER_EXISTS: 'nullifier-exists',
+  ENS_RESOLVE: 'ens-resolve',
 } as const

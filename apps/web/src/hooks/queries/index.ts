@@ -1,4 +1,5 @@
 export * from './use-get-token-data'
+export * from './use-resolve-ens'
 export * from './use-load-claim-transfers'
 export * from './use-check-nullifier-exists'
 export * from './use-get-proofs-by-claim-id'

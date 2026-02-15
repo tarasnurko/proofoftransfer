@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { ChainId } from '@repo/types'
-import { ethereumAddressSchema, ethereumAddressLowercaseSchema } from './address'
+import { ethereumAddressSchema, ethereumAddressLowercaseSchema, ensOrAddressSchema } from './address'
 
-export const MAX_TRANSFERS = 5000
+export const MAX_CLAIM_TRANSFERS = 5000
 
 // ── Shared field schemas ──
 
@@ -26,7 +26,7 @@ function checkAmountRange(data: { minTransfersSum: string; maxTransfersSum: stri
   return !(max > 0 && max < min)
 }
 
-const amountRangeMessage = {
+const AMOUNT_RANGE_MESSAGE = {
   message: 'Maximum amount must be greater than or equal to minimum amount',
   path: ['maxTransfersSum'],
 }
@@ -36,7 +36,7 @@ function checkDateRange(data: { fromDate?: Date | null; toDate?: Date | null }):
   return true
 }
 
-const dateRangeMessage = {
+const DATE_RANGE_MESSAGE = {
   message: 'End date must be after start date',
   path: ['toDate'],
 }
@@ -54,8 +54,8 @@ export const createClaimSchema = z
     toDate: z.date().optional(),
     chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
   })
-  .refine(checkAmountRange, amountRangeMessage)
-  .refine(checkDateRange, dateRangeMessage)
+  .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
+  .refine(checkDateRange, DATE_RANGE_MESSAGE)
 
 export type CreateClaimInput = z.infer<typeof createClaimSchema>
 
@@ -63,15 +63,15 @@ export const createClaimClientSchema = z
   .object({
     claimMessage: claimMessageSchema,
     tokenAddress: ethereumAddressSchema,
-    recipientAddress: ethereumAddressSchema,
+    recipientAddress: ensOrAddressSchema,
     minTransfersSum: nonNegativeAmountSchema,
     maxTransfersSum: nonNegativeAmountSchema,
     fromDate: z.date().optional().nullable(),
     toDate: z.date().optional().nullable(),
     chainId: z.nativeEnum(ChainId).default(ChainId.ETHEREUM),
   })
-  .refine(checkAmountRange, amountRangeMessage)
-  .refine(checkDateRange, dateRangeMessage)
+  .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
+  .refine(checkDateRange, DATE_RANGE_MESSAGE)
 
 export type CreateClaimClientInput = z.infer<typeof createClaimClientSchema>
 
@@ -83,10 +83,6 @@ export const fetchTransfersSchema = z
     fromDate: z.date().optional(),
     toDate: z.date().optional(),
   })
-  .refine(checkDateRange, dateRangeMessage)
+  .refine(checkDateRange, DATE_RANGE_MESSAGE)
 
 export type FetchTransfersInput = z.infer<typeof fetchTransfersSchema>
-
-export function dateToTimestamp(date?: Date): number {
-  return date instanceof Date ? Math.floor(date.getTime() / 1000) : 0
-}

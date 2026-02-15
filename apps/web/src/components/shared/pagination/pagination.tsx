@@ -14,7 +14,7 @@ const MAX_VISIBLE = 5
 
 export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   const pages = useMemo(() => {
-    if (totalPages <= MAX_VISIBLE) {
+    if (!totalPages || totalPages <= MAX_VISIBLE) {
       return Array.from({ length: totalPages }, (_, i) => i + 1)
     }
 
@@ -30,7 +30,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
     return items
   }, [totalPages, currentPage])
 
-  if (totalPages <= 1) return null
+  if (!totalPages || totalPages <= 1) return null
 
   return (
     <div className="mt-4 flex items-center justify-center gap-2">

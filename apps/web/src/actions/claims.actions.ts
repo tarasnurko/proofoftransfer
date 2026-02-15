@@ -5,7 +5,8 @@ import { Barretenberg } from "@aztec/bb.js";
 import { poseidon2HashString, fieldToBigint } from "@repo/circuit-utils";
 import { createRateLimitedActionClient } from "@/lib/safe-action";
 import { RATE_LIMITS } from "@/services/rate-limit";
-import { createClaimSchema, dateToTimestamp } from "@/validations/claim";
+import { createClaimSchema } from "@/validations/claim";
+import { dateToTimestamp } from "@/utils/date.utils";
 import { createClaim } from "@/db/queries/claims";
 import { getTransfersByConstraints } from "@/db/queries/transfers";
 import {

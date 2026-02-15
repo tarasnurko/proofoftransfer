@@ -68,6 +68,17 @@ export function buildTokenSeed(overrides: Record<string, unknown> = {}) {
   }
 }
 
+/** Minimal ENS cache seed data */
+export function buildEnsCacheSeed(overrides: Record<string, unknown> = {}) {
+  return {
+    address: ('0x' + randomUUID().replace(/-/g, '').slice(0, 40)).toLowerCase(),
+    name: `test-${randomUUID().slice(0, 8)}.eth`,
+    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    resolvedAt: new Date(),
+    ...overrides,
+  }
+}
+
 /** Minimal verification seed data */
 export function buildVerificationSeed(proofId: string, overrides: Record<string, unknown> = {}) {
   return {

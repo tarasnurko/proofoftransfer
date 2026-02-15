@@ -1,5 +1,5 @@
 - [?] Hono api endpoints
-- [] rate limits
+- [?] rate limits
 - [] pages metadata
 - [] when creating claim - show how much users are with specified constraints, show users and their transfers
 - [] integrate ENS - allow in recipient paste ENS name or address, and show it on Details page

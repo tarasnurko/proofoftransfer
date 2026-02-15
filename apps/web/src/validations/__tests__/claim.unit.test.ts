@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createClaimSchema, dateToTimestamp } from '../claim'
+import { createClaimSchema } from '../claim'
+import { dateToTimestamp } from '@/utils/date.utils'
 import { ChainId } from '@repo/types'
 
 describe('createClaimSchema', () => {

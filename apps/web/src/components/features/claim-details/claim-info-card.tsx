@@ -1,17 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Address } from '@/components/shared/address'
+import { EnsAddress } from '@/components/shared/ens-address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
 import { formatDateTime } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
+import type { Nullable } from '@/types/common.types'
 
 interface ClaimInfoCardProps {
   claim: ClaimEntity
+  ensName?: Nullable<string>
   title?: string
 }
 
 export function ClaimInfoCard({
   claim,
+  ensName,
   title = 'Information',
 }: ClaimInfoCardProps) {
   return (
@@ -40,7 +44,7 @@ export function ClaimInfoCard({
           <div>
             <div className="text-sm font-bold text-muted-foreground">Recipient</div>
             <div className="mt-1">
-              <Address address={claim.recipientAddress} chainId={claim.chainId} />
+              <EnsAddress address={claim.recipientAddress} ensName={ensName} chainId={claim.chainId} />
             </div>
           </div>
           <div>

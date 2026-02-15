@@ -1,3 +1,5 @@
+import { MS_PER_MINUTE } from '@/constants'
+
 // --- Types ---
 
 interface RateLimitConfig {
@@ -18,7 +20,7 @@ interface RateLimitResult {
 
 // --- Store ---
 
-const CLEANUP_INTERVAL_MS = 60_000
+const CLEANUP_INTERVAL_MS = MS_PER_MINUTE
 
 const store = new Map<string, RateLimitEntry>()
 
@@ -71,22 +73,23 @@ export const getIpFromHeaders = (headers: Headers): string => {
 
 export const RATE_LIMITS = {
   // Server actions
-  CREATE_CLAIM: { maxRequests: 1, windowMs: 60_000 },
-  SUBMIT_PROOF: { maxRequests: 1, windowMs: 60_000 },
-  VERIFY_PROOF: { maxRequests: 5, windowMs: 60_000 },
+  CREATE_CLAIM: { maxRequests: 1, windowMs: MS_PER_MINUTE },
+  SUBMIT_PROOF: { maxRequests: 1, windowMs: MS_PER_MINUTE },
+  VERIFY_PROOF: { maxRequests: 5, windowMs: MS_PER_MINUTE },
 
   // Hono: cheap DB reads
-  GET_PROOFS: { maxRequests: 30, windowMs: 60_000 },
-  GET_TRANSFERS: { maxRequests: 30, windowMs: 60_000 },
-  GET_NULLIFIER_EXISTS: { maxRequests: 30, windowMs: 60_000 },
+  GET_PROOFS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
+  GET_TRANSFERS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
+  GET_NULLIFIER_EXISTS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
 
   // Hono: expensive external/computation
-  GET_ETHERSCAN_TRANSFERS: { maxRequests: 5, windowMs: 60_000 },
-  LOAD_TRANSFERS: { maxRequests: 3, windowMs: 60_000 },
-  PROVER_SIGNING_DATA: { maxRequests: 5, windowMs: 60_000 },
-  VERIFIER_SIGNING_DATA: { maxRequests: 10, windowMs: 60_000 },
-  PROCESS_SIGNATURE: { maxRequests: 5, windowMs: 60_000 },
-  GET_TOKEN: { maxRequests: 10, windowMs: 60_000 },
+  GET_ETHERSCAN_TRANSFERS: { maxRequests: 5, windowMs: MS_PER_MINUTE },
+  LOAD_TRANSFERS: { maxRequests: 3, windowMs: MS_PER_MINUTE },
+  PROVER_SIGNING_DATA: { maxRequests: 5, windowMs: MS_PER_MINUTE },
+  VERIFIER_SIGNING_DATA: { maxRequests: 10, windowMs: MS_PER_MINUTE },
+  PROCESS_SIGNATURE: { maxRequests: 5, windowMs: MS_PER_MINUTE },
+  GET_TOKEN: { maxRequests: 10, windowMs: MS_PER_MINUTE },
+  RESOLVE_ENS: { maxRequests: 10, windowMs: MS_PER_MINUTE },
 } as const satisfies Record<string, RateLimitConfig>
 
 // For testing only — reset all rate limit state

@@ -37,6 +37,7 @@ export {
   buildProofSeed,
   buildTransferSeed,
   buildTokenSeed,
+  buildEnsCacheSeed,
   buildVerificationSeed,
 } from './db/seeds'
 export { truncateAll } from './db/truncate'

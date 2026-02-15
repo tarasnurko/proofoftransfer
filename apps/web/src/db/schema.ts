@@ -123,6 +123,19 @@ export const proofsRelations = relations(proofsTable, ({ one, many }) => ({
   verifications: many(proofVerificationsTable),
 }))
 
+export const ensCacheTable = pgTable(
+  'ens_cache',
+  {
+    address: varchar({ length: 42 }).primaryKey(),
+    name: text(),
+    expiresAt: timestamp(),
+    resolvedAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [
+    index('ens_cache_name_idx').on(table.name),
+  ]
+)
+
 export const proofVerificationsRelations = relations(proofVerificationsTable, ({ one }) => ({
   proof: one(proofsTable, {
     fields: [proofVerificationsTable.proofId],

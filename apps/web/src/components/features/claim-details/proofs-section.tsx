@@ -30,7 +30,7 @@ export function ProofsSection({ claimId, preparedProof }: ProofsSectionProps) {
 
   const proofs = data?.proofs ?? []
   const total = data?.total ?? 0
-  const totalPages = Math.ceil(total / PROOFS_PER_PAGE)
+  const totalPages = Math.ceil(Number(total) / PROOFS_PER_PAGE)
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query)
