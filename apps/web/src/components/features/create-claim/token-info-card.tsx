@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SUPPORTED_CHAINS } from '@/constants'
 import { Loader2 } from 'lucide-react'
-import { truncateAddress } from '@/utils/format.utils'
+import { Address } from '@/components/shared/address'
 import type { TokenEntity } from '@/db/index.types'
 import type { CreateClaimClientInput } from '@/validations/claim'
 import type { Nullable } from '@/types/common.types'
@@ -108,9 +108,7 @@ export function TokenInfoCard({
           {errors.recipientAddress ? <p className="text-sm text-destructive">{errors.recipientAddress}</p> : null}
           {ensError ? <p className="text-sm text-destructive">{ensError}</p> : null}
           {ensResolution?.ensName ? (
-            <p className="text-sm font-bold text-accent">
-              {ensResolution.ensName} <span className="font-normal text-muted-foreground">({truncateAddress(ensResolution.address, 6)})</span>
-            </p>
+            <Address address={ensResolution.address} chars={6} />
           ) : null}
         </div>
       </CardContent>

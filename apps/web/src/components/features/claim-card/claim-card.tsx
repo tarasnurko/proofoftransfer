@@ -92,15 +92,13 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
             <span>{getAmountConstraint(minAmount, maxAmount)}</span>
           </div>
 
-          {(claim.fromBlockTimestamp || claim.toBlockTimestamp) && (
-            <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-bold">Period:</span>
-              <span>
-                {formatClaimTimestamp(claim.fromBlockTimestamp) || 'Any'} - {formatClaimTimestamp(claim.toBlockTimestamp) || 'Any'}
-              </span>
-            </div>
-          )}
+          <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="font-bold">Period:</span>
+            <span>
+              {formatClaimTimestamp(claim.fromBlockTimestamp) || '...'} – {formatClaimTimestamp(claim.toBlockTimestamp) || formatDate(claim.createdAt)}
+            </span>
+          </div>
 
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <Target className="h-4 w-4 text-muted-foreground" />

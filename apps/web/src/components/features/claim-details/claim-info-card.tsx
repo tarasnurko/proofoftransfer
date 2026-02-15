@@ -53,6 +53,28 @@ export function ClaimInfoCard({
           </div>
         </div>
 
+        <div>
+          <div className="text-sm font-bold text-muted-foreground">Period</div>
+          <div className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1">
+            <span className="font-bold">From:</span>
+            <span>
+              {claim.fromBlockTimestamp ? (
+                <>{formatDateTime(claim.fromBlockTimestamp * 1000)} <span className="text-muted-foreground">({claim.fromBlockTimestamp})</span></>
+              ) : (
+                <span className="text-muted-foreground">Not specified</span>
+              )}
+            </span>
+            <span className="font-bold">To:</span>
+            <span>
+              {claim.toBlockTimestamp ? (
+                <>{formatDateTime(claim.toBlockTimestamp * 1000)} <span className="text-muted-foreground">({claim.toBlockTimestamp})</span></>
+              ) : (
+                <>{formatDateTime(claim.createdAt)} <span className="text-muted-foreground">({Math.floor(new Date(claim.createdAt).getTime() / 1000)})</span></>
+              )}
+            </span>
+          </div>
+        </div>
+
         {claim.merkleRoot && (
           <div>
             <div className="text-sm font-bold text-muted-foreground">Merkle Root</div>

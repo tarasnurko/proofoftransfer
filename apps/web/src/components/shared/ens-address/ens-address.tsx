@@ -13,9 +13,9 @@ export function EnsAddress({ address, ensName, chainId }: EnsAddressProps) {
   }
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <span className="inline-flex items-center gap-1.5">
       <span className="font-bold">{ensName}</span>
       <Address address={address} chainId={chainId} chars={6} />
-    </div>
+    </span>
   )
 }
