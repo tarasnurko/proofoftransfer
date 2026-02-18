@@ -83,4 +83,4 @@ The nullifier ensures each user can only generate **one valid proof per claim**:
 - make that prover can be sender or reciever (is_prover_sender: bool)
 - add pub chain_id parameter
 - add pub block_hash parameter
-- add transfers_amount constraint
+- add transfers_amount constraints (min transfers, max transfers)

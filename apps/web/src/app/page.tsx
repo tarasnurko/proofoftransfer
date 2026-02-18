@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/shared/page-header";
@@ -7,6 +8,11 @@ import {
   ClaimsPageLayout,
 } from "@/components/features/claims-list";
 import { parseClaimsSearchParams } from "@/utils/claims.utils";
+
+export const metadata: Metadata = {
+  title: "Transfer Claims",
+  description: "Browse verifiable on-chain transfer claims across EVM chains",
+};
 
 export default async function HomePage({
   searchParams,

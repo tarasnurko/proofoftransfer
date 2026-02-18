@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
 import { PageContainer } from '@/components/layout/page-container'
 import { BackLink } from '@/components/shared/back-link'
 import { PageHeader } from '@/components/shared/page-header'
 import { CreateClaimForm } from '@/components/features/create-claim'
+
+export const metadata: Metadata = {
+  title: 'Create Claim',
+  description: 'Set up a verifiable transfer claim using zero-knowledge proofs',
+}
 
 export default function CreateClaimPage() {
   return (

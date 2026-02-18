@@ -13,6 +13,16 @@ export const SUPPORTED_CHAINS: ChainData[] = [
   { id: 534352, name: 'Scroll' },
 ]
 
+export const CHAIN_HEX_COLORS: Record<number, string> = {
+  1: '#627eea',
+  10: '#ff0420',
+  56: '#f0b90b',
+  137: '#8247e5',
+  8453: '#0052ff',
+  42161: '#28a0f0',
+  534352: '#e5a566',
+}
+
 export const CHAIN_COLORS: Record<number, { bg: string; text: string; border: string }> = {
   1: { bg: 'bg-[#627eea]/15', text: 'text-[#627eea]', border: 'border-[#627eea]/40' },
   10: { bg: 'bg-[#ff0420]/15', text: 'text-[#ff0420]', border: 'border-[#ff0420]/40' },

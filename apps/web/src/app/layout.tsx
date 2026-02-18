@@ -20,8 +20,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Proof of Transfer",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3005"),
+  title: {
+    template: "%s | Proof of Transfer",
+    default: "Proof of Transfer",
+  },
   description: "Create verifiable on-chain transfer claims for EVM chains",
+  openGraph: {
+    siteName: "Proof of Transfer",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default async function RootLayout({

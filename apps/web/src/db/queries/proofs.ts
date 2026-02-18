@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { db, type DB } from '../client'
 import { proofsTable, claimsTable, proofVerificationsTable } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
@@ -77,7 +78,7 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
   }
 }
 
-export async function getProofById(id: string) {
+export const getProofById = cache(async function getProofById(id: string) {
   const result = await db
     .select({
       proof: proofsTable,
@@ -98,7 +99,7 @@ export async function getProofById(id: string) {
     ...proofResult.proof,
     claim: proofResult.claim,
   }
-}
+})
 
 interface CheckNullifierExistsParams {
   claimId: string

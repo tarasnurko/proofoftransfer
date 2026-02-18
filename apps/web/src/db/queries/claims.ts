@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { db, type DB } from '../client'
 import { claimsTable, proofsTable, tokensTable } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
@@ -85,7 +86,7 @@ export async function getClaims(options?: GetClaimsParams) {
   }
 }
 
-export async function getClaimById(id: string) {
+export const getClaimById = cache(async function getClaimById(id: string) {
   const result = await db
     .select({
       claim: claimsTable,
@@ -111,7 +112,7 @@ export async function getClaimById(id: string) {
     proofCount: claimResult.proofCount,
     token: claimResult.token,
   }
-}
+})
 
 export async function getClaimByMessageHash(messageHash: string) {
   return entityOrNull(
