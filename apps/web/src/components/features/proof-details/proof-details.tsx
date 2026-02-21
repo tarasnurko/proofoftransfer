@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { useConnection, useWalletClient, useSwitchChain } from 'wagmi'
+import { useConnection, useWalletClient } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
@@ -27,7 +27,6 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
 
   const { address: walletAddress, isConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
-  const switchChain = useSwitchChain()
   const { open } = useAppKit()
 
   const [proof, setProof] = useState(initialProof)
@@ -60,11 +59,6 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
       if (!prepRes.ok) throw new Error('Failed to prepare signing data')
 
       const { eip712, chainId } = await prepRes.json()
-
-      const walletChainId = await walletClient.getChainId()
-      if (walletChainId !== chainId) {
-        await switchChain.mutateAsync({ chainId })
-      }
 
       const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
       const derivedNullifier = signResult.nullifier
@@ -109,7 +103,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
     } finally {
       setVerifying(false)
     }
-  }, [walletAddress, walletClient, claim, claimId, proofId, proof.nullifier, allTransfers, switchChain.mutateAsync])
+  }, [walletAddress, walletClient, claim, claimId, proofId, proof.nullifier, allTransfers])
 
   const fetchTransfersForVerification = useCallback(async () => {
     setFetchingTransfers(true)

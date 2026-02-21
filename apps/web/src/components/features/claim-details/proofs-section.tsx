@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { ProofsListCard } from './proofs-list-card'
-import { PROOFS_SORT_OPTIONS } from '@/constants'
+import { PROOFS_SORT_OPTIONS, PROOFS_PER_PAGE } from '@/constants'
 import { parseProofsSort } from '@/utils/claims.utils'
 import { useGetProofsByClaimId } from '@/hooks/queries'
 import type { SortOrder } from '@/types'
 import type { PreparedProofData } from '@/lib/proof'
-
-const PROOFS_PER_PAGE = 9
 
 interface ProofsSectionProps {
   claimId: string

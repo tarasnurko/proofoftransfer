@@ -1,6 +1,7 @@
 import { getClaims } from '@/db/queries/claims'
 import { EnsService } from '@/services/ens'
-import { ClaimsList, ITEMS_PER_PAGE } from './claims-list'
+import { CLAIMS_PER_PAGE } from '@/constants'
+import { ClaimsList } from './claims-list'
 import type { ClaimsSortBy } from '@/constants'
 import type { SortOrder } from '@/types'
 
@@ -26,14 +27,14 @@ export async function ClaimsListFetcher({ search, chainId, sortBy, sortOrder, pa
     chainId,
     sortBy,
     sortOrder,
-    limit: ITEMS_PER_PAGE,
-    offset: (page - 1) * ITEMS_PER_PAGE,
+    limit: CLAIMS_PER_PAGE,
+    offset: (page - 1) * CLAIMS_PER_PAGE,
   })
 
   const uniqueAddresses = [...new Set(claims.map((c) => c.recipientAddress))]
   const ensNames = await EnsService.batchGetEnsNames(uniqueAddresses)
 
-  const totalPages = Math.ceil(Number(total) / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(Number(total) / CLAIMS_PER_PAGE)
 
   return (
     <ClaimsList
@@ -42,6 +43,7 @@ export async function ClaimsListFetcher({ search, chainId, sortBy, sortOrder, pa
       total={total}
       totalPages={totalPages}
       currentPage={page}
+      pageSize={CLAIMS_PER_PAGE}
     />
   )
 }

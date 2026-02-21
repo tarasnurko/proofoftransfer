@@ -7,18 +7,16 @@ import { Pagination } from '@/components/shared/pagination'
 import { FileSearch } from 'lucide-react'
 import type { ClaimEntity } from '@/types'
 import type { Nullable } from '@/types/common.types'
-
-export const ITEMS_PER_PAGE = 10
-
 interface ClaimsListProps {
   claims: ClaimEntity[]
   ensNames: Record<string, Nullable<string>>
   total: number
   totalPages: number
   currentPage: number
+  pageSize: number
 }
 
-export function ClaimsList({ claims, ensNames, total, totalPages, currentPage }: ClaimsListProps) {
+export function ClaimsList({ claims, ensNames, total, totalPages, currentPage, pageSize }: ClaimsListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -44,8 +42,8 @@ export function ClaimsList({ claims, ensNames, total, totalPages, currentPage }:
     <>
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>
-          Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-          {Math.min(currentPage * ITEMS_PER_PAGE, total)} of {total} claims
+          Showing {(currentPage - 1) * pageSize + 1} to{' '}
+          {Math.min(currentPage * pageSize, total)} of {total} claims
         </p>
       </div>
 

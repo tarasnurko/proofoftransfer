@@ -85,9 +85,6 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await expect(page.getByText('Connected:')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('button', { name: 'Sign Claim' })).toBeVisible({ timeout: 30_000 })
 
-    // Pre-switch to Ethereum Mainnet to avoid popup during EIP-712 signing
-    await metamask.switchNetwork('Ethereum Mainnet')
-
     // Sign the claim (EIP-712)
     await page.getByRole('button', { name: 'Sign Claim' }).click()
     await metamask.confirmSignature()
@@ -133,9 +130,6 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.getByRole('button', { name: 'Fetch Transfers' }).click()
     await expect(page.getByText(/transfers fetched/i)).toBeVisible({ timeout: 15_000 })
 
-    // Ensure on Ethereum Mainnet for signing
-    await metamask.switchNetwork('Ethereum Mainnet')
-
     // Sign & Verify
     await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()
     await metamask.confirmSignature()
@@ -168,9 +162,6 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     // Fetch transfers
     await page.getByRole('button', { name: 'Fetch Transfers' }).click()
     await expect(page.getByText(/transfers fetched/i)).toBeVisible({ timeout: 15_000 })
-
-    // Ensure on Ethereum Mainnet
-    await metamask.switchNetwork('Ethereum Mainnet')
 
     // Sign & Verify — should derive same nullifier as proof
     await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()

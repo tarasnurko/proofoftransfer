@@ -64,7 +64,7 @@ test.describe('Proof details page', () => {
     const proof = fixtures.proofs[0]!
     await page.goto(`/claims/${proof.claimId}/proofs/00000000-0000-0000-0000-000000000000`)
 
-    await expect(page.getByText(/not found/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /not found/i })).toBeVisible()
   })
 
   test('shows wallet connect prompt', async ({ page }) => {

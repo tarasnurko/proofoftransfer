@@ -14,7 +14,7 @@ test.describe('Claim details page', () => {
     await page.goto(`/claims/${claim.id}`)
 
     await expect(page.getByRole('heading', { name: 'Claim Details' })).toBeVisible()
-    await expect(page.getByText(claim.message)).toBeVisible()
+    await expect(page.getByText(claim.message).first()).toBeVisible()
 
     // Token name visible
     await expect(page.getByText(fixtures.tokens.tst.name).first()).toBeVisible()
@@ -64,7 +64,7 @@ test.describe('Claim details page', () => {
   test('404 for invalid claim', async ({ page }) => {
     await page.goto('/claims/00000000-0000-0000-0000-000000000000')
 
-    await expect(page.getByText(/not found/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /not found/i })).toBeVisible()
   })
 
   test('shows generate proof section', async ({ page }) => {

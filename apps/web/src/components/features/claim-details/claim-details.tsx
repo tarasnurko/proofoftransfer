@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { useConnection, useWalletClient, useSwitchChain } from 'wagmi'
+import { useConnection, useWalletClient } from 'wagmi'
 import { useMounted } from '@/hooks/use-mounted'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +32,6 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
   const claimId = claim.id
   const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
-  const switchChain = useSwitchChain()
   const queryClient = useQueryClient()
   const mounted = useMounted()
   const isConnected = mounted && rawIsConnected
@@ -68,11 +67,6 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
 
       const serverData = await res.json() as ServerSigningData
 
-      const walletChainId = await walletClient.getChainId()
-      if (walletChainId !== serverData.chainId) {
-        await switchChain.mutateAsync({ chainId: serverData.chainId })
-      }
-
       const signResult = await signClaimAndDeriveNullifier(walletClient, serverData.eip712, serverData.chainId)
       const pubKeyComponents = await recoverAndVerifyPublicKey(
         signResult.signature,
@@ -93,7 +87,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
     } finally {
       setSigningClaim(false)
     }
-  }, [walletAddress, walletClient, claim, claimId, switchChain.mutateAsync])
+  }, [walletAddress, walletClient, claim, claimId])
 
   const handleGenerateProof = useCallback(async () => {
     if (!preparedProof) return
