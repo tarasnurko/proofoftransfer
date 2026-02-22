@@ -1,9 +1,11 @@
 import { test, expect } from './fixtures'
 import { loadFixtures } from './helpers/fixtures'
 
+const BASE_URL = 'http://localhost:3005'
+
 test('full UI flow: create claim → generate proof → verify → self-verify rejection', async ({
   page,
-  metamask,
+  wallet,
 }) => {
   test.setTimeout(600_000) // 10 min total
 
@@ -11,14 +13,13 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
   let createdClaimId: string
   let proofPageUrl: string
 
-  // Add Sender account immediately — MetaMask page is fresh here
-  // After this, Sender (account[1]) is active. Step 1 doesn't need wallet so it's fine.
-  await metamask.addNewAccount('Sender')
+  // Add Sender account immediately
+  await wallet.createAccount('Sender')
 
   // ── Step 1: Create Claim ──
 
   await test.step('Create claim with real transfers', async () => {
-    await page.goto('/create')
+    await page.goto(`${BASE_URL}/create`)
     await expect(page.getByRole('heading', { name: 'Create Claim' })).toBeVisible()
 
     await page.locator('#message').fill('E2E test claim for transfer verification')
@@ -53,7 +54,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await expect(page.getByText('Transfers Preview')).toBeVisible({ timeout: 10_000 })
 
     await page.getByRole('button', { name: 'Create Claim' }).click()
-    await expect(page).toHaveURL('/', { timeout: 30_000 })
+    await expect(page).toHaveURL(`${BASE_URL}/`, { timeout: 30_000 })
 
     const searchInput = page.getByPlaceholder(/search/i)
     await searchInput.fill('E2E test claim for transfer verification')
@@ -72,22 +73,22 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
   await test.step('Generate ZK proof for the claim', async () => {
     // Sender account already added at test start — switch to it
-    await metamask.switchAccount('Sender')
+    await wallet.switchAccount(2)
 
-    await page.goto(`/claims/${createdClaimId}`)
+    await page.goto(`${BASE_URL}/claims/${createdClaimId}`)
     await expect(page.getByRole('heading', { name: 'Claim Details' })).toBeVisible()
 
     // Connect wallet via Generate Proof card
     await page.getByRole('button', { name: 'Connect Wallet' }).click()
     await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
-    await metamask.connectToDapp()
+    await wallet.approve()
 
     await expect(page.getByText('Connected:')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('button', { name: 'Sign Claim' })).toBeVisible({ timeout: 30_000 })
 
     // Sign the claim (EIP-712)
     await page.getByRole('button', { name: 'Sign Claim' }).click()
-    await metamask.confirmSignature()
+    await wallet.sign()
     await expect(page.getByText('Claim Signed')).toBeVisible({ timeout: 30_000 })
 
     // Generate proof (ZK circuit — slow)
@@ -107,8 +108,8 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
   // ── Step 3: Verify Proof (different account) ──
 
   await test.step('Verify proof from different account', async () => {
-    // Switch to Account 1 (not the prover) — stays in same browser context
-    await metamask.switchAccount('Account 1')
+    // Switch to Account 1 (not the prover)
+    await wallet.switchAccount(1)
 
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
@@ -122,7 +123,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     if (await connectBtn.isVisible()) {
       await connectBtn.click()
       await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
-      await metamask.connectToDapp()
+      await wallet.approve()
       await expect(signVerifyBtn).toBeVisible({ timeout: 15_000 })
     }
 
@@ -132,7 +133,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
     // Sign & Verify
     await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()
-    await metamask.confirmSignature()
+    await wallet.sign()
 
     await expect(page.getByText('Proof verified successfully!')).toBeVisible({ timeout: 60_000 })
   })
@@ -141,7 +142,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
   await test.step('Reject self-verification', async () => {
     // Switch to Sender (the prover)
-    await metamask.switchAccount('Sender')
+    await wallet.switchAccount(2)
 
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
@@ -155,7 +156,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     if (await connectBtn.isVisible()) {
       await connectBtn.click()
       await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
-      await metamask.connectToDapp()
+      await wallet.approve()
       await expect(signVerifyBtn).toBeVisible({ timeout: 15_000 })
     }
 
@@ -165,7 +166,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
     // Sign & Verify — should derive same nullifier as proof
     await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()
-    await metamask.confirmSignature()
+    await wallet.sign()
 
     // Should show self-verification error
     await expect(page.getByText('Cannot verify your own proof')).toBeVisible({ timeout: 30_000 })

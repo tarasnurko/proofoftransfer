@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: 'wallet',
       testMatch: ['wallet-flow.spec.ts', 'flows.spec.ts'],
-      // Synpress metaMaskFixtures manages its own chromium persistent context
+      // dappwright manages its own chromium context with MetaMask extension
     },
   ],
   webServer: {
