@@ -5,11 +5,10 @@ const SEED_PHRASE = 'test test test test test test test test test test test junk
 
 let sharedContext: BrowserContext
 
-export const test = base.extend<{
-  context: BrowserContext
-  wallet: Dappwright
-  page: Page
-}>({
+export const test = base.extend<
+  { context: BrowserContext; wallet: Dappwright; page: Page },
+  { walletContext: BrowserContext }
+>({
   walletContext: [
     async ({}, use) => {
       if (!sharedContext) {

@@ -73,7 +73,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
   await test.step('Generate ZK proof for the claim', async () => {
     // Sender account already added at test start — switch to it
-    await wallet.switchAccount(2)
+    await wallet.switchAccount('Sender')
 
     await page.goto(`${BASE_URL}/claims/${createdClaimId}`)
     await expect(page.getByRole('heading', { name: 'Claim Details' })).toBeVisible()
@@ -109,7 +109,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
   await test.step('Verify proof from different account', async () => {
     // Switch to Account 1 (not the prover)
-    await wallet.switchAccount(1)
+    await wallet.switchAccount('Account 1')
 
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
@@ -142,7 +142,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
   await test.step('Reject self-verification', async () => {
     // Switch to Sender (the prover)
-    await wallet.switchAccount(2)
+    await wallet.switchAccount('Sender')
 
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()

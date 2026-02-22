@@ -35,9 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# synpress
-.cache-synpress/
-
 # e2e fixtures (generated)
 e2e/.fixtures/
 

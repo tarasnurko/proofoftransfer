@@ -4,8 +4,7 @@ import { ChildProcess, spawn } from 'child_process'
 import { parseUnits, type Address } from 'viem'
 import {
   ANVIL_ACCOUNTS,
-  createAnvilPublicClient,
-  createAnvilWalletClient,
+  createAnvilClient,
   deployTestERC20,
   mintTokens,
   makeTransfers,
@@ -56,55 +55,48 @@ async function startAnvil(): Promise<void> {
 export default async function globalSetup() {
   mkdirSync(FIXTURE_DIR, { recursive: true })
 
-  // 1. Start Anvil
   await startAnvil()
 
   const deployer = ANVIL_ACCOUNTS[0]!
-  const walletClient = createAnvilWalletClient(deployer.key)
-  const publicClient = createAnvilPublicClient()
+  const client = createAnvilClient(deployer.key)
 
   const senders = [ANVIL_ACCOUNTS[1]!, ANVIL_ACCOUNTS[2]!, ANVIL_ACCOUNTS[3]!]
   const recipient = ANVIL_ACCOUNTS[4]!
   const noiseSender = ANVIL_ACCOUNTS[5]!
   const noiseRecipient = ANVIL_ACCOUNTS[6]!
 
-  // 2. Deploy 2 ERC20 tokens
-  const tstAddress = await deployTestERC20(walletClient, publicClient, TST.name, TST.symbol, TST.decimals)
-  const usdcAddress = await deployTestERC20(walletClient, publicClient, USDC.name, USDC.symbol, USDC.decimals)
+  // Deploy tokens
+  const tstAddress = await deployTestERC20(client, TST.name, TST.symbol, TST.decimals)
+  const usdcAddress = await deployTestERC20(client, USDC.name, USDC.symbol, USDC.decimals)
 
-  // 3. Mint tokens to senders + noise sender
-  const allMintRecipients = [...senders.map((s) => s.address), noiseSender.address] as Address[]
-  await mintTokens(walletClient, publicClient, tstAddress, allMintRecipients, parseUnits('100000', TST.decimals))
-  await mintTokens(walletClient, publicClient, usdcAddress, allMintRecipients, parseUnits('100000', USDC.decimals))
+  // Mint to all participants (senders + noiseSender + recipient for outgoing transfers)
+  const allMintTargets = [
+    ...senders.map((s) => s.address),
+    noiseSender.address,
+    recipient.address,
+  ] as Address[]
+  await mintTokens(client, tstAddress, allMintTargets, parseUnits('100000', TST.decimals))
+  await mintTokens(client, usdcAddress, allMintTargets, parseUnits('100000', USDC.decimals))
 
-  // 4. Make TST transfers to recipient (3 transfers)
-  const tstTransferSpecs: TransferSpec[] = [
-    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('100', TST.decimals) },
-    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('250', TST.decimals) },
-    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('500', TST.decimals) },
+  // Interleaved transfers — mix tokens, noise, and recipient outgoing
+  const transfers: TransferSpec[] = [
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('100', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('1000', USDC.decimals), tokenAddress: usdcAddress },
+    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('42', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('250', TST.decimals), tokenAddress: tstAddress },
+    { from: recipient.key, to: noiseSender.address, amount: parseUnits('50', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('2500', USDC.decimals), tokenAddress: usdcAddress },
+    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('77', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('500', TST.decimals), tokenAddress: tstAddress },
+    { from: recipient.key, to: noiseSender.address, amount: parseUnits('100', USDC.decimals), tokenAddress: usdcAddress },
   ]
-  await makeTransfers(publicClient, tstAddress, tstTransferSpecs)
+  await makeTransfers(transfers)
 
-  // 5. Make USDC transfers to recipient (2 transfers)
-  const usdcTransferSpecs: TransferSpec[] = [
-    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('1000', USDC.decimals) },
-    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('2500', USDC.decimals) },
-  ]
-  await makeTransfers(publicClient, usdcAddress, usdcTransferSpecs)
+  // Read on-chain events filtered by recipient
+  const tstTransfers = await readTransferEvents(client, tstAddress, recipient.address)
+  const usdcTransfers = await readTransferEvents(client, usdcAddress, recipient.address)
 
-  // 6. Noise transfers (not to recipient — proves filtering works)
-  await makeTransfers(publicClient, tstAddress, [
-    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('42', TST.decimals) },
-  ])
-  await makeTransfers(publicClient, usdcAddress, [
-    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('77', USDC.decimals) },
-  ])
-
-  // 7. Read on-chain events filtered by recipient
-  const tstTransfers = await readTransferEvents(publicClient, tstAddress, recipient.address)
-  const usdcTransfers = await readTransferEvents(publicClient, usdcAddress, recipient.address)
-
-  // 8. Seed DB
+  // Seed DB
   await truncateAll()
 
   const tstToken = await seedToken({
@@ -123,7 +115,7 @@ export default async function globalSetup() {
     decimals: USDC.decimals,
   })
 
-  // 9. Seed 15 claims: 8 Ethereum (TST) + 7 Base (USDC)
+  // Seed 15 claims: 8 Ethereum (TST) + 7 Base (USDC)
   const claims = []
   for (let i = 0; i < 8; i++) {
     const claim = await seedClaim({
@@ -156,7 +148,7 @@ export default async function globalSetup() {
     claims.push(claim)
   }
 
-  // 10. Seed proofs: claims[0] gets 3, claims[1] gets 1
+  // Seed proofs: claims[0] gets 3, claims[1] gets 1
   const proofs = []
   for (let i = 0; i < 3; i++) {
     const proof = await seedProof({
@@ -175,7 +167,7 @@ export default async function globalSetup() {
   })
   proofs.push(singleProof)
 
-  // 11. Seed transfers from real Anvil events
+  // Seed transfers from real Anvil events
   let logIdx = 0
   for (const t of tstTransfers) {
     await seedTransfer({
@@ -206,7 +198,7 @@ export default async function globalSetup() {
 
   await closeDb()
 
-  // 12. Write fixture data
+  // Write fixture data
   writeFileSync(
     FIXTURE_PATH,
     JSON.stringify(

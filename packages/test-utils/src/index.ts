@@ -22,14 +22,13 @@ export { TEST_ERC20_ABI, TEST_ERC20_BYTECODE } from './contracts/erc20'
 
 // Anvil
 export {
-  createAnvilPublicClient,
-  createAnvilWalletClient,
+  createAnvilClient,
   deployTestERC20,
   mintTokens,
   makeTransfers,
   readTransferEvents,
 } from './anvil/setup'
-export type { TransferSpec } from './anvil/setup'
+export type { AnvilClient, TransferSpec } from './anvil/setup'
 
 // DB seeds
 export {
