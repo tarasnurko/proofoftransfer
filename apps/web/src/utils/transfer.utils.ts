@@ -2,17 +2,33 @@ import type { TransferEntity } from '@/db/index.types'
 import type { EtherscanTransfer } from '@/types'
 
 export function mapDbToEtherscanTransfer(transfer: TransferEntity): EtherscanTransfer {
+  const amount = 'amount' in transfer ? transfer.amount : '1'
+  const tokenId = 'tokenId' in transfer ? transfer.tokenId : undefined
+
   return {
     hash: transfer.txHash,
     from: transfer.senderAddress,
     to: transfer.recipientAddress,
     contractAddress: transfer.tokenAddress,
-    value: transfer.amount,
+    value: amount,
     timeStamp: transfer.blockTimestamp.toString(),
     blockNumber: transfer.blockNumber.toString(),
+    tokenId,
   }
 }
 
-export function mapTransferToDisplayItem(transfer: EtherscanTransfer) {
-  return { from: transfer.from, amount: transfer.value, timestamp: parseInt(transfer.timeStamp) }
+interface TransferDisplayItem {
+  from: string
+  amount: string
+  timestamp: number
+  tokenId?: string
+}
+
+export function mapTransferToDisplayItem(transfer: EtherscanTransfer): TransferDisplayItem {
+  return {
+    from: transfer.from,
+    amount: transfer.value,
+    timestamp: parseInt(transfer.timeStamp),
+    tokenId: transfer.tokenId,
+  }
 }

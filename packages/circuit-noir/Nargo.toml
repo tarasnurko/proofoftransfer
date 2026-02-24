@@ -1,0 +1,8 @@
+[package]
+name = "circuit_noir"
+type = "lib"
+authors = [""]
+
+[dependencies]
+poseidon = { tag = "v0.2.0", git = "https://github.com/noir-lang/poseidon" }
+ecrecover = { tag = "colinnielsen-patch-1", git = "https://github.com/colinnielsen/ecrecover-noir" }

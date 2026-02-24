@@ -22,7 +22,7 @@ import type { TransferEntity } from '@/db/index.types'
 import { ChainId } from '@repo/types'
 
 const DEBOUNCE_MS = 500
-const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'recipientAddress', 'fromDate', 'toDate'])
+const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'counterpartyAddress', 'isProverSender', 'tokenType', 'fromDate', 'toDate'])
 
 export function CreateClaimForm() {
   const router = useRouter()
@@ -43,9 +43,13 @@ export function CreateClaimForm() {
       claimMessage: '',
       chainId: ChainId.ETHEREUM,
       tokenAddress: '',
-      recipientAddress: '',
+      counterpartyAddress: '',
+      isProverSender: true,
+      tokenType: 'erc20' as const,
       minTransfersSum: '0',
       maxTransfersSum: '0',
+      minTransfersCount: 0,
+      maxTransfersCount: 0,
       fromDate: null,
       toDate: null,
     },
@@ -55,10 +59,12 @@ export function CreateClaimForm() {
   const watchedChainId = watch('chainId')
   const watchedMinTransfersSum = watch('minTransfersSum')
   const watchedMaxTransfersSum = watch('maxTransfersSum')
-  const watchedRecipientAddress = watch('recipientAddress')
+  const watchedCounterpartyAddress = watch('counterpartyAddress')
+  const watchedIsProverSender = watch('isProverSender')
+  const watchedTokenType = watch('tokenType')
 
   const debouncedTokenAddress = useDebounce(watchedTokenAddress, DEBOUNCE_MS)
-  const debouncedRecipient = useDebounce(watchedRecipientAddress, DEBOUNCE_MS)
+  const debouncedRecipient = useDebounce(watchedCounterpartyAddress, DEBOUNCE_MS)
   const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
 
   const {
@@ -112,8 +118,9 @@ export function CreateClaimForm() {
     const min = parseAmount(watchedMinTransfersSum)
     const max = parseAmount(watchedMaxTransfersSum)
     if (!min && !max) return fetchedTransfers
-    return fetchedTransfers.filter((t) => {
-      const amount = BigInt(t.amount)
+    return fetchedTransfers.filter((transfer) => {
+      const rawAmount = 'amount' in transfer ? transfer.amount : '1'
+      const amount = BigInt(rawAmount)
       if (min && amount < min) return false
       if (max && amount > max) return false
       return true
@@ -122,8 +129,11 @@ export function CreateClaimForm() {
 
   const userTransfers = useMemo(() => {
     if (!filteredTransfers || !walletAddress) return []
-    return filteredTransfers.filter((t) => isAddressEqual(t.senderAddress as Address, walletAddress as Address))
-  }, [filteredTransfers, walletAddress])
+    return filteredTransfers.filter((transfer) => {
+      const field = watchedIsProverSender ? transfer.senderAddress : transfer.recipientAddress
+      return isAddressEqual(field as Address, walletAddress as Address)
+    })
+  }, [filteredTransfers, walletAddress, watchedIsProverSender])
 
   const displayedTransfers = showOnlyMyTransfers ? userTransfers : (filteredTransfers ?? [])
   const userTransferCount = userTransfers.length
@@ -133,20 +143,22 @@ export function CreateClaimForm() {
   })
 
   const handleFetchTransfers = useCallback(async () => {
-    const valid = await trigger(['tokenAddress', 'recipientAddress', 'claimMessage', 'fromDate', 'toDate'])
+    const valid = await trigger(['tokenAddress', 'counterpartyAddress', 'claimMessage', 'fromDate', 'toDate'])
     if (!valid) {
       toast.error('Please fill the form correctly')
       return
     }
     if (!resolvedRecipientAddress) {
-      toast.error('Please enter a valid recipient address or ENS name')
+      toast.error('Please enter a valid counterparty address or ENS name')
       return
     }
     const formValues = watch()
     loadTransfersMutation.mutate({
       chainId: formValues.chainId,
       tokenAddress: formValues.tokenAddress,
-      recipientAddress: resolvedRecipientAddress,
+      counterpartyAddress: resolvedRecipientAddress,
+      isProverSender: formValues.isProverSender,
+      tokenType: formValues.tokenType,
       fromDate: formValues.fromDate ?? undefined,
       toDate: formValues.toDate ?? undefined,
     })
@@ -154,7 +166,7 @@ export function CreateClaimForm() {
 
   const onSubmit = useCallback(async (data: CreateClaimClientInput) => {
     if (!resolvedRecipientAddress) {
-      toast.error('Please enter a valid recipient address or ENS name')
+      toast.error('Please enter a valid counterparty address or ENS name')
       return
     }
     setLoading(true)
@@ -162,7 +174,7 @@ export function CreateClaimForm() {
     try {
       const result = await createClaimAction({
         ...data,
-        recipientAddress: resolvedRecipientAddress,
+        counterpartyAddress: resolvedRecipientAddress,
         fromDate: data.fromDate ?? undefined,
         toDate: data.toDate ?? undefined,
       })
@@ -204,13 +216,16 @@ export function CreateClaimForm() {
         ensError={ensError}
         errors={{
           tokenAddress: errors.tokenAddress?.message,
-          recipientAddress: errors.recipientAddress?.message,
+          counterpartyAddress: errors.counterpartyAddress?.message,
         }}
       />
 
       <AmountConstraintsCard
         register={register}
-        error={errors.maxTransfersSum?.message}
+        errors={{
+          maxTransfersSum: errors.maxTransfersSum?.message,
+          maxTransfersCount: errors.maxTransfersCount?.message,
+        }}
       />
 
       <TimeRangeCard

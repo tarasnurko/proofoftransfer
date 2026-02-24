@@ -39,7 +39,7 @@ export async function getClaims(options?: GetClaimsParams) {
     const pattern = `%${options.search}%`
     const searchCondition = or(
       ilike(claimsTable.message, pattern),
-      ilike(claimsTable.recipientAddress, pattern),
+      ilike(claimsTable.counterpartyAddress, pattern),
       ilike(claimsTable.tokenAddress, pattern),
       ilike(claimsTable.messageHash, pattern),
       sql`${claimsTable.id}::text ILIKE ${pattern}`,

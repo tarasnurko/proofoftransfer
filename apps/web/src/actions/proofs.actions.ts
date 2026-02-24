@@ -26,6 +26,7 @@ const externalTransferSchema = z.object({
   contractAddress: z.string(),
   value: z.string(),
   timeStamp: z.string(),
+  hash: z.string(),
 });
 
 const verifyProofSchema = z.object({

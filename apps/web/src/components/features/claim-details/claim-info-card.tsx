@@ -3,7 +3,7 @@ import { Address } from '@/components/shared/address'
 import { EnsAddress } from '@/components/shared/ens-address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatDateTime } from '@/utils/format.utils'
+import { formatDateTime, formatCountConstraint } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
 import type { Nullable } from '@/types/common.types'
 
@@ -38,19 +38,32 @@ export function ClaimInfoCard({
             <div className="text-sm font-bold text-muted-foreground">Token</div>
             <div className="mt-1 flex items-center gap-2">
               {claim.token ? `${claim.token.name} (${claim.token.symbol})` : 'Unknown'}
+              <span className="border-2 px-1.5 py-0.5 text-xs font-bold uppercase">{claim.tokenType}</span>
               <Address address={claim.tokenAddress} chainId={claim.chainId} chars={6} />
             </div>
           </div>
           <div>
-            <div className="text-sm font-bold text-muted-foreground">Recipient</div>
+            <div className="text-sm font-bold text-muted-foreground">Counterparty</div>
             <div className="mt-1">
-              <EnsAddress address={claim.recipientAddress} ensName={ensName} chainId={claim.chainId} />
+              <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
             </div>
+          </div>
+          <div>
+            <div className="text-sm font-bold text-muted-foreground">Prover Role</div>
+            <div className="mt-1 font-bold">{claim.isProverSender ? 'Sender' : 'Recipient'}</div>
           </div>
           <div>
             <div className="text-sm font-bold text-muted-foreground">Created</div>
             <div className="mt-1">{formatDateTime(claim.createdAt)}</div>
           </div>
+          {(claim.minTransfersCount > 0 || claim.maxTransfersCount > 0) ? (
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Transfer Count</div>
+              <div className="mt-1">
+                {formatCountConstraint(claim.minTransfersCount, claim.maxTransfersCount)}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div>

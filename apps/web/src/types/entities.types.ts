@@ -36,4 +36,5 @@ export interface EtherscanTransfer {
   value: string
   timeStamp: string
   blockNumber: string
+  tokenId?: string
 }

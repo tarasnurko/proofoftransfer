@@ -1,7 +1,7 @@
-export interface GetERC20TransfersParams {
+export interface GetTransfersParams {
   chainId: number
   tokenAddress: string
-  recipientAddress: string
+  address: string
   fromTimestamp?: number
   toTimestamp?: number
 }

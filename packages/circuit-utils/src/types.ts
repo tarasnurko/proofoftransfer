@@ -16,11 +16,14 @@ export type HashFnField = (
 export interface CircuitTransfer {
   amount: string;
   block_timestamp: string;
+  tx_hash: string;
 }
 
 export interface ClaimConstraints {
   minTransfersSum: bigint;
   maxTransfersSum: bigint;
+  minTransfersCount: bigint;
+  maxTransfersCount: bigint;
   fromBlockTimestamp: bigint;
   toBlockTimestamp: bigint;
 }

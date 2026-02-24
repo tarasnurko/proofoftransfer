@@ -74,6 +74,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
         contractAddress: t.contractAddress,
         value: t.value,
         timeStamp: t.timeStamp,
+        hash: t.hash,
       }))
 
       const result = await verifyProofAction({
@@ -138,6 +139,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
         text,
         tokenAddress: claim.tokenAddress,
         tokenDecimals: claim.token?.decimals ?? 18,
+        tokenType: claim.tokenType,
       })
       setCsvFiles(prev => [...prev, { name: file.name, transfers: parsed }])
     } catch (err) {

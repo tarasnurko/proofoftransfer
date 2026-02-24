@@ -9,10 +9,10 @@ import { Address } from '@/components/shared/address'
 import { EnsAddress } from '@/components/shared/ens-address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatTokenAmount, formatDate } from '@/utils/format.utils'
+import { formatTokenAmount, formatDate, formatCountConstraint } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
 import type { Nullable } from '@/types/common.types'
-import { Clock, Target, TrendingUp } from 'lucide-react'
+import { Clock, Hash, Target, TrendingUp, User } from 'lucide-react'
 
 function formatClaimTimestamp(timestamp: number) {
   if (!timestamp) return null
@@ -76,21 +76,36 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
             <span className="font-bold">Token:</span>
             <div className="flex items-center gap-2">
               <span className="text-sm">{tokenDisplay}</span>
+              <span className="border px-1 text-[10px] font-bold uppercase">{claim.tokenType}</span>
               <CopyHash hash={claim.tokenAddress} chars={0} />
             </div>
           </div>
           <div className="grid grid-cols-[80px_1fr] items-start gap-2">
-            <span className="font-bold">Recipient:</span>
-            <EnsAddress address={claim.recipientAddress} ensName={ensName} chainId={claim.chainId} />
+            <span className="font-bold">Counterparty:</span>
+            <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
           </div>
         </div>
 
         <div className="grid gap-2 text-sm">
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="font-bold">Prover:</span>
+            <span>{claim.isProverSender ? 'Sender' : 'Recipient'}</span>
+          </div>
+
+          <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <span className="font-bold">Amount:</span>
             <span>{getAmountConstraint(minAmount, maxAmount)}</span>
           </div>
+
+          {(claim.minTransfersCount > 0 || claim.maxTransfersCount > 0) ? (
+            <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span className="font-bold">Count:</span>
+              <span>{formatCountConstraint(claim.minTransfersCount, claim.maxTransfersCount)}</span>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />

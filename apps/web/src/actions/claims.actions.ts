@@ -8,7 +8,7 @@ import { RATE_LIMITS } from "@/services/rate-limit";
 import { createClaimSchema } from "@/validations/claim";
 import { dateToTimestamp } from "@/utils/date.utils";
 import { createClaim } from "@/db/queries/claims";
-import { getTransfersByConstraints } from "@/db/queries/transfers";
+import { getErc20Transfers, getErc721Transfers, getErc1155Transfers } from "@/db/queries/transfers";
 import {
   buildTransfersMerkleTree,
   mapDbTransferToHashInput,
@@ -27,13 +27,23 @@ export const createClaimAction = createRateLimitedActionClient('createClaim', RA
     const fromBlockTimestamp = dateToTimestamp(parsedInput.fromDate);
     const toBlockTimestamp = dateToTimestamp(parsedInput.toDate);
 
-    const storedTransfers = await getTransfersByConstraints({
+    const transferParams = {
       chainId: parsedInput.chainId,
       tokenAddress: parsedInput.tokenAddress,
-      recipientAddress: parsedInput.recipientAddress,
+      ...(parsedInput.isProverSender
+        ? { senderAddress: parsedInput.counterpartyAddress }
+        : { recipientAddress: parsedInput.counterpartyAddress }),
       fromTimestamp: fromBlockTimestamp || undefined,
       toTimestamp: toBlockTimestamp || undefined,
-    });
+    };
+
+    const queryFn = parsedInput.tokenType === 'erc721'
+      ? getErc721Transfers
+      : parsedInput.tokenType === 'erc1155'
+        ? getErc1155Transfers
+        : getErc20Transfers;
+
+    const storedTransfers = await queryFn(transferParams);
 
     if (!storedTransfers.length) {
       throw new Error("No transfers found — fetch transfers first");
@@ -48,9 +58,13 @@ export const createClaimAction = createRateLimitedActionClient('createClaim', RA
       message: parsedInput.claimMessage,
       messageHash,
       tokenAddress: parsedInput.tokenAddress,
-      recipientAddress: parsedInput.recipientAddress,
+      counterpartyAddress: parsedInput.counterpartyAddress,
+      isProverSender: parsedInput.isProverSender,
+      tokenType: parsedInput.tokenType,
       minTransfersSum: parsedInput.minTransfersSum,
       maxTransfersSum: parsedInput.maxTransfersSum,
+      minTransfersCount: parsedInput.minTransfersCount,
+      maxTransfersCount: parsedInput.maxTransfersCount,
       fromBlockTimestamp,
       toBlockTimestamp,
       chainId: parsedInput.chainId,

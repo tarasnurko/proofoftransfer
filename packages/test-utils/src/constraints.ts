@@ -6,6 +6,8 @@ export const getClaimConstraintsFromTransfer = (
 ): ClaimConstraints => ({
   minTransfersSum: BigInt(transfer.value),
   maxTransfersSum: BigInt(transfer.value),
+  minTransfersCount: 0n,
+  maxTransfersCount: 0n,
   fromBlockTimestamp: BigInt(transfer.timeStamp),
   toBlockTimestamp: BigInt(transfer.timeStamp),
 })
@@ -27,6 +29,8 @@ export const getClaimConstraintsFromTransfers = (
   return {
     minTransfersSum: totalSum,
     maxTransfersSum: totalSum,
+    minTransfersCount: 0n,
+    maxTransfersCount: 0n,
     fromBlockTimestamp: minTimestamp,
     toBlockTimestamp: maxTimestamp,
   }

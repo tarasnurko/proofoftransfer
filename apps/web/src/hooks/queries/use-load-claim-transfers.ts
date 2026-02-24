@@ -7,7 +7,9 @@ import type { ChainId } from '@repo/types'
 interface LoadClaimTransfersInput {
   chainId: ChainId
   tokenAddress: string
-  recipientAddress: string
+  counterpartyAddress: string
+  isProverSender?: boolean
+  tokenType?: string
   fromDate?: Date
   toDate?: Date
 }
@@ -23,7 +25,9 @@ export function useLoadClaimTransfers({ onSuccess }: UseLoadClaimTransfersParams
         json: {
           chainId: input.chainId,
           tokenAddress: input.tokenAddress,
-          recipientAddress: input.recipientAddress,
+          counterpartyAddress: input.counterpartyAddress,
+          isProverSender: input.isProverSender ?? true,
+          tokenType: (input.tokenType ?? 'erc20') as 'erc20' | 'erc721' | 'erc1155',
           fromDate: input.fromDate?.toISOString(),
           toDate: input.toDate?.toISOString(),
         },

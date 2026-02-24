@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { upsertTransfers } from '@/db/queries/transfers'
+import { upsertErc20Transfers } from '@/db/queries/transfers'
 import { createClaim } from '@/db/queries/claims'
-import { buildTransferSeed, buildClaimSeed } from '@repo/test-utils'
+import { buildErc20TransferSeed, buildClaimSeed } from '@repo/test-utils'
 import { ChainId } from '@repo/types'
 
 vi.mock('next/cache', () => ({
@@ -11,13 +11,13 @@ vi.mock('next/cache', () => ({
 describe('createClaimAction rate limit', () => {
   it('blocks second createClaim call within window (1/min)', async () => {
     const tokenAddress = '0x' + 'a'.repeat(40)
-    const recipientAddress = '0x' + 'b'.repeat(40)
+    const counterpartyAddress = '0x' + 'b'.repeat(40)
 
     // Seed enough transfers for two claim attempts
-    await upsertTransfers([
-      buildTransferSeed({
+    await upsertErc20Transfers([
+      buildErc20TransferSeed({
         tokenAddress,
-        recipientAddress,
+        recipientAddress: counterpartyAddress,
         chainId: ChainId.ETHEREUM,
         blockTimestamp: 1000,
         logIndex: 0,
@@ -31,9 +31,13 @@ describe('createClaimAction rate limit', () => {
     const validInput = {
       claimMessage: 'Rate limit test claim message one',
       tokenAddress,
-      recipientAddress,
+      counterpartyAddress,
+      isProverSender: true,
+      tokenType: 'erc20' as const,
       minTransfersSum: '0',
       maxTransfersSum: '0',
+      minTransfersCount: 0,
+      maxTransfersCount: 0,
       chainId: ChainId.ETHEREUM,
     }
 

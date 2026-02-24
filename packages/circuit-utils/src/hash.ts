@@ -1,7 +1,6 @@
 import type { Barretenberg } from "@aztec/bb.js";
-import type { EtherscanERC20Transfer } from "@repo/types";
 
-import { bigintToField, fieldToBigint, stringToField } from "./encoding.js";
+import { bigintToField, fieldToBigint, stringToField, reduceToField } from "./encoding.js";
 
 export const poseidon2HashString = async (
   api: Barretenberg,
@@ -37,10 +36,14 @@ export const poseidon2HashStringsLeftRight = async (
 
 export const hashTransfer = async (
   api: Barretenberg,
-  transfer: Pick<
-    EtherscanERC20Transfer,
-    "from" | "to" | "contractAddress" | "value" | "timeStamp"
-  >,
+  transfer: {
+    from: string;
+    to: string;
+    contractAddress: string;
+    value: string;
+    timeStamp: string;
+    hash: string;
+  },
 ): Promise<Uint8Array> => {
   const result = await api.poseidon2Hash({
     inputs: [
@@ -49,6 +52,7 @@ export const hashTransfer = async (
       bigintToField(BigInt(transfer.contractAddress)),
       bigintToField(BigInt(transfer.value)),
       bigintToField(BigInt(transfer.timeStamp)),
+      bigintToField(reduceToField(BigInt(transfer.hash))),
     ],
   });
   return result.hash;

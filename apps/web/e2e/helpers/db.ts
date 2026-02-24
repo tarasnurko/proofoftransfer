@@ -23,13 +23,28 @@ export async function seedToken(data: typeof schema.tokensTable.$inferInsert) {
   return token!
 }
 
-export async function seedTransfer(data: typeof schema.transfersTable.$inferInsert) {
-  const [transfer] = await testDb.insert(schema.transfersTable).values(data).returning()
+export async function seedErc20Transfer(data: typeof schema.erc20TransfersTable.$inferInsert) {
+  const [transfer] = await testDb.insert(schema.erc20TransfersTable).values(data).returning()
   return transfer!
 }
 
+export async function seedErc721Transfer(data: typeof schema.erc721TransfersTable.$inferInsert) {
+  const [transfer] = await testDb.insert(schema.erc721TransfersTable).values(data).returning()
+  return transfer!
+}
+
+export async function seedErc1155Transfer(data: typeof schema.erc1155TransfersTable.$inferInsert) {
+  const [transfer] = await testDb.insert(schema.erc1155TransfersTable).values(data).returning()
+  return transfer!
+}
+
+/** @deprecated Use seedErc20Transfer instead */
+export async function seedTransfer(data: typeof schema.erc20TransfersTable.$inferInsert) {
+  return seedErc20Transfer(data)
+}
+
 export async function truncateAll() {
-  await testDb.execute(sql`TRUNCATE TABLE proof_verifications, proofs, transfers, claims, tokens CASCADE`)
+  await testDb.execute(sql`TRUNCATE TABLE proof_verifications, proofs, erc20_transfers, erc721_transfers, erc1155_transfers, claims, tokens CASCADE`)
 }
 
 export async function closeDb() {

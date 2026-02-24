@@ -5,14 +5,14 @@ import { EtherscanService } from '../etherscan.service'
 
 describe('EtherscanService', () => {
   const service = new EtherscanService()
-  const recipientAddress = '0x' + 'a'.repeat(40)
+  const address = '0x' + 'a'.repeat(40)
   const tokenAddress = '0x' + 'b'.repeat(40)
 
   describe('getERC20Transfers', () => {
     it('returns transfers from MSW mock', async () => {
       const mockTransfers = [
-        generateTransfer({ from: '0x' + 'c'.repeat(40), to: recipientAddress, tokenAddress }),
-        generateTransfer({ from: '0x' + 'd'.repeat(40), to: recipientAddress, tokenAddress }),
+        generateTransfer({ from: '0x' + 'c'.repeat(40), to: address, tokenAddress }),
+        generateTransfer({ from: '0x' + 'd'.repeat(40), to: address, tokenAddress }),
       ]
       // Override timeStamp to be within range
       mockTransfers.forEach((t) => { t.timeStamp = '1500' })
@@ -27,7 +27,7 @@ describe('EtherscanService', () => {
       const result = await service.getERC20Transfers({
         chainId: 1,
         tokenAddress,
-        recipientAddress,
+        address,
         fromTimestamp: 1000,
         toTimestamp: 2000,
       })
@@ -41,7 +41,7 @@ describe('EtherscanService', () => {
       const result = await service.getERC20Transfers({
         chainId: 1,
         tokenAddress,
-        recipientAddress,
+        address,
       })
 
       expect(result).toEqual([])
@@ -54,14 +54,14 @@ describe('EtherscanService', () => {
       server.use(...createEtherscanHandlers())
 
       await expect(
-        badService.getERC20Transfers({ chainId: 1, tokenAddress, recipientAddress }),
+        badService.getERC20Transfers({ chainId: 1, tokenAddress, address }),
       ).rejects.toThrow('Invalid or missing Etherscan API key')
     })
 
     it('filters transfers by recipient and token address', async () => {
       const wrongRecipient = '0x' + 'e'.repeat(40)
       const mockTransfers = [
-        { ...generateTransfer({ to: recipientAddress, tokenAddress }), timeStamp: '1500' },
+        { ...generateTransfer({ to: address, tokenAddress }), timeStamp: '1500' },
         { ...generateTransfer({ to: wrongRecipient, tokenAddress }), timeStamp: '1500' },
       ]
 
@@ -75,7 +75,7 @@ describe('EtherscanService', () => {
       const result = await service.getERC20Transfers({
         chainId: 1,
         tokenAddress,
-        recipientAddress,
+        address,
         fromTimestamp: 1000,
         toTimestamp: 2000,
       })

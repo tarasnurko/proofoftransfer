@@ -30,8 +30,9 @@ export function TransfersPreviewCard({
   const mappedTransfers = useMemo(
     () => transfers.map((t) => ({
       from: t.senderAddress,
-      amount: t.amount,
+      amount: 'amount' in t ? t.amount : '1',
       timestamp: t.blockTimestamp,
+      tokenId: 'tokenId' in t ? t.tokenId : undefined,
     })),
     [transfers],
   )

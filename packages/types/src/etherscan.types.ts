@@ -23,7 +23,7 @@ export interface EtherscanERC20TransfersRequestParams {
   endblock: number;
 }
 
-export interface EtherscanERC20Transfer {
+interface EtherscanBaseTransfer {
   blockNumber: string;
   timeStamp: string;
   hash: string;
@@ -32,10 +32,8 @@ export interface EtherscanERC20Transfer {
   from: string;
   contractAddress: string;
   to: string;
-  value: string;
   tokenName: string;
   tokenSymbol: string;
-  tokenDecimal: string;
   transactionIndex: string;
   gas: string;
   gasPrice: string;
@@ -45,4 +43,19 @@ export interface EtherscanERC20Transfer {
   methodId: string;
   functionName: string;
   confirmations: string;
+}
+
+export interface EtherscanERC20Transfer extends EtherscanBaseTransfer {
+  value: string;
+  tokenDecimal: string;
+}
+
+export interface EtherscanERC721Transfer extends EtherscanBaseTransfer {
+  tokenID: string;
+  tokenDecimal: string;
+}
+
+export interface EtherscanERC1155Transfer extends EtherscanBaseTransfer {
+  tokenID: string;
+  tokenValue: string;
 }

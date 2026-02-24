@@ -16,6 +16,7 @@ export interface TransferDisplayItem {
   amount: string
   timestamp: number
   txHash?: string
+  tokenId?: string
 }
 
 interface VirtualTransferListProps {
@@ -23,6 +24,7 @@ interface VirtualTransferListProps {
   token?: { decimals: number; symbol: string } | null
   walletAddress?: string
   chainId?: number
+  tokenType?: string
   maxHeight?: number
   isLoading?: boolean
 }
@@ -72,6 +74,7 @@ export function VirtualTransferList({
   token,
   walletAddress,
   chainId,
+  tokenType,
   maxHeight = DEFAULT_MAX_HEIGHT,
   isLoading,
 }: VirtualTransferListProps) {
@@ -128,10 +131,14 @@ export function VirtualTransferList({
                   {formatDate(transfer.timestamp * 1000)}
                 </div>
               </div>
-              <CopyableAmount
-                amount={transfer.amount}
-                token={token}
-              />
+              <div className="flex items-center gap-3">
+                {transfer.tokenId != null && (tokenType === 'erc721' || tokenType === 'erc1155') ? (
+                  <span className="font-mono text-sm text-muted-foreground">#{transfer.tokenId}</span>
+                ) : null}
+                {tokenType !== 'erc721' ? (
+                  <CopyableAmount amount={transfer.amount} token={token} />
+                ) : null}
+              </div>
             </div>
           )
         })}

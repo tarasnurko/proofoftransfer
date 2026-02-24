@@ -14,6 +14,7 @@ export {
   stringToField,
   hexToUint8Array,
   uint8ArrayToHex,
+  reduceToField,
 } from "./encoding.js";
 
 // EIP-712

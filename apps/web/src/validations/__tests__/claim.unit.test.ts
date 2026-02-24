@@ -7,7 +7,11 @@ describe('createClaimSchema', () => {
   const validInput = {
     claimMessage: 'This is a valid test claim message',
     tokenAddress: '0x1234567890123456789012345678901234567890',
-    recipientAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    counterpartyAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    isProverSender: true,
+    tokenType: 'erc20',
+    minTransfersCount: 0,
+    maxTransfersCount: 0,
     minTransfersSum: '100',
     maxTransfersSum: '1000',
     chainId: ChainId.ETHEREUM,

@@ -3,7 +3,7 @@ import { getClaimById } from '@/db/queries/claims'
 import { getChainName } from '@/utils/explorer.utils'
 import { CHAIN_HEX_COLORS } from '@/constants'
 import { EnsService } from '@/services/ens/ens.service'
-import { DataCell, formatOgAmount, formatOgRecipient, formatOgPeriod, formatOgCreatedAt } from '@/lib/og'
+import { DataCell, formatOgAmount, formatOgCounterparty, formatOgPeriod, formatOgCreatedAt, formatOgTransferCount } from '@/lib/og'
 
 export const alt = 'Claim details'
 export const size = { width: 1200, height: 630 }
@@ -35,11 +35,13 @@ export default async function Image({
 
   const chainName = getChainName(claim.chainId)
   const chainColor = CHAIN_HEX_COLORS[claim.chainId] ?? '#666'
-  const ensName = await EnsService.getCachedEnsName(claim.recipientAddress)
-  const recipient = ensName || formatOgRecipient(claim.recipientAddress)
+  const ensName = await EnsService.getCachedEnsName(claim.counterpartyAddress)
+  const counterparty = ensName || formatOgCounterparty(claim.counterpartyAddress)
   const tokenName = claim.token?.name
   const tokenSymbol = claim.token?.symbol
+  const tokenTypeLabel = claim.tokenType.toUpperCase()
   const amount = formatOgAmount(claim.minTransfersSum, claim.maxTransfersSum, claim.token?.decimals)
+  const transferCount = formatOgTransferCount(claim.minTransfersCount, claim.maxTransfersCount)
   const period = formatOgPeriod(claim.fromBlockTimestamp, claim.toBlockTimestamp)
   const createdAt = formatOgCreatedAt(claim.createdAt)
 
@@ -68,9 +70,9 @@ export default async function Image({
           </div>
           {/* Data grid */}
           <div style={{ display: 'flex', borderTop: '4px solid #000' }}>
-            <DataCell label="TOKEN" value={tokenName || tokenSymbol || claim.tokenAddress} value2={tokenName && tokenSymbol ? tokenSymbol : undefined} flex={1} />
-            <DataCell label="RECIPIENT" value={recipient} flex={1.2} />
-            <DataCell label="AMOUNT" value={amount} />
+            <DataCell label="TOKEN" value={tokenName || tokenSymbol || claim.tokenAddress} value2={tokenTypeLabel} flex={1} />
+            <DataCell label="COUNTERPARTY" value={counterparty} flex={1.2} />
+            <DataCell label="AMOUNT" value={amount} value2={transferCount || undefined} />
             <DataCell label="PERIOD" value={period.value} value2={period.value2} flex={1.2} />
             <DataCell label="CREATED" value={createdAt} flex={0.8} borderRight={false} />
           </div>

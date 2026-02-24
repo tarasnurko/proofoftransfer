@@ -14,10 +14,10 @@ import {
   bigintToBytes32,
   hexToUint8Array,
 } from '@repo/circuit-utils'
-import { getTransfersForClaim } from '@/db/queries/transfers'
+import { getErc20Transfers, getErc721Transfers, getErc1155Transfers } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import type { Eip712ClaimFields } from '@/lib/proof'
-import type { TransferEntity } from '@/db/index.types'
+import type { ClaimEntity, TransferEntity } from '@/db/index.types'
 
 export interface TransferHashInput {
   from: string
@@ -25,19 +25,21 @@ export interface TransferHashInput {
   contractAddress: string
   value: string
   timeStamp: string
+  hash: string
 }
 
-
 export function mapDbTransferToHashInput(transfer: TransferEntity): TransferHashInput {
+  const amount = 'amount' in transfer ? transfer.amount : '1'
+
   return {
     from: transfer.senderAddress,
     to: transfer.recipientAddress,
     contractAddress: transfer.tokenAddress,
-    value: transfer.amount,
+    value: amount,
     timeStamp: transfer.blockTimestamp.toString(),
+    hash: transfer.txHash,
   }
 }
-
 
 export async function buildTransfersMerkleTree(
   bb: Barretenberg,
@@ -46,8 +48,8 @@ export async function buildTransfersMerkleTree(
   const transferHashesBytes = await Promise.all(
     transfers.map((transfer) => hashTransfer(bb, transfer)),
   )
-  const transferHashes = transferHashesBytes.map((h) =>
-    fieldToBigint(h).toString(),
+  const transferHashes = transferHashesBytes.map((hashBytes) =>
+    fieldToBigint(hashBytes).toString(),
   )
 
   const merkleTree = new MerkleTree(
@@ -60,18 +62,22 @@ export async function buildTransfersMerkleTree(
   return { merkleTree, merkleRoot: merkleTree.root(), transferHashes }
 }
 
+interface BuildEip712ClaimFieldsInput {
+  message: string
+  tokenAddress: string
+  counterpartyAddress: string
+  isProverSender: boolean
+  minTransfersSum: string | null
+  maxTransfersSum: string | null
+  minTransfersCount: number | null
+  maxTransfersCount: number | null
+  fromBlockTimestamp: number | null
+  toBlockTimestamp: number | null
+}
 
 export async function buildEip712ClaimFields(
   bb: Barretenberg,
-  claim: {
-    message: string
-    tokenAddress: string
-    recipientAddress: string
-    minTransfersSum: string | null
-    maxTransfersSum: string | null
-    fromBlockTimestamp: number | null
-    toBlockTimestamp: number | null
-  },
+  claim: BuildEip712ClaimFieldsInput,
   claimId: string,
   merkleRoot: string | bigint,
 ): Promise<Eip712ClaimFields> {
@@ -88,23 +94,32 @@ export async function buildEip712ClaimFields(
     claimId: claimId32,
     claimMessageHash,
     tokenAddress: claim.tokenAddress,
-    recipientAddress: claim.recipientAddress,
+    counterpartyAddress: claim.counterpartyAddress,
+    isProverSender: claim.isProverSender,
     minTransfersSum: BigInt(claim.minTransfersSum || '0').toString(),
     maxTransfersSum: BigInt(claim.maxTransfersSum || '0').toString(),
+    minTransfersCount: (claim.minTransfersCount || 0).toString(),
+    maxTransfersCount: (claim.maxTransfersCount || 0).toString(),
     fromBlockTimestamp: BigInt(claim.fromBlockTimestamp || 0).toString(),
     toBlockTimestamp: BigInt(claim.toBlockTimestamp || 0).toString(),
     transfersRootHash,
   }
 }
 
-
-export async function verifyProofServer(params: {
+interface VerifyProofServerParams {
   proofData: string
   publicInputs: string[]
   claimId: string
   transfersRootHash: string
   externalTransfers?: TransferHashInput[]
-}): Promise<{ isValid: boolean; error?: string }> {
+}
+
+interface VerifyProofServerResult {
+  isValid: boolean
+  error?: string
+}
+
+export async function verifyProofServer(params: VerifyProofServerParams): Promise<VerifyProofServerResult> {
   try {
     const bb = await BarretenbergImpl.new({ threads: 1 })
 
@@ -115,8 +130,19 @@ export async function verifyProofServer(params: {
         (a, b) => Number(a.timeStamp) - Number(b.timeStamp),
       )
     } else {
-      const claimTransfers = await getTransfersForClaim(params.claimId)
-      transfers = claimTransfers.map(mapDbTransferToHashInput)
+      const claim = await getClaimById(params.claimId)
+      if (!claim) throw new Error('Claim not found')
+
+      const queryParams = buildTransferQueryFromClaim(claim)
+      let dbTransfers: TransferEntity[]
+      if (claim.tokenType === 'erc721') {
+        dbTransfers = await getErc721Transfers(queryParams)
+      } else if (claim.tokenType === 'erc1155') {
+        dbTransfers = await getErc1155Transfers(queryParams)
+      } else {
+        dbTransfers = await getErc20Transfers(queryParams)
+      }
+      transfers = dbTransfers.map(mapDbTransferToHashInput)
     }
 
     const { merkleRoot } = await buildTransfersMerkleTree(bb, transfers)
@@ -149,12 +175,19 @@ export async function verifyProofServer(params: {
   }
 }
 
-
 export async function prepareSigningBase(claimId: string) {
   const claim = await getClaimById(claimId)
   if (!claim) throw new Error('Claim not found')
 
-  const claimTransfers = await getTransfersForClaim(claimId)
+  const queryParams = buildTransferQueryFromClaim(claim)
+  let claimTransfers: TransferEntity[]
+  if (claim.tokenType === 'erc721') {
+    claimTransfers = await getErc721Transfers(queryParams)
+  } else if (claim.tokenType === 'erc1155') {
+    claimTransfers = await getErc1155Transfers(queryParams)
+  } else {
+    claimTransfers = await getErc20Transfers(queryParams)
+  }
   if (!claimTransfers.length) throw new Error('No transfers found for this claim')
 
   const bb = await BarretenbergImpl.new({ threads: 1 })
@@ -167,4 +200,18 @@ export async function prepareSigningBase(claimId: string) {
   const eip712 = await buildEip712ClaimFields(bb, claim, claimId, merkleRoot)
 
   return { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId: claim.chainId }
+}
+
+// ─── Helpers ────────────────────────────────────────────────
+
+function buildTransferQueryFromClaim(claim: ClaimEntity) {
+  return {
+    chainId: claim.chainId,
+    tokenAddress: claim.tokenAddress,
+    ...(claim.isProverSender
+      ? { senderAddress: claim.counterpartyAddress }
+      : { recipientAddress: claim.counterpartyAddress }),
+    fromTimestamp: claim.fromBlockTimestamp || undefined,
+    toTimestamp: claim.toBlockTimestamp || undefined,
+  }
 }

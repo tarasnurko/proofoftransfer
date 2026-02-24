@@ -3,7 +3,7 @@ import type { Barretenberg } from "@aztec/bb.js";
 import type { EtherscanERC20Transfer } from "@repo/types";
 
 import type { MerkleProof, CircuitTransfer, ClaimConstraints } from "./types.js";
-import { bigintToField, fieldToBigint } from "./encoding.js";
+import { bigintToField, fieldToBigint, reduceToField } from "./encoding.js";
 import { EIP712_CLAIM_TYPES, buildEip712Domain } from "./eip712.js";
 
 export const uuidToBytes32 = (uuid: string): `0x${string}` => {
@@ -22,6 +22,7 @@ export const bigintToBytes32 = (value: string | bigint): `0x${string}` => {
 export const createEmptyTransfer = (): CircuitTransfer => ({
   amount: "0",
   block_timestamp: "0",
+  tx_hash: "0",
 });
 
 export const mapToCircuitTransfer = (
@@ -29,6 +30,7 @@ export const mapToCircuitTransfer = (
 ): CircuitTransfer => ({
   amount: transfer.value,
   block_timestamp: transfer.timeStamp,
+  tx_hash: "0x" + reduceToField(BigInt(transfer.hash)).toString(16),
 });
 
 export const mapToCircuitTransfers = (
@@ -77,7 +79,8 @@ export const constructClaimMessage = (params: {
   claimIdBytes32: `0x${string}`;
   claimMessageHashBytes32: `0x${string}`;
   tokenAddressBytes32: `0x${string}`;
-  userAddressBytes32: `0x${string}`;
+  counterpartyAddressBytes32: `0x${string}`;
+  isProverSender: boolean;
   chainId: bigint;
   claimConstraints: ClaimConstraints;
   merkleTreeRootBytes32: `0x${string}`;
@@ -86,7 +89,8 @@ export const constructClaimMessage = (params: {
     claimIdBytes32,
     claimMessageHashBytes32,
     tokenAddressBytes32,
-    userAddressBytes32,
+    counterpartyAddressBytes32,
+    isProverSender,
     chainId,
     claimConstraints,
     merkleTreeRootBytes32,
@@ -94,7 +98,7 @@ export const constructClaimMessage = (params: {
 
   // Extract 20-byte addresses from bytes32
   const tokenAddress = ('0x' + tokenAddressBytes32.slice(-40)) as `0x${string}`;
-  const recipientAddress = ('0x' + userAddressBytes32.slice(-40)) as `0x${string}`;
+  const counterpartyAddress = ('0x' + counterpartyAddressBytes32.slice(-40)) as `0x${string}`;
 
   return hashTypedData({
     domain: buildEip712Domain(chainId),
@@ -104,9 +108,12 @@ export const constructClaimMessage = (params: {
       claimId: claimIdBytes32,
       claimMessageHash: claimMessageHashBytes32,
       tokenAddress,
-      recipientAddress,
+      counterpartyAddress,
+      isProverSender,
       minTransfersSum: claimConstraints.minTransfersSum,
       maxTransfersSum: claimConstraints.maxTransfersSum,
+      minTransfersCount: Number(claimConstraints.minTransfersCount),
+      maxTransfersCount: Number(claimConstraints.maxTransfersCount),
       fromBlockTimestamp: claimConstraints.fromBlockTimestamp,
       toBlockTimestamp: claimConstraints.toBlockTimestamp,
       transfersRootHash: merkleTreeRootBytes32,

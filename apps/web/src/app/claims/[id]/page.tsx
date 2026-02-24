@@ -5,6 +5,7 @@ import { ClaimDetails } from '@/components/features/claim-details/claim-details'
 import { getClaimById } from '@/db/queries/claims'
 import { EnsService } from '@/services/ens'
 import { getChainName } from '@/utils/explorer.utils'
+import { z } from 'zod'
 
 export async function generateMetadata({
   params,
@@ -12,6 +13,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
   const { id } = await params
+  if (!z.string().uuid().safeParse(id).success) return { title: 'Claim Not Found' }
+
   const claim = await getClaimById(id)
 
   if (!claim) return { title: 'Claim Not Found' }
@@ -33,11 +36,12 @@ export default async function ClaimDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  if (!z.string().uuid().safeParse(id).success) notFound()
 
   const claim = await getClaimById(id)
   if (!claim) notFound()
 
-  const ensName = await EnsService.getCachedEnsName(claim.recipientAddress)
+  const ensName = await EnsService.getCachedEnsName(claim.counterpartyAddress)
 
   return (
     <PageContainer>

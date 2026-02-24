@@ -49,7 +49,7 @@ export function ClaimsList({ claims, ensNames, total, totalPages, currentPage, p
 
       <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         {claims.map((claim) => (
-          <ClaimCard key={claim.id} claim={claim} ensName={ensNames[claim.recipientAddress]} />
+          <ClaimCard key={claim.id} claim={claim} ensName={ensNames[claim.counterpartyAddress]} />
         ))}
       </div>
 

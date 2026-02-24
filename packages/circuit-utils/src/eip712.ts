@@ -12,9 +12,12 @@ export interface ClaimEip712Message {
   claimId: Address;
   claimMessageHash: Address;
   tokenAddress: Address;
-  recipientAddress: Address;
+  counterpartyAddress: Address;
+  isProverSender: boolean;
   minTransfersSum: bigint;
   maxTransfersSum: bigint;
+  minTransfersCount: number;
+  maxTransfersCount: number;
   fromBlockTimestamp: bigint;
   toBlockTimestamp: bigint;
   transfersRootHash: Address;
@@ -25,9 +28,12 @@ export const EIP712_CLAIM_TYPES = {
     { name: "claimId", type: "bytes32" },
     { name: "claimMessageHash", type: "bytes32" },
     { name: "tokenAddress", type: "address" },
-    { name: "recipientAddress", type: "address" },
+    { name: "counterpartyAddress", type: "address" },
+    { name: "isProverSender", type: "bool" },
     { name: "minTransfersSum", type: "uint128" },
     { name: "maxTransfersSum", type: "uint128" },
+    { name: "minTransfersCount", type: "uint32" },
+    { name: "maxTransfersCount", type: "uint32" },
     { name: "fromBlockTimestamp", type: "uint64" },
     { name: "toBlockTimestamp", type: "uint64" },
     { name: "transfersRootHash", type: "bytes32" },

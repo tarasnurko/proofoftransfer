@@ -1,26 +1,41 @@
 /**
- * Parses Etherscan ERC20 token transfer CSV exports.
+ * Parses Etherscan token transfer CSV exports.
  *
- * Expected CSV format (from etherscan.io "Download CSV Export"):
- *   "Transaction Hash","Blockno","UnixTimestamp","DateTime (UTC)","From","To","Quantity","Method"
+ * Supported formats:
+ *   ERC-20:  Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
+ *   ERC-721: Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId
+ *   ERC-1155: Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId, TokenValue
  */
 import Papa from 'papaparse'
 import { parseUnits } from 'viem'
 import type { EtherscanTransfer } from '@/types'
 
-/** Normalized header names after lowercasing + stripping non-alphanumeric chars */
-const REQUIRED_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
+const ERC20_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
+const ERC721_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'tokenid']
+const ERC1155_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'tokenid', 'tokenvalue']
+
+const FORMAT_HINTS: Record<string, string> = {
+  erc20: 'Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity',
+  erc721: 'Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId',
+  erc1155: 'Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId, TokenValue',
+}
 
 export interface ParseEtherscanCsvParams {
   text: string
   tokenAddress: string
   tokenDecimals: number
+  tokenType?: string
+}
+
+export function getExpectedCsvFormat(tokenType?: string): string {
+  return FORMAT_HINTS[tokenType || 'erc20'] || FORMAT_HINTS.erc20!
 }
 
 export function parseEtherscanCsv({
   text,
   tokenAddress,
   tokenDecimals,
+  tokenType = 'erc20',
 }: ParseEtherscanCsvParams): EtherscanTransfer[] {
   const { data, errors } = Papa.parse<Record<string, string>>(text, {
     header: true,
@@ -37,31 +52,49 @@ export function parseEtherscanCsv({
   }
 
   const headers = Object.keys(data[0]!)
-  const hasValidFormat = REQUIRED_HEADERS.every((h) =>
+  const requiredHeaders = getRequiredHeaders(tokenType)
+  const hasValidFormat = requiredHeaders.every((h) =>
     headers.some((header) => header.includes(h)),
   )
 
   if (!hasValidFormat) {
     throw new Error(
-      'Invalid CSV format. Expected Etherscan ERC20 transfer CSV with columns: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity',
+      `Invalid CSV format. Expected ${tokenType.toUpperCase()} transfer CSV with columns: ${getExpectedCsvFormat(tokenType)}`,
     )
   }
 
   const parsed: EtherscanTransfer[] = data.map((row) => {
+    const base = {
+      hash: row['transactionhash'] || '',
+      from: row['from'] || '',
+      to: row['to'] || '',
+      contractAddress: tokenAddress,
+      timeStamp: row['unixtimestamp'] || '',
+      blockNumber: row['blockno'] || '',
+    }
+
+    if (tokenType === 'erc721') {
+      return {
+        ...base,
+        value: '1',
+        tokenId: row['tokenid'] || '0',
+      }
+    }
+
+    if (tokenType === 'erc1155') {
+      return {
+        ...base,
+        value: row['tokenvalue'] || '0',
+        tokenId: row['tokenid'] || '0',
+      }
+    }
+
     const rawQuantity = row['quantity'] || ''
     const rawValue = rawQuantity.includes('.')
       ? parseUnits(rawQuantity, tokenDecimals).toString()
       : rawQuantity
 
-    return {
-      hash: row['transactionhash'] || '',
-      from: row['from'] || '',
-      to: row['to'] || '',
-      contractAddress: tokenAddress,
-      value: rawValue,
-      timeStamp: row['unixtimestamp'] || '',
-      blockNumber: row['blockno'] || '',
-    }
+    return { ...base, value: rawValue }
   })
 
   if (!parsed.length) {
@@ -69,4 +102,10 @@ export function parseEtherscanCsv({
   }
 
   return parsed
+}
+
+function getRequiredHeaders(tokenType: string): string[] {
+  if (tokenType === 'erc721') return ERC721_HEADERS
+  if (tokenType === 'erc1155') return ERC1155_HEADERS
+  return ERC20_HEADERS
 }

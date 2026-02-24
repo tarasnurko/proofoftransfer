@@ -188,7 +188,9 @@ describe('rate limiting on real Hono app routes', () => {
           body: JSON.stringify({
             chainId: 1,
             tokenAddress: '0x' + 'a'.repeat(40),
-            recipientAddress: '0x' + 'b'.repeat(40),
+            counterpartyAddress: '0x' + 'b'.repeat(40),
+            isProverSender: true,
+            tokenType: 'erc20',
           }),
         }),
       )

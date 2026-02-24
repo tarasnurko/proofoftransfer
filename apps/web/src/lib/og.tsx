@@ -46,7 +46,7 @@ export function identiconStripsSvg(
   const cellStep = cellSize + gap
   const topCols = Math.floor(1200 / cellStep)
   const leftRows = Math.floor(630 / cellStep)
-  const gridCols = grid[0].length
+  const gridCols = grid[0]!.length
   const gridRows = grid.length
 
   let rects = ''
@@ -54,7 +54,7 @@ export function identiconStripsSvg(
   // Top strip: 2 rows, full width
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < topCols; c++) {
-      if (grid[r][c % gridCols]) {
+      if (grid[r]![c % gridCols]) {
         rects += `<rect x="${c * cellStep}" y="${r * cellStep}" width="${cellSize}" height="${cellSize}" fill="${color}"/>`
       }
     }
@@ -63,7 +63,7 @@ export function identiconStripsSvg(
   // Left strip: 2 cols, full height (skip top 2 rows — already covered)
   for (let r = 2; r < leftRows; r++) {
     for (let c = 0; c < 2; c++) {
-      if (grid[r % gridRows][c]) {
+      if (grid[r % gridRows]![c]) {
         rects += `<rect x="${c * cellStep}" y="${r * cellStep}" width="${cellSize}" height="${cellSize}" fill="${color}"/>`
       }
     }
@@ -117,11 +117,18 @@ export function formatOgAmount(rawMin: string, rawMax: string, decimals?: number
   return 'Any amount'
 }
 
-export function formatOgRecipient(address: string): string {
+export function formatOgCounterparty(address: string): string {
   if (address.startsWith('0x') && address.length === 42) {
     return `${address.slice(0, 10)}...${address.slice(-8)}`
   }
   return address
+}
+
+export function formatOgTransferCount(min: number, max: number): string {
+  if (min > 0 && max > 0) return `${min} — ${max}`
+  if (min > 0) return `≥ ${min}`
+  if (max > 0) return `≤ ${max}`
+  return ''
 }
 
 export function formatOgDate(timestamp: number): string {

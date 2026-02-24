@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createClaim } from '@/db/queries/claims'
 import { createProof } from '@/db/queries/proofs'
-import { upsertTransfers } from '@/db/queries/transfers'
-import { buildClaimSeed, buildProofSeed, buildTransferSeed } from '@repo/test-utils'
+import { upsertErc20Transfers } from '@/db/queries/transfers'
+import { buildClaimSeed, buildProofSeed, buildErc20TransferSeed } from '@repo/test-utils'
 
 // The hono app imports modules that may reference next/cache transitively
 vi.mock('next/cache', () => ({
@@ -48,15 +48,19 @@ describe('claims routes (Hono)', () => {
   describe('GET /:id/transfers', () => {
     it('returns transfers for a claim', async () => {
       const tokenAddress = '0x' + 'a'.repeat(40)
-      const recipientAddress = '0x' + 'b'.repeat(40)
+      const counterpartyAddress = '0x' + 'b'.repeat(40)
 
-      await upsertTransfers([
-        buildTransferSeed({ tokenAddress, recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + '1'.repeat(64) }),
+      await upsertErc20Transfers([
+        buildErc20TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '1'.repeat(64) }),
       ])
 
       const claim = await createClaim(buildClaimSeed({
         tokenAddress,
-        recipientAddress,
+        counterpartyAddress,
+        isProverSender: true,
+        tokenType: 'erc20',
+        minTransfersCount: 0,
+        maxTransfersCount: 0,
         chainId: 1,
       }))
 

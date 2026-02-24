@@ -45,8 +45,11 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
 
   const userTransfers = useMemo(() => {
     if (!walletAddress) return []
-    return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address))
-  }, [transfers, walletAddress])
+    return transfers.filter(transfer => {
+      const field = claim.isProverSender ? transfer.from : transfer.to
+      return isAddressEqual(field as Address, walletAddress as Address)
+    })
+  }, [transfers, walletAddress, claim.isProverSender])
 
   const displayedTransfers = showOnlyMyTransfers ? userTransfers : transfers
   const userTransferCount = userTransfers.length
@@ -154,6 +157,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
           showOnlyMyTransfers={showOnlyMyTransfers}
           onToggleMyTransfers={() => setShowOnlyMyTransfers(prev => !prev)}
           walletAddress={walletAddress}
+          tokenType={claim.tokenType}
           isLoading={transfersLoading}
         />
 

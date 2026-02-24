@@ -18,9 +18,13 @@ export function buildClaimSeed(overrides: Record<string, unknown> = {}) {
     message: 'Test claim message for integration testing',
     messageHash: '0x' + randomUUID().replace(/-/g, '').padEnd(64, '0'),
     tokenAddress: '0x' + '1'.repeat(40),
-    recipientAddress: '0x' + '2'.repeat(40),
+    counterpartyAddress: '0x' + '2'.repeat(40),
+    isProverSender: true,
+    tokenType: 'erc20',
     minTransfersSum: '0',
     maxTransfersSum: '0',
+    minTransfersCount: 0,
+    maxTransfersCount: 0,
     fromBlockTimestamp: 0,
     toBlockTimestamp: 0,
     chainId: 1,
@@ -40,8 +44,8 @@ export function buildProofSeed(claimId: string, overrides: Record<string, unknow
   }
 }
 
-/** Minimal transfer seed data */
-export function buildTransferSeed(overrides: Record<string, unknown> = {}) {
+/** Base transfer fields shared by all types */
+function buildTransferBase(overrides: Record<string, unknown> = {}) {
   return {
     chainId: 1,
     txHash: '0x' + randomUUID().replace(/-/g, '').padEnd(64, '0'),
@@ -51,9 +55,41 @@ export function buildTransferSeed(overrides: Record<string, unknown> = {}) {
     senderAddress: '0x' + '3'.repeat(40),
     recipientAddress: '0x' + '2'.repeat(40),
     tokenAddress: '0x' + '1'.repeat(40),
+    ...overrides,
+  }
+}
+
+/** Minimal ERC-20 transfer seed data */
+export function buildErc20TransferSeed(overrides: Record<string, unknown> = {}) {
+  return {
+    ...buildTransferBase(overrides),
     amount: '1000000000000000000',
     ...overrides,
   }
+}
+
+/** Minimal ERC-721 transfer seed data */
+export function buildErc721TransferSeed(overrides: Record<string, unknown> = {}) {
+  return {
+    ...buildTransferBase(overrides),
+    tokenId: '1',
+    ...overrides,
+  }
+}
+
+/** Minimal ERC-1155 transfer seed data */
+export function buildErc1155TransferSeed(overrides: Record<string, unknown> = {}) {
+  return {
+    ...buildTransferBase(overrides),
+    tokenId: '1',
+    amount: '10',
+    ...overrides,
+  }
+}
+
+/** @deprecated Use buildErc20TransferSeed instead */
+export function buildTransferSeed(overrides: Record<string, unknown> = {}) {
+  return buildErc20TransferSeed(overrides)
 }
 
 /** Minimal token seed data */

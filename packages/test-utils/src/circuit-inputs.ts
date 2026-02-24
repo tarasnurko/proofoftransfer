@@ -26,13 +26,14 @@ export interface CircuitTestParams {
   claimIdBytes32: Hex
   claimMessageHashBytes32: Hex
   tokenAddress: Address
-  userAddress: Address
+  counterpartyAddress: Address
+  isProverSender?: boolean
   tokenAddressBytes32: Hex
-  userAddressBytes32: Hex
+  counterpartyAddressBytes32: Hex
   merkleTreeZeroValuesStrArr: string[]
   poseidon2HashFn: (left: string, right: string) => Promise<string>
   hashTransferFn: (
-    transfer: Pick<EtherscanERC20Transfer, 'from' | 'to' | 'contractAddress' | 'value' | 'timeStamp'>,
+    transfer: { from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string },
   ) => Promise<Uint8Array>
   barretenbergApi: Barretenberg
   merkleTreeHeight: number
@@ -54,9 +55,10 @@ export const buildCircuitInputs = async (
     claimIdBytes32,
     claimMessageHashBytes32,
     tokenAddress,
-    userAddress,
+    counterpartyAddress,
+    isProverSender = true,
     tokenAddressBytes32,
-    userAddressBytes32,
+    counterpartyAddressBytes32,
     merkleTreeZeroValuesStrArr,
     poseidon2HashFn,
     hashTransferFn,
@@ -86,7 +88,8 @@ export const buildCircuitInputs = async (
     claimIdBytes32,
     claimMessageHashBytes32,
     tokenAddressBytes32,
-    userAddressBytes32,
+    counterpartyAddressBytes32,
+    isProverSender,
     chainId: 1n,
     claimConstraints: constraints,
     merkleTreeRootBytes32,
@@ -103,24 +106,33 @@ export const buildCircuitInputs = async (
   const paddedProofs = padMerkleProofsArray(proofs, maxTransfers, merkleTreeHeight)
 
   const inputs = {
-    claim_id: claimIdBytes32,
-    claim_message_hash: claimMessageHashBytes32,
-    token_address: tokenAddress,
-    recipient_address: userAddress,
-    chain_id: '1',
-    min_transfers_sum: constraints.minTransfersSum.toString(),
-    max_transfers_sum: constraints.maxTransfersSum.toString(),
-    from_block_timestamp: constraints.fromBlockTimestamp.toString(),
-    to_block_timestamp: constraints.toBlockTimestamp.toString(),
-    transfers_root_hash: merkleTreeRoot,
-    nullifier: finalNullifier,
+    claim: {
+      claim_id: claimIdBytes32,
+      claim_message_hash: claimMessageHashBytes32,
+      token_address: tokenAddress,
+      counterparty_address: counterpartyAddress,
+      is_prover_sender: isProverSender,
+      chain_id: '1',
+      transfers_root_hash: merkleTreeRoot,
+      nullifier: finalNullifier,
+    },
+    constraints: {
+      min_transfers_sum: constraints.minTransfersSum.toString(),
+      max_transfers_sum: constraints.maxTransfersSum.toString(),
+      min_transfers_count: constraints.minTransfersCount.toString(),
+      max_transfers_count: constraints.maxTransfersCount.toString(),
+      from_block_timestamp: constraints.fromBlockTimestamp.toString(),
+      to_block_timestamp: constraints.toBlockTimestamp.toString(),
+    },
     transfers: paddedTransfers,
     transfers_proofs: paddedProofs.map((p) => p.pathElements),
     are_transfer_leaves_even: paddedProofs.map((p) => p.pathIndices.map((idx) => idx === 0)),
     transfers_amount: circuitTransfers.length.toString(),
-    prover_pub_key_x: pubKeyX,
-    prover_pub_key_y: pubKeyY,
-    prover_signature: fullSignature,
+    prover: {
+      pub_key_x: pubKeyX,
+      pub_key_y: pubKeyY,
+      signature: fullSignature,
+    },
   } as unknown as InputMap
 
   return { inputs, merkleTree }

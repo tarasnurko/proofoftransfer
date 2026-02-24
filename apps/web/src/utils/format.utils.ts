@@ -30,3 +30,9 @@ export function formatDate(date: Date | string | number): string {
 export function formatDateTime(date: Date | string | number): string {
   return format(new Date(date), DATE_TIME_FORMAT)
 }
+
+export function formatCountConstraint(min: number, max: number): string {
+  if (min > 0 && max > 0) return `${min} — ${max}`
+  if (min > 0) return `Min: ${min}`
+  return `Max: ${max}`
+}

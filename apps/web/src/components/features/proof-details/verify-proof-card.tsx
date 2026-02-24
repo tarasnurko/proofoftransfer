@@ -9,6 +9,7 @@ import { VerificationStats } from '@/components/shared/verification-stats'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/types'
 import { mapTransferToDisplayItem } from '@/utils/transfer.utils'
 import { getExplorerBaseUrl, getExplorerName } from '@/utils/explorer.utils'
+import { getExpectedCsvFormat } from '@/lib/etherscan-csv'
 import { Check, Loader2, CheckCircle2, Upload, FileText, X, ExternalLink, Wallet } from 'lucide-react'
 
 interface CsvFile {
@@ -60,14 +61,14 @@ export function VerifyProofCard({
   )
 
   const mappedCsvTransfers = useMemo(
-    () => csvFiles.flatMap(f => f.transfers).map(mapTransferToDisplayItem),
+    () => csvFiles.flatMap(file => file.transfers).map(mapTransferToDisplayItem),
     [csvFiles],
   )
   const decimals = claim.token?.decimals || 18
   const explorerBase = getExplorerBaseUrl(claim.chainId)
   const explorerName = getExplorerName(claim.chainId)
   const csvExportUrl = explorerBase
-    ? `${explorerBase}/exportData?type=tokentxnsbyaddress&contract=${claim.tokenAddress}&a=${claim.recipientAddress}&decimal=${decimals}`
+    ? `${explorerBase}/exportData?type=tokentxnsbyaddress&contract=${claim.tokenAddress}&a=${claim.counterpartyAddress}&decimal=${decimals}`
     : null
 
   const stats = proof.verificationStats
@@ -148,6 +149,7 @@ export function VerifyProofCard({
                           transfers={mappedBlockchainTransfers}
                           token={claim.token}
                           chainId={claim.chainId}
+                          tokenType={claim.tokenType}
                           maxHeight={300}
                           isLoading={fetchingTransfers}
                         />
@@ -209,7 +211,7 @@ export function VerifyProofCard({
                       <div className="text-center">
                         <p className="font-bold">Upload CSV File ({csvFiles.length}/3)</p>
                         <p className="text-xs text-muted-foreground">
-                          Expected format: Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
+                          Expected format: {getExpectedCsvFormat(claim.tokenType)}
                         </p>
                       </div>
                       <span className="border-2 border-border bg-background px-4 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow hover:shadow-none">
@@ -235,6 +237,7 @@ export function VerifyProofCard({
                           transfers={mappedCsvTransfers}
                           token={claim.token}
                           chainId={claim.chainId}
+                          tokenType={claim.tokenType}
                           maxHeight={300}
                         />
                       </div>
