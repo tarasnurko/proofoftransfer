@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createClaim } from '@/db/queries/claims'
 import { createProof } from '@/db/queries/proofs'
-import { upsertErc20Transfers } from '@/db/queries/transfers'
-import { buildClaimSeed, buildProofSeed, buildErc20TransferSeed } from '@repo/test-utils'
+import { upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
+import { buildClaimSeed, buildProofSeed, buildErc20TransferSeed, buildErc721TransferSeed, buildErc1155TransferSeed } from '@repo/test-utils'
 
 // The hono app imports modules that may reference next/cache transitively
 vi.mock('next/cache', () => ({
@@ -61,6 +61,56 @@ describe('claims routes (Hono)', () => {
         tokenType: 'erc20',
         minTransfersCount: 0,
         maxTransfersCount: 0,
+        chainId: 1,
+      }))
+
+      const app = await getApp()
+      const res = await app.request(`/api/claims/${claim.id}/transfers`)
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(1)
+    })
+
+    it('returns ERC-721 transfers for ERC-721 claim', async () => {
+      const tokenAddress = '0x' + 'c'.repeat(40)
+      const counterpartyAddress = '0x' + 'd'.repeat(40)
+
+      await upsertErc721Transfers([
+        buildErc721TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '4'.repeat(64) }),
+      ])
+
+      const claim = await createClaim(buildClaimSeed({
+        tokenAddress,
+        counterpartyAddress,
+        isProverSender: true,
+        tokenType: 'erc721',
+        chainId: 1,
+      }))
+
+      const app = await getApp()
+      const res = await app.request(`/api/claims/${claim.id}/transfers`)
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(1)
+    })
+
+    it('returns ERC-1155 transfers for ERC-1155 claim', async () => {
+      const tokenAddress = '0x' + 'e'.repeat(40)
+      const counterpartyAddress = '0x' + 'f'.repeat(40)
+
+      await upsertErc1155Transfers([
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '5'.repeat(64) }),
+      ])
+
+      const claim = await createClaim(buildClaimSeed({
+        tokenAddress,
+        counterpartyAddress,
+        isProverSender: true,
+        tokenType: 'erc1155',
         chainId: 1,
       }))
 

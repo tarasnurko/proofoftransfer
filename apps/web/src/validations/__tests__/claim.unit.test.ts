@@ -72,6 +72,39 @@ describe('createClaimSchema', () => {
     })
     expect(result.success).toBe(true)
   })
+
+  it('accepts tokenType erc721', () => {
+    const result = createClaimSchema.safeParse({ ...validInput, tokenType: 'erc721' })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts tokenType erc1155', () => {
+    const result = createClaimSchema.safeParse({ ...validInput, tokenType: 'erc1155' })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects invalid tokenType', () => {
+    const result = createClaimSchema.safeParse({ ...validInput, tokenType: 'erc999' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects maxTransfersCount < minTransfersCount (both positive)', () => {
+    const result = createClaimSchema.safeParse({
+      ...validInput,
+      minTransfersCount: 5,
+      maxTransfersCount: 2,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('allows maxTransfersCount=0 (uncapped)', () => {
+    const result = createClaimSchema.safeParse({
+      ...validInput,
+      minTransfersCount: 5,
+      maxTransfersCount: 0,
+    })
+    expect(result.success).toBe(true)
+  })
 })
 
 describe('dateToTimestamp', () => {

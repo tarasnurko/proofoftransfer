@@ -316,6 +316,198 @@ describe("Circuit tests", () => {
       );
     });
 
+    it("should verify proof with token_type=1 (ERC721)", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams({ tokenType: 1 }),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should be valid with token_type=1");
+    });
+
+    it("should verify proof with token_type=2 (ERC1155)", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams({ tokenType: 2 }),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should be valid with token_type=2");
+    });
+
+    it("should verify proof with sum exactly at minimum", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const transferSum = BigInt(proverTransfer.value);
+      const constraints = {
+        ...getClaimConstraintsFromTransfer(proverTransfer),
+        minTransfersSum: transferSum,
+        maxTransfersSum: 0n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with sum exactly at minimum");
+    });
+
+    it("should verify proof with sum exactly at maximum", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const transferSum = BigInt(proverTransfer.value);
+      const constraints = {
+        ...getClaimConstraintsFromTransfer(proverTransfer),
+        minTransfersSum: 0n,
+        maxTransfersSum: transferSum,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with sum exactly at maximum");
+    });
+
+    it("should verify proof with count exactly at min and max", async () => {
+      const proverTransfers = generateTransfers(
+        {
+          from: proverAddress,
+          to: counterpartyAddress,
+          tokenAddress,
+        },
+        3,
+      );
+
+      const baseConstraints = getClaimConstraintsFromTransfers(proverTransfers);
+      const constraints = {
+        ...baseConstraints,
+        minTransfersCount: 3n,
+        maxTransfersCount: 3n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, proverTransfers);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers,
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with count exactly at min=max=3");
+    });
+
+    it("should verify proof with all constraints enabled simultaneously", async () => {
+      const proverTransfers = generateTransfers(
+        {
+          from: proverAddress,
+          to: counterpartyAddress,
+          tokenAddress,
+        },
+        3,
+      );
+
+      const baseConstraints = getClaimConstraintsFromTransfers(proverTransfers);
+      const totalSum = proverTransfers.reduce((sum, transfer) => sum + BigInt(transfer.value), 0n);
+      const constraints = {
+        minTransfersSum: totalSum,
+        maxTransfersSum: totalSum,
+        minTransfersCount: BigInt(proverTransfers.length),
+        maxTransfersCount: BigInt(proverTransfers.length),
+        fromBlockTimestamp: baseConstraints.fromBlockTimestamp,
+        toBlockTimestamp: baseConstraints.toBlockTimestamp,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, proverTransfers);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers,
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with all constraints enabled");
+    });
+
     it("should produce same signature and nullifier for same inputs", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
