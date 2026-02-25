@@ -1,20 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { server } from '@/__tests__/setup.integration'
-import { createEtherscanHandlers, generateTransfer } from '@repo/test-utils'
+import { createEtherscanHandlers, generateTransfer, generateEthereumAddress } from '@repo/test-utils'
 import { EtherscanService } from '../etherscan.service'
 
 describe('EtherscanService', () => {
   const service = new EtherscanService()
-  const address = '0x' + 'a'.repeat(40)
-  const tokenAddress = '0x' + 'b'.repeat(40)
+  const address = generateEthereumAddress()
+  const tokenAddress = generateEthereumAddress()
 
   describe('getERC20Transfers', () => {
     it('returns transfers from MSW mock', async () => {
       const mockTransfers = [
-        generateTransfer({ from: '0x' + 'c'.repeat(40), to: address, tokenAddress }),
-        generateTransfer({ from: '0x' + 'd'.repeat(40), to: address, tokenAddress }),
+        generateTransfer({ from: generateEthereumAddress(), to: address, tokenAddress }),
+        generateTransfer({ from: generateEthereumAddress(), to: address, tokenAddress }),
       ]
-      // Override timeStamp to be within range
       mockTransfers.forEach((t) => { t.timeStamp = '1500' })
 
       server.use(
@@ -59,7 +58,7 @@ describe('EtherscanService', () => {
     })
 
     it('filters transfers by recipient and token address', async () => {
-      const wrongRecipient = '0x' + 'e'.repeat(40)
+      const wrongRecipient = generateEthereumAddress()
       const mockTransfers = [
         { ...generateTransfer({ to: address, tokenAddress }), timeStamp: '1500' },
         { ...generateTransfer({ to: wrongRecipient, tokenAddress }), timeStamp: '1500' },

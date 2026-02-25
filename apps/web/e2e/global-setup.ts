@@ -9,6 +9,9 @@ import {
   mintTokens,
   makeTransfers,
   readTransferEvents,
+  buildClaimSeed,
+  buildProofSeed,
+  buildTokenSeed,
   type TransferSpec,
 } from '@repo/test-utils'
 import { seedClaim, seedProof, seedToken, seedTransfer, truncateAll, closeDb } from './helpers/db'
@@ -99,72 +102,50 @@ export default async function globalSetup() {
   // Seed DB
   await truncateAll()
 
-  const tstToken = await seedToken({
+  const tstToken = await seedToken(buildTokenSeed({
     address: tstAddress.toLowerCase(),
     chainId: TST.chainId,
     name: TST.name,
     symbol: TST.symbol,
     decimals: TST.decimals,
-  })
+  }))
 
-  const usdcToken = await seedToken({
+  const usdcToken = await seedToken(buildTokenSeed({
     address: usdcAddress.toLowerCase(),
     chainId: USDC.chainId,
     name: USDC.name,
     symbol: USDC.symbol,
     decimals: USDC.decimals,
-  })
+  }))
 
   // Seed 15 claims: 8 Ethereum (TST) + 7 Base (USDC)
   const claims = []
   for (let i = 0; i < 8; i++) {
-    const claim = await seedClaim({
+    const claim = await seedClaim(buildClaimSeed({
       message: `Ethereum claim #${i + 1}`,
-      messageHash: '0x' + 'e'.repeat(62) + (i + 1).toString(16).padStart(2, '0'),
       tokenAddress: tstAddress.toLowerCase(),
-      recipientAddress: recipient.address.toLowerCase(),
-      minTransfersSum: '0',
-      maxTransfersSum: '0',
-      fromBlockTimestamp: 0,
-      toBlockTimestamp: 0,
+      counterpartyAddress: recipient.address.toLowerCase(),
       chainId: TST.chainId,
-      merkleRoot: '0x' + '0'.repeat(64),
-    })
+    }))
     claims.push(claim)
   }
   for (let i = 0; i < 7; i++) {
-    const claim = await seedClaim({
+    const claim = await seedClaim(buildClaimSeed({
       message: `Base claim #${i + 1}`,
-      messageHash: '0x' + 'b'.repeat(62) + (i + 1).toString(16).padStart(2, '0'),
       tokenAddress: usdcAddress.toLowerCase(),
-      recipientAddress: recipient.address.toLowerCase(),
-      minTransfersSum: '0',
-      maxTransfersSum: '0',
-      fromBlockTimestamp: 0,
-      toBlockTimestamp: 0,
+      counterpartyAddress: recipient.address.toLowerCase(),
       chainId: USDC.chainId,
-      merkleRoot: '0x' + '0'.repeat(64),
-    })
+    }))
     claims.push(claim)
   }
 
   // Seed proofs: claims[0] gets 3, claims[1] gets 1
   const proofs = []
   for (let i = 0; i < 3; i++) {
-    const proof = await seedProof({
-      claimId: claims[0]!.id,
-      nullifier: '0x' + 'a'.repeat(62) + i.toString(16).padStart(2, '0'),
-      proofData: '0x' + 'cd'.repeat(64),
-      publicInputs: ['0x01', '0x02'],
-    })
+    const proof = await seedProof(buildProofSeed(claims[0]!.id))
     proofs.push(proof)
   }
-  const singleProof = await seedProof({
-    claimId: claims[1]!.id,
-    nullifier: '0x' + 'bb'.repeat(32),
-    proofData: '0x' + 'ef'.repeat(64),
-    publicInputs: ['0x03', '0x04'],
-  })
+  const singleProof = await seedProof(buildProofSeed(claims[1]!.id))
   proofs.push(singleProof)
 
   // Seed transfers from real Anvil events

@@ -88,8 +88,8 @@ export const claimsRoutes = new Hono()
         chainId: claim.chainId,
         tokenAddress: claim.tokenAddress,
         ...(claim.isProverSender
-          ? { senderAddress: claim.counterpartyAddress }
-          : { recipientAddress: claim.counterpartyAddress }),
+          ? { recipientAddress: claim.counterpartyAddress }
+          : { senderAddress: claim.counterpartyAddress }),
         fromTimestamp: claim.fromBlockTimestamp || undefined,
         toTimestamp: claim.toBlockTimestamp || undefined,
       }

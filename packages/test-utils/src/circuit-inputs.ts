@@ -28,6 +28,7 @@ export interface CircuitTestParams {
   tokenAddress: Address
   counterpartyAddress: Address
   isProverSender?: boolean
+  tokenType?: number
   tokenAddressBytes32: Hex
   counterpartyAddressBytes32: Hex
   merkleTreeZeroValuesStrArr: string[]
@@ -57,6 +58,7 @@ export const buildCircuitInputs = async (
     tokenAddress,
     counterpartyAddress,
     isProverSender = true,
+    tokenType = 0,
     tokenAddressBytes32,
     counterpartyAddressBytes32,
     merkleTreeZeroValuesStrArr,
@@ -90,6 +92,7 @@ export const buildCircuitInputs = async (
     tokenAddressBytes32,
     counterpartyAddressBytes32,
     isProverSender,
+    tokenType,
     chainId: 1n,
     claimConstraints: constraints,
     merkleTreeRootBytes32,
@@ -112,6 +115,7 @@ export const buildCircuitInputs = async (
       token_address: tokenAddress,
       counterparty_address: counterpartyAddress,
       is_prover_sender: isProverSender,
+      token_type: tokenType.toString(),
       chain_id: '1',
       transfers_root_hash: merkleTreeRoot,
       nullifier: finalNullifier,

@@ -10,6 +10,7 @@ export interface Eip712ClaimFields {
   tokenAddress: string
   counterpartyAddress: string
   isProverSender: boolean
+  tokenType: string
   minTransfersSum: string
   maxTransfersSum: string
   minTransfersCount: string
@@ -45,6 +46,7 @@ function buildClaimMessage(fields: Eip712ClaimFields): ClaimEip712Message {
     tokenAddress: fields.tokenAddress as Address,
     counterpartyAddress: fields.counterpartyAddress as Address,
     isProverSender: fields.isProverSender,
+    tokenType: Number(fields.tokenType),
     minTransfersSum: BigInt(fields.minTransfersSum),
     maxTransfersSum: BigInt(fields.maxTransfersSum),
     minTransfersCount: Number(fields.minTransfersCount),
@@ -124,6 +126,7 @@ export function assembleCircuitInputs(
         token_address: eip712.tokenAddress,
         counterparty_address: eip712.counterpartyAddress,
         is_prover_sender: eip712.isProverSender,
+        token_type: eip712.tokenType,
         chain_id: serverData.chainId.toString(),
         transfers_root_hash: circuitData.merkleRoot,
         nullifier: signatureResult.nullifier,

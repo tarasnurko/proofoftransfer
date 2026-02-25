@@ -2,10 +2,10 @@ use dep::poseidon::poseidon2;
 
 // === Byte conversion explained ===
 // All to_be_bytes functions break a number into individual bytes (big-endian = left-to-right).
-// Example: 0x1A2B3C4D → [0x1A, 0x2B, 0x3C, 0x4D]
+// Example: 0x1A2B3C4D -> [0x1A, 0x2B, 0x3C, 0x4D]
 //
-// `& 0xff` takes the rightmost hex pair (one byte): 0x1A2B3C4D → 0x4D
-// `>> 8` chops that pair off: 0x1A2B3C4D → 0x001A2B3C
+// `& 0xff` takes the rightmost hex pair (one byte): 0x1A2B3C4D -> 0x4D
+// `>> 8` chops that pair off: 0x1A2B3C4D -> 0x001A2B3C
 // Fills from the end (`bytes[N-i]`) so the final array reads left-to-right.
 //
 // === Nullifier explained ===
@@ -15,7 +15,7 @@ use dep::poseidon::poseidon2;
 //
 // Poseidon2 operates on Field elements, not bytes. One Field can't hold 64 bytes (overflow),
 // so we pack 8 bytes per Field using base-256 accumulation:
-//   `chunk * 256 + byte` — bytes [0x11, 0x22] → 0 * 256 + 0x11 = 0x11 → 0x11 * 256 + 0x22 = 0x1122
+//   `chunk * 256 + byte` -- bytes [0x11, 0x22] -> 0 * 256 + 0x11 = 0x11 -> 0x11 * 256 + 0x22 = 0x1122
 // Poseidon2 is used over SHA/Keccak because it's ~100x cheaper inside ZK circuits.
 
 // Helper function to convert u128 to big-endian bytes

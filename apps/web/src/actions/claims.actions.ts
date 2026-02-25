@@ -31,8 +31,8 @@ export const createClaimAction = createRateLimitedActionClient('createClaim', RA
       chainId: parsedInput.chainId,
       tokenAddress: parsedInput.tokenAddress,
       ...(parsedInput.isProverSender
-        ? { senderAddress: parsedInput.counterpartyAddress }
-        : { recipientAddress: parsedInput.counterpartyAddress }),
+        ? { recipientAddress: parsedInput.counterpartyAddress }
+        : { senderAddress: parsedInput.counterpartyAddress }),
       fromTimestamp: fromBlockTimestamp || undefined,
       toTimestamp: toBlockTimestamp || undefined,
     };

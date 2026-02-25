@@ -17,6 +17,7 @@ import {
 import { getErc20Transfers, getErc721Transfers, getErc1155Transfers } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import type { Eip712ClaimFields } from '@/lib/proof'
+import { TokenType } from '@repo/types'
 import type { ClaimEntity, TransferEntity } from '@/db/index.types'
 
 export interface TransferHashInput {
@@ -67,6 +68,7 @@ interface BuildEip712ClaimFieldsInput {
   tokenAddress: string
   counterpartyAddress: string
   isProverSender: boolean
+  tokenType: string
   minTransfersSum: string | null
   maxTransfersSum: string | null
   minTransfersCount: number | null
@@ -96,6 +98,7 @@ export async function buildEip712ClaimFields(
     tokenAddress: claim.tokenAddress,
     counterpartyAddress: claim.counterpartyAddress,
     isProverSender: claim.isProverSender,
+    tokenType: TokenType[claim.tokenType.toUpperCase() as keyof typeof TokenType].toString(),
     minTransfersSum: BigInt(claim.minTransfersSum || '0').toString(),
     maxTransfersSum: BigInt(claim.maxTransfersSum || '0').toString(),
     minTransfersCount: (claim.minTransfersCount || 0).toString(),
@@ -209,8 +212,8 @@ function buildTransferQueryFromClaim(claim: ClaimEntity) {
     chainId: claim.chainId,
     tokenAddress: claim.tokenAddress,
     ...(claim.isProverSender
-      ? { senderAddress: claim.counterpartyAddress }
-      : { recipientAddress: claim.counterpartyAddress }),
+      ? { recipientAddress: claim.counterpartyAddress }
+      : { senderAddress: claim.counterpartyAddress }),
     fromTimestamp: claim.fromBlockTimestamp || undefined,
     toTimestamp: claim.toBlockTimestamp || undefined,
   }

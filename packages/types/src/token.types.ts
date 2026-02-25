@@ -1,1 +1,5 @@
-export type TokenType = 'erc20' | 'erc721' | 'erc1155'
+export enum TokenType {
+  ERC20 = 0,
+  ERC721 = 1,
+  ERC1155 = 2,
+}

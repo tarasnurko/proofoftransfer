@@ -1,21 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { createClaimSchema } from '../claim'
 import { dateToTimestamp } from '@/utils/date.utils'
+import { buildCreateClaimActionInput } from '@repo/test-utils'
 import { ChainId } from '@repo/types'
 
 describe('createClaimSchema', () => {
-  const validInput = {
-    claimMessage: 'This is a valid test claim message',
-    tokenAddress: '0x1234567890123456789012345678901234567890',
-    counterpartyAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    isProverSender: true,
-    tokenType: 'erc20',
-    minTransfersCount: 0,
-    maxTransfersCount: 0,
+  const validInput = buildCreateClaimActionInput({
     minTransfersSum: '100',
     maxTransfersSum: '1000',
     chainId: ChainId.ETHEREUM,
-  }
+  })
 
   it('accepts valid input', () => {
     const result = createClaimSchema.safeParse(validInput)

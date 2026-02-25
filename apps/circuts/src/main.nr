@@ -13,6 +13,7 @@ struct ClaimInputs {
     token_address: Field,
     counterparty_address: Field,
     is_prover_sender: bool,
+    token_type: u8,
     chain_id: Field,
     transfers_root_hash: Field,
     nullifier: Field,
@@ -36,6 +37,7 @@ fn main(
         claim.token_address,
         claim.counterparty_address,
         claim.is_prover_sender,
+        claim.token_type,
         claim.chain_id,
         constraints.min_transfers_sum,
         constraints.max_transfers_sum,
@@ -68,6 +70,7 @@ fn reconstruct_eip712_message(
     token_address: Field,
     counterparty_address: Field,
     is_prover_sender: bool,
+    token_type: u8,
     chain_id: Field,
     min_transfers_sum: u128,
     max_transfers_sum: u128,
@@ -122,11 +125,11 @@ fn reconstruct_eip712_message(
 
     let domain_separator = keccak256(domain_data, 160);
 
-    // CLAIM_TYPEHASH = keccak256("Claim(bytes32 claimId,bytes32 claimMessageHash,address tokenAddress,address counterpartyAddress,bool isProverSender,uint128 minTransfersSum,uint128 maxTransfersSum,uint32 minTransfersCount,uint32 maxTransfersCount,uint64 fromBlockTimestamp,uint64 toBlockTimestamp,bytes32 transfersRootHash)")
+    // CLAIM_TYPEHASH = keccak256("Claim(bytes32 claimId,bytes32 claimMessageHash,address tokenAddress,address counterpartyAddress,bool isProverSender,uint8 tokenType,uint128 minTransfersSum,uint128 maxTransfersSum,uint32 minTransfersCount,uint32 maxTransfersCount,uint64 fromBlockTimestamp,uint64 toBlockTimestamp,bytes32 transfersRootHash)")
     let claim_typehash: [u8; 32] = [
-        0xd1, 0x62, 0xc5, 0x7e, 0xae, 0xd8, 0x99, 0x75, 0x2f, 0x52, 0x08, 0x9b, 0x3d, 0x0a, 0xdc,
-        0x6a, 0x79, 0xaf, 0xb7, 0x04, 0x8c, 0x5e, 0x07, 0x66, 0x16, 0x8f, 0xbf, 0x93, 0xf7, 0x5e,
-        0x3a, 0xb8,
+        0x66, 0x37, 0x81, 0x3c, 0xfd, 0x4e, 0x72, 0xd9, 0xa3, 0x51, 0x7a, 0x5b, 0xe8, 0xd5, 0x4b,
+        0x8e, 0x74, 0x60, 0x41, 0x2c, 0x78, 0x97, 0x80, 0x26, 0x19, 0x4b, 0xb5, 0xc3, 0x91, 0xf9,
+        0xf4, 0x7f,
     ];
 
     let claim_id_bytes = claim_id.to_be_bytes::<32>();
@@ -141,9 +144,9 @@ fn reconstruct_eip712_message(
     let to_block_timestamp_bytes = u64_to_be_bytes(to_block_timestamp);
     let transfers_root_hash_bytes = transfers_root_hash.to_be_bytes::<32>();
 
-    // Struct hash: keccak256(abi.encode(CLAIM_TYPEHASH, ...12 fields...))
-    // 13 * 32 = 416 bytes
-    let mut struct_data: [u8; 416] = [0; 416];
+    // Struct hash: keccak256(abi.encode(CLAIM_TYPEHASH, ...13 fields...))
+    // 14 * 32 = 448 bytes
+    let mut struct_data: [u8; 448] = [0; 448];
 
     // slot 0: typehash
     for i in 0..32 {
@@ -172,59 +175,63 @@ fn reconstruct_eip712_message(
         struct_data[140 + i] = counterparty_address_bytes[12 + i];
     }
     // slot 5: isProverSender (bool, left-padded to 32 bytes)
-    // All zeros except last byte = 1 if true
     for i in 0..31 {
         struct_data[160 + i] = 0;
     }
     struct_data[191] = if is_prover_sender { 1 } else { 0 };
-    // slot 6: minTransfersSum (uint128, left-padded)
-    for i in 0..16 {
+    // slot 6: tokenType (uint8, left-padded to 32 bytes)
+    for i in 0..31 {
         struct_data[192 + i] = 0;
     }
-    for i in 0..16 {
-        struct_data[208 + i] = min_transfers_sum_bytes[i];
-    }
-    // slot 7: maxTransfersSum (uint128, left-padded)
+    struct_data[223] = token_type;
+    // slot 7: minTransfersSum (uint128, left-padded)
     for i in 0..16 {
         struct_data[224 + i] = 0;
     }
     for i in 0..16 {
-        struct_data[240 + i] = max_transfers_sum_bytes[i];
+        struct_data[240 + i] = min_transfers_sum_bytes[i];
     }
-    // slot 8: minTransfersCount (uint32, left-padded)
-    for i in 0..28 {
+    // slot 8: maxTransfersSum (uint128, left-padded)
+    for i in 0..16 {
         struct_data[256 + i] = 0;
     }
-    for i in 0..4 {
-        struct_data[284 + i] = min_transfers_count_bytes[i];
+    for i in 0..16 {
+        struct_data[272 + i] = max_transfers_sum_bytes[i];
     }
-    // slot 9: maxTransfersCount (uint32, left-padded)
+    // slot 9: minTransfersCount (uint32, left-padded)
     for i in 0..28 {
         struct_data[288 + i] = 0;
     }
     for i in 0..4 {
-        struct_data[316 + i] = max_transfers_count_bytes[i];
+        struct_data[316 + i] = min_transfers_count_bytes[i];
     }
-    // slot 10: fromBlockTimestamp (uint64, left-padded)
-    for i in 0..24 {
+    // slot 10: maxTransfersCount (uint32, left-padded)
+    for i in 0..28 {
         struct_data[320 + i] = 0;
     }
-    for i in 0..8 {
-        struct_data[344 + i] = from_block_timestamp_bytes[i];
+    for i in 0..4 {
+        struct_data[348 + i] = max_transfers_count_bytes[i];
     }
-    // slot 11: toBlockTimestamp (uint64, left-padded)
+    // slot 11: fromBlockTimestamp (uint64, left-padded)
     for i in 0..24 {
         struct_data[352 + i] = 0;
     }
     for i in 0..8 {
-        struct_data[376 + i] = to_block_timestamp_bytes[i];
+        struct_data[376 + i] = from_block_timestamp_bytes[i];
     }
-    // slot 12: transfersRootHash (bytes32)
+    // slot 12: toBlockTimestamp (uint64, left-padded)
+    for i in 0..24 {
+        struct_data[384 + i] = 0;
+    }
+    for i in 0..8 {
+        struct_data[408 + i] = to_block_timestamp_bytes[i];
+    }
+    // slot 13: transfersRootHash (bytes32)
     for i in 0..32 {
-        struct_data[384 + i] = transfers_root_hash_bytes[i];
+        struct_data[416 + i] = transfers_root_hash_bytes[i];
     }
 
-    let struct_hash = keccak256(struct_data, 416);
+    let struct_hash = keccak256(struct_data, 448);
 
     // Final EIP-712 hash = keccak256("\x19\x01" + domain_separator + struct_hash)
     let mut final_data: [u8; 66] = [0; 66];

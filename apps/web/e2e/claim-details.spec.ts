@@ -81,7 +81,7 @@ test.describe('Claim details page', () => {
     const claim = fixtures.claims[1]!
     await page.goto(`/claims/${claim.id}`)
 
-    await expect(page.getByText('1 Proof')).toBeVisible()
+    await expect(page.getByText('1 Proof', { exact: true })).toBeVisible()
   })
 
   test('claim with 0 proofs shows no proofs', async ({ page }) => {

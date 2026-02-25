@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createClaim } from '@/db/queries/claims'
 import { createProof } from '@/db/queries/proofs'
-import { buildClaimSeed, buildProofSeed } from '@repo/test-utils'
+import { buildClaimSeed, buildProofSeed, buildExternalTransfer } from '@repo/test-utils'
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -10,13 +10,14 @@ vi.mock('next/cache', () => ({
 describe('submitProofAction', () => {
   it('creates a proof for valid claim', async () => {
     const claim = await createClaim(buildClaimSeed())
+    const seed = buildProofSeed(claim.id)
     const { submitProofAction } = await import('@/actions/proofs.actions')
 
     const result = await submitProofAction({
       claimId: claim.id,
-      nullifier: '0x' + 'ab'.repeat(32),
-      proofData: '0x' + 'cd'.repeat(64),
-      publicInputs: ['0x01', '0x02'],
+      nullifier: seed.nullifier,
+      proofData: seed.proofData,
+      publicInputs: seed.publicInputs as string[],
     })
 
     expect(result?.data?.proofId).toBeDefined()
@@ -24,16 +25,16 @@ describe('submitProofAction', () => {
 
   it('rejects duplicate nullifier for same claim', async () => {
     const claim = await createClaim(buildClaimSeed())
-    const nullifier = '0x' + 'ee'.repeat(32)
+    const seed = buildProofSeed(claim.id)
 
-    await createProof(buildProofSeed(claim.id, { nullifier }))
+    await createProof(seed)
 
     const { submitProofAction } = await import('@/actions/proofs.actions')
     const result = await submitProofAction({
       claimId: claim.id,
-      nullifier,
-      proofData: '0x' + 'cd'.repeat(64),
-      publicInputs: ['0x01'],
+      nullifier: seed.nullifier,
+      proofData: seed.proofData,
+      publicInputs: seed.publicInputs as string[],
     })
 
     expect(result?.validationErrors?.fieldErrors?.nullifier).toBeDefined()
@@ -42,11 +43,13 @@ describe('submitProofAction', () => {
 
   it('returns error for non-existent claim', async () => {
     const { submitProofAction } = await import('@/actions/proofs.actions')
+    const seed = buildProofSeed('00000000-0000-0000-0000-000000000000')
+
     const result = await submitProofAction({
       claimId: '00000000-0000-0000-0000-000000000000',
-      nullifier: '0x' + 'ab'.repeat(32),
-      proofData: '0x' + 'cd'.repeat(64),
-      publicInputs: ['0x01'],
+      nullifier: seed.nullifier,
+      proofData: seed.proofData,
+      publicInputs: seed.publicInputs as string[],
     })
 
     expect(result?.validationErrors?.fieldErrors?.claimId).toBeDefined()
@@ -55,22 +58,17 @@ describe('submitProofAction', () => {
 })
 
 describe('verifyProofAction', () => {
+  const baseTransfer = buildExternalTransfer()
+
   it('rejects self-verification (same nullifier)', async () => {
     const claim = await createClaim(buildClaimSeed({ merkleRoot: '0x' + 'ab'.repeat(32) }))
-    const nullifier = '0x' + 'ff'.repeat(32)
-    const proof = await createProof(buildProofSeed(claim.id, { nullifier }))
+    const proof = await createProof(buildProofSeed(claim.id))
 
     const { verifyProofAction } = await import('@/actions/proofs.actions')
     const result = await verifyProofAction({
       id: proof.id,
-      nullifier, // same as proof's nullifier
-      transfers: [{
-        from: '0x' + '1'.repeat(40),
-        to: '0x' + '2'.repeat(40),
-        contractAddress: '0x' + '3'.repeat(40),
-        value: '1000',
-        timeStamp: '1700000000',
-      }],
+      nullifier: proof.nullifier, // same as proof's nullifier
+      transfers: [baseTransfer],
     })
 
     expect(result?.serverError).toContain('Cannot verify your own proof')
@@ -80,14 +78,8 @@ describe('verifyProofAction', () => {
     const { verifyProofAction } = await import('@/actions/proofs.actions')
     const result = await verifyProofAction({
       id: '00000000-0000-0000-0000-000000000000',
-      nullifier: '0x' + 'aa'.repeat(32),
-      transfers: [{
-        from: '0x' + '1'.repeat(40),
-        to: '0x' + '2'.repeat(40),
-        contractAddress: '0x' + '3'.repeat(40),
-        value: '1000',
-        timeStamp: '1700000000',
-      }],
+      nullifier: buildProofSeed('dummy').nullifier,
+      transfers: [baseTransfer],
     })
 
     expect(result?.serverError).toContain('Proof not found')

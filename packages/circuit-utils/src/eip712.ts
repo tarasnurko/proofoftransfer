@@ -14,6 +14,7 @@ export interface ClaimEip712Message {
   tokenAddress: Address;
   counterpartyAddress: Address;
   isProverSender: boolean;
+  tokenType: number;
   minTransfersSum: bigint;
   maxTransfersSum: bigint;
   minTransfersCount: number;
@@ -30,6 +31,7 @@ export const EIP712_CLAIM_TYPES = {
     { name: "tokenAddress", type: "address" },
     { name: "counterpartyAddress", type: "address" },
     { name: "isProverSender", type: "bool" },
+    { name: "tokenType", type: "uint8" },
     { name: "minTransfersSum", type: "uint128" },
     { name: "maxTransfersSum", type: "uint128" },
     { name: "minTransfersCount", type: "uint32" },

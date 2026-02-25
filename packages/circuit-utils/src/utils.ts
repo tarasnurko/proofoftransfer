@@ -81,6 +81,7 @@ export const constructClaimMessage = (params: {
   tokenAddressBytes32: `0x${string}`;
   counterpartyAddressBytes32: `0x${string}`;
   isProverSender: boolean;
+  tokenType: number;
   chainId: bigint;
   claimConstraints: ClaimConstraints;
   merkleTreeRootBytes32: `0x${string}`;
@@ -91,6 +92,7 @@ export const constructClaimMessage = (params: {
     tokenAddressBytes32,
     counterpartyAddressBytes32,
     isProverSender,
+    tokenType,
     chainId,
     claimConstraints,
     merkleTreeRootBytes32,
@@ -110,6 +112,7 @@ export const constructClaimMessage = (params: {
       tokenAddress,
       counterpartyAddress,
       isProverSender,
+      tokenType,
       minTransfersSum: claimConstraints.minTransfersSum,
       maxTransfersSum: claimConstraints.maxTransfersSum,
       minTransfersCount: Number(claimConstraints.minTransfersCount),

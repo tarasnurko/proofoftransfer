@@ -92,6 +92,36 @@ export function buildTransferSeed(overrides: Record<string, unknown> = {}) {
   return buildErc20TransferSeed(overrides)
 }
 
+/** Minimal createClaimAction input — matches createClaimSchema shape */
+export function buildCreateClaimActionInput(overrides: Record<string, unknown> = {}) {
+  return {
+    claimMessage: 'Test claim message for integration testing',
+    tokenAddress: '0x' + '1'.repeat(40),
+    counterpartyAddress: '0x' + '2'.repeat(40),
+    isProverSender: true,
+    tokenType: 'erc20' as const,
+    minTransfersSum: '0',
+    maxTransfersSum: '0',
+    minTransfersCount: 0,
+    maxTransfersCount: 0,
+    chainId: 1,
+    ...overrides,
+  }
+}
+
+/** Minimal external transfer — matches externalTransferSchema in proofs.actions.ts */
+export function buildExternalTransfer(overrides: Record<string, unknown> = {}) {
+  return {
+    from: '0x' + '3'.repeat(40),
+    to: '0x' + '2'.repeat(40),
+    contractAddress: '0x' + '1'.repeat(40),
+    value: '1000000000000000000',
+    timeStamp: '1700000000',
+    hash: '0x' + randomUUID().replace(/-/g, '').padEnd(64, '0'),
+    ...overrides,
+  }
+}
+
 /** Minimal token seed data */
 export function buildTokenSeed(overrides: Record<string, unknown> = {}) {
   return {

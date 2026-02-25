@@ -9,7 +9,7 @@ test.describe('Create claim page', () => {
     // Form cards
     await expect(page.getByText('Claim Details')).toBeVisible()
     await expect(page.getByText('Token Information')).toBeVisible()
-    await expect(page.getByText('Amount Constraints')).toBeVisible()
+    await expect(page.getByText('Constraints', { exact: true })).toBeVisible()
     await expect(page.getByText('Time Range')).toBeVisible()
 
     // Action buttons
