@@ -31,22 +31,7 @@ fn main(
     // prover data
     prover: ProverIdentity,
 ) {
-    let hashed_message = reconstruct_eip712_message(
-        claim.claim_id,
-        claim.claim_message_hash,
-        claim.token_address,
-        claim.counterparty_address,
-        claim.is_prover_sender,
-        claim.token_type,
-        claim.chain_id,
-        constraints.min_transfers_sum,
-        constraints.max_transfers_sum,
-        constraints.min_transfers_count,
-        constraints.max_transfers_count,
-        constraints.from_block_timestamp,
-        constraints.to_block_timestamp,
-        claim.transfers_root_hash,
-    );
+    let hashed_message = reconstruct_eip712_message(claim, constraints);
 
     let prover_address = verify_prover(prover, hashed_message, claim.nullifier);
 
@@ -64,22 +49,7 @@ fn main(
     );
 }
 
-fn reconstruct_eip712_message(
-    claim_id: Field,
-    claim_message_hash: Field,
-    token_address: Field,
-    counterparty_address: Field,
-    is_prover_sender: bool,
-    token_type: u8,
-    chain_id: Field,
-    min_transfers_sum: u128,
-    max_transfers_sum: u128,
-    min_transfers_count: u32,
-    max_transfers_count: u32,
-    from_block_timestamp: u64,
-    to_block_timestamp: u64,
-    transfers_root_hash: Field,
-) -> [u8; 32] {
+fn reconstruct_eip712_message(claim: ClaimInputs, constraints: Constraints) -> [u8; 32] {
     // EIP-712 Domain Separator
     // DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
     let domain_typehash: [u8; 32] = [
@@ -102,7 +72,7 @@ fn reconstruct_eip712_message(
         0x8b, 0xc6,
     ];
 
-    let chain_id_bytes = chain_id.to_be_bytes::<32>();
+    let chain_id_bytes = claim.chain_id.to_be_bytes::<32>();
     let verifying_contract: [u8; 32] = [0; 32];
 
     // Domain separator: keccak256(abi.encode(DOMAIN_TYPEHASH, name_hash, version_hash, chainId, verifyingContract))
@@ -132,17 +102,17 @@ fn reconstruct_eip712_message(
         0xf4, 0x7f,
     ];
 
-    let claim_id_bytes = claim_id.to_be_bytes::<32>();
-    let claim_message_hash_bytes = claim_message_hash.to_be_bytes::<32>();
-    let token_address_bytes = token_address.to_be_bytes::<32>();
-    let counterparty_address_bytes = counterparty_address.to_be_bytes::<32>();
-    let min_transfers_sum_bytes = u128_to_be_bytes(min_transfers_sum);
-    let max_transfers_sum_bytes = u128_to_be_bytes(max_transfers_sum);
-    let min_transfers_count_bytes = u32_to_be_bytes(min_transfers_count);
-    let max_transfers_count_bytes = u32_to_be_bytes(max_transfers_count);
-    let from_block_timestamp_bytes = u64_to_be_bytes(from_block_timestamp);
-    let to_block_timestamp_bytes = u64_to_be_bytes(to_block_timestamp);
-    let transfers_root_hash_bytes = transfers_root_hash.to_be_bytes::<32>();
+    let claim_id_bytes = claim.claim_id.to_be_bytes::<32>();
+    let claim_message_hash_bytes = claim.claim_message_hash.to_be_bytes::<32>();
+    let token_address_bytes = claim.token_address.to_be_bytes::<32>();
+    let counterparty_address_bytes = claim.counterparty_address.to_be_bytes::<32>();
+    let min_transfers_sum_bytes = u128_to_be_bytes(constraints.min_transfers_sum);
+    let max_transfers_sum_bytes = u128_to_be_bytes(constraints.max_transfers_sum);
+    let min_transfers_count_bytes = u32_to_be_bytes(constraints.min_transfers_count);
+    let max_transfers_count_bytes = u32_to_be_bytes(constraints.max_transfers_count);
+    let from_block_timestamp_bytes = u64_to_be_bytes(constraints.from_block_timestamp);
+    let to_block_timestamp_bytes = u64_to_be_bytes(constraints.to_block_timestamp);
+    let transfers_root_hash_bytes = claim.transfers_root_hash.to_be_bytes::<32>();
 
     // Struct hash: keccak256(abi.encode(CLAIM_TYPEHASH, ...13 fields...))
     // 14 * 32 = 448 bytes
@@ -178,12 +148,12 @@ fn reconstruct_eip712_message(
     for i in 0..31 {
         struct_data[160 + i] = 0;
     }
-    struct_data[191] = if is_prover_sender { 1 } else { 0 };
+    struct_data[191] = if claim.is_prover_sender { 1 } else { 0 };
     // slot 6: tokenType (uint8, left-padded to 32 bytes)
     for i in 0..31 {
         struct_data[192 + i] = 0;
     }
-    struct_data[223] = token_type;
+    struct_data[223] = claim.token_type;
     // slot 7: minTransfersSum (uint128, left-padded)
     for i in 0..16 {
         struct_data[224 + i] = 0;
