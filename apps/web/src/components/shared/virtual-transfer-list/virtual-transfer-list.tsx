@@ -10,6 +10,7 @@ import { isAddressEqual, type Address as ViemAddress } from 'viem'
 import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
 import { formatDate } from '@/utils/format.utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { TokenType } from '@repo/types'
 
 export interface TransferDisplayItem {
   from: string
@@ -132,10 +133,10 @@ export function VirtualTransferList({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {transfer.tokenId != null && (tokenType === 'erc721' || tokenType === 'erc1155') ? (
+                {transfer.tokenId != null && (tokenType === TokenType.ERC721 || tokenType === TokenType.ERC1155) ? (
                   <span className="font-mono text-sm text-muted-foreground">#{transfer.tokenId}</span>
                 ) : null}
-                {tokenType !== 'erc721' ? (
+                {tokenType !== TokenType.ERC721 ? (
                   <CopyableAmount amount={transfer.amount} token={token} />
                 ) : null}
               </div>

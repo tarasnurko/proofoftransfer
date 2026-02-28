@@ -11,6 +11,7 @@
  */
 
 import { randomUUID } from 'crypto'
+import { TokenType } from '@repo/types'
 
 /** Minimal claim seed data — fills required fields with test defaults */
 export function buildClaimSeed(overrides: Record<string, unknown> = {}) {
@@ -20,7 +21,7 @@ export function buildClaimSeed(overrides: Record<string, unknown> = {}) {
     tokenAddress: '0x' + '1'.repeat(40),
     counterpartyAddress: '0x' + '2'.repeat(40),
     isProverSender: true,
-    tokenType: 'erc20',
+    tokenType: TokenType.ERC20,
     minTransfersSum: '0',
     maxTransfersSum: '0',
     minTransfersCount: 0,
@@ -99,7 +100,7 @@ export function buildCreateClaimActionInput(overrides: Record<string, unknown> =
     tokenAddress: '0x' + '1'.repeat(40),
     counterpartyAddress: '0x' + '2'.repeat(40),
     isProverSender: true,
-    tokenType: 'erc20' as const,
+    tokenType: TokenType.ERC20,
     minTransfersSum: '0',
     maxTransfersSum: '0',
     minTransfersCount: 0,

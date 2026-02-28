@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ChainId } from '@repo/types'
+import { ChainId, TokenType } from '@repo/types'
 import { ethereumAddressSchema, ethereumAddressLowercaseSchema, ensOrAddressSchema } from './address'
 
 export const MAX_CLAIM_TRANSFERS = 5000
@@ -18,7 +18,7 @@ const nonNegativeAmountSchema = z
     message: 'Must be a non-negative number',
   })
 
-const tokenTypeSchema = z.enum(['erc20', 'erc721', 'erc1155'])
+export const tokenTypeSchema = z.nativeEnum(TokenType)
 
 // -- Shared refinements --
 
@@ -103,7 +103,7 @@ export const fetchTransfersSchema = z
     tokenAddress: ethereumAddressLowercaseSchema,
     counterpartyAddress: ethereumAddressLowercaseSchema,
     isProverSender: z.boolean().default(true),
-    tokenType: tokenTypeSchema.default('erc20'),
+    tokenType: tokenTypeSchema.default(TokenType.ERC20),
     fromDate: z.date().optional(),
     toDate: z.date().optional(),
   })

@@ -1,3 +1,4 @@
+import { TokenType } from '@repo/types'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import { _resetRateLimitStore } from '@/services/rate-limit'
@@ -190,7 +191,7 @@ describe('rate limiting on real Hono app routes', () => {
             tokenAddress: '0x' + 'a'.repeat(40),
             counterpartyAddress: '0x' + 'b'.repeat(40),
             isProverSender: true,
-            tokenType: 'erc20',
+            tokenType: TokenType.ERC20,
           }),
         }),
       )

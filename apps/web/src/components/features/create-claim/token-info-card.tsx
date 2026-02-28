@@ -10,6 +10,7 @@ import { SUPPORTED_CHAINS } from '@/constants'
 import { Loader2 } from 'lucide-react'
 import { Address } from '@/components/shared/address'
 import type { TokenEntity } from '@/db/index.types'
+import { TokenType } from '@repo/types'
 import type { CreateClaimClientInput } from '@/validations/claim'
 import type { Nullable } from '@/types/common.types'
 import type { EnsResolution } from '@/types/blockchain.types'
@@ -77,9 +78,9 @@ export function TokenInfoCard({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="erc20">ERC-20</SelectItem>
-                    <SelectItem value="erc721">ERC-721</SelectItem>
-                    <SelectItem value="erc1155">ERC-1155</SelectItem>
+                    <SelectItem value={TokenType.ERC20}>ERC-20</SelectItem>
+                    <SelectItem value={TokenType.ERC721}>ERC-721</SelectItem>
+                    <SelectItem value={TokenType.ERC1155}>ERC-1155</SelectItem>
                   </SelectContent>
                 </Select>
               )}

@@ -14,10 +14,10 @@ import {
   bigintToBytes32,
   hexToUint8Array,
 } from '@repo/circuit-utils'
-import { getErc20Transfers, getErc721Transfers, getErc1155Transfers } from '@/db/queries/transfers'
+import { TRANSFER_QUERY_FN } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import type { Eip712ClaimFields } from '@/lib/proof'
-import { TokenType } from '@repo/types'
+import { TokenType, TOKEN_TYPE_CIRCUIT_VALUE } from '@repo/types'
 import type { ClaimEntity, TransferEntity } from '@/db/index.types'
 
 export interface TransferHashInput {
@@ -68,7 +68,7 @@ interface BuildEip712ClaimFieldsInput {
   tokenAddress: string
   counterpartyAddress: string
   isProverSender: boolean
-  tokenType: string
+  tokenType: TokenType
   minTransfersSum: string | null
   maxTransfersSum: string | null
   minTransfersCount: number | null
@@ -98,7 +98,7 @@ export async function buildEip712ClaimFields(
     tokenAddress: claim.tokenAddress,
     counterpartyAddress: claim.counterpartyAddress,
     isProverSender: claim.isProverSender,
-    tokenType: TokenType[claim.tokenType.toUpperCase() as keyof typeof TokenType].toString(),
+    tokenType: TOKEN_TYPE_CIRCUIT_VALUE[claim.tokenType].toString(),
     minTransfersSum: BigInt(claim.minTransfersSum || '0').toString(),
     maxTransfersSum: BigInt(claim.maxTransfersSum || '0').toString(),
     minTransfersCount: (claim.minTransfersCount || 0).toString(),
@@ -137,14 +137,7 @@ export async function verifyProofServer(params: VerifyProofServerParams): Promis
       if (!claim) throw new Error('Claim not found')
 
       const queryParams = buildTransferQueryFromClaim(claim)
-      let dbTransfers: TransferEntity[]
-      if (claim.tokenType === 'erc721') {
-        dbTransfers = await getErc721Transfers(queryParams)
-      } else if (claim.tokenType === 'erc1155') {
-        dbTransfers = await getErc1155Transfers(queryParams)
-      } else {
-        dbTransfers = await getErc20Transfers(queryParams)
-      }
+      const dbTransfers = await TRANSFER_QUERY_FN[claim.tokenType as TokenType](queryParams)
       transfers = dbTransfers.map(mapDbTransferToHashInput)
     }
 
@@ -183,14 +176,7 @@ export async function prepareSigningBase(claimId: string) {
   if (!claim) throw new Error('Claim not found')
 
   const queryParams = buildTransferQueryFromClaim(claim)
-  let claimTransfers: TransferEntity[]
-  if (claim.tokenType === 'erc721') {
-    claimTransfers = await getErc721Transfers(queryParams)
-  } else if (claim.tokenType === 'erc1155') {
-    claimTransfers = await getErc1155Transfers(queryParams)
-  } else {
-    claimTransfers = await getErc20Transfers(queryParams)
-  }
+  const claimTransfers = await TRANSFER_QUERY_FN[claim.tokenType as TokenType](queryParams)
   if (!claimTransfers.length) throw new Error('No transfers found for this claim')
 
   const bb = await BarretenbergImpl.new({ threads: 1 })

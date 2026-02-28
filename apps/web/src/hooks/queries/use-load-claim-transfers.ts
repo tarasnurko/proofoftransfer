@@ -2,14 +2,14 @@ import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { toast } from 'sonner'
 import type { TransferEntity } from '@/db/index.types'
-import type { ChainId } from '@repo/types'
+import { TokenType, type ChainId } from '@repo/types'
 
 interface LoadClaimTransfersInput {
   chainId: ChainId
   tokenAddress: string
   counterpartyAddress: string
   isProverSender?: boolean
-  tokenType?: string
+  tokenType?: TokenType
   fromDate?: Date
   toDate?: Date
 }
@@ -27,7 +27,7 @@ export function useLoadClaimTransfers({ onSuccess }: UseLoadClaimTransfersParams
           tokenAddress: input.tokenAddress,
           counterpartyAddress: input.counterpartyAddress,
           isProverSender: input.isProverSender ?? true,
-          tokenType: (input.tokenType ?? 'erc20') as 'erc20' | 'erc721' | 'erc1155',
+          tokenType: input.tokenType ?? TokenType.ERC20,
           fromDate: input.fromDate?.toISOString(),
           toDate: input.toDate?.toISOString(),
         },

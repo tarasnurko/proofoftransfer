@@ -19,7 +19,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { useGetTokenData, useLoadClaimTransfers, useResolveEns } from '@/hooks/queries'
 import { createClaimClientSchema, type CreateClaimClientInput } from '@/validations/claim'
 import type { TransferEntity } from '@/db/index.types'
-import { ChainId } from '@repo/types'
+import { ChainId, TokenType } from '@repo/types'
 
 const DEBOUNCE_MS = 500
 const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'counterpartyAddress', 'isProverSender', 'tokenType', 'fromDate', 'toDate'])
@@ -45,7 +45,7 @@ export function CreateClaimForm() {
       tokenAddress: '',
       counterpartyAddress: '',
       isProverSender: true,
-      tokenType: 'erc20' as const,
+      tokenType: TokenType.ERC20,
       minTransfersSum: '0',
       maxTransfersSum: '0',
       minTransfersCount: 0,

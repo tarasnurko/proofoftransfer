@@ -7,6 +7,7 @@
  */
 import Papa from 'papaparse'
 import { parseUnits } from 'viem'
+import { TokenType } from '@repo/types'
 import type { EtherscanTransfer } from '@/types'
 
 const ERC20_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
@@ -21,11 +22,11 @@ export interface ParseEtherscanCsvParams {
   text: string
   tokenAddress: string
   tokenDecimals: number
-  tokenType?: string
+  tokenType?: TokenType
 }
 
-export function getExpectedCsvFormat(tokenType?: string): string {
-  const key = tokenType === 'erc20' || !tokenType ? 'erc20' : 'nft'
+export function getExpectedCsvFormat(tokenType?: TokenType): string {
+  const key = tokenType === TokenType.ERC20 || !tokenType ? 'erc20' : 'nft'
   return FORMAT_HINTS[key]!
 }
 
@@ -33,7 +34,7 @@ export function parseEtherscanCsv({
   text,
   tokenAddress,
   tokenDecimals,
-  tokenType = 'erc20',
+  tokenType = TokenType.ERC20,
 }: ParseEtherscanCsvParams): EtherscanTransfer[] {
   const { data, errors } = Papa.parse<Record<string, string>>(text, {
     header: true,
@@ -50,7 +51,7 @@ export function parseEtherscanCsv({
   }
 
   const headers = Object.keys(data[0]!)
-  const isNft = tokenType === 'erc721' || tokenType === 'erc1155'
+  const isNft = tokenType === TokenType.ERC721 || tokenType === TokenType.ERC1155
   const requiredHeaders = isNft ? NFT_HEADERS : ERC20_HEADERS
   const hasValidFormat = requiredHeaders.every((h) =>
     headers.some((header) => header.includes(h)),
@@ -72,7 +73,7 @@ export function parseEtherscanCsv({
       blockNumber: row['blockno'] || '',
     }
 
-    if (tokenType === 'erc721') {
+    if (tokenType === TokenType.ERC721) {
       return {
         ...base,
         value: '1',
@@ -80,7 +81,7 @@ export function parseEtherscanCsv({
       }
     }
 
-    if (tokenType === 'erc1155') {
+    if (tokenType === TokenType.ERC1155) {
       return {
         ...base,
         value: row['quantity'] || '0',

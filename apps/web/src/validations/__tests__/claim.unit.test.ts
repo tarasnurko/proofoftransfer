@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createClaimSchema } from '../claim'
 import { dateToTimestamp } from '@/utils/date.utils'
 import { buildCreateClaimActionInput } from '@repo/test-utils'
-import { ChainId } from '@repo/types'
+import { ChainId, TokenType } from '@repo/types'
 
 describe('createClaimSchema', () => {
   const validInput = buildCreateClaimActionInput({
@@ -74,12 +74,12 @@ describe('createClaimSchema', () => {
   })
 
   it('accepts tokenType erc721', () => {
-    const result = createClaimSchema.safeParse({ ...validInput, tokenType: 'erc721' })
+    const result = createClaimSchema.safeParse({ ...validInput, tokenType: TokenType.ERC721 })
     expect(result.success).toBe(true)
   })
 
   it('accepts tokenType erc1155', () => {
-    const result = createClaimSchema.safeParse({ ...validInput, tokenType: 'erc1155' })
+    const result = createClaimSchema.safeParse({ ...validInput, tokenType: TokenType.ERC1155 })
     expect(result.success).toBe(true)
   })
 

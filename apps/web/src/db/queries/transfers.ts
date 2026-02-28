@@ -7,9 +7,11 @@ import type {
   InsertErc721TransferEntity,
   Erc1155TransferEntity,
   InsertErc1155TransferEntity,
+  TransferEntity,
 } from '../index.types'
 import { eq, and, gte, lte } from 'drizzle-orm'
 import { getClient } from '../helpers'
+import { TokenType } from '@repo/types'
 
 const DEFAULT_TRANSFERS_LIMIT = 5000
 
@@ -98,6 +100,12 @@ export async function getErc1155Transfers(
     .orderBy(t.blockTimestamp)
     .limit(params.limit ?? DEFAULT_TRANSFERS_LIMIT)
     .offset(params.offset ?? 0)
+}
+
+export const TRANSFER_QUERY_FN: Record<TokenType, (params: GetTransfersParams, tx?: DB) => Promise<TransferEntity[]>> = {
+  [TokenType.ERC20]: getErc20Transfers,
+  [TokenType.ERC721]: getErc721Transfers,
+  [TokenType.ERC1155]: getErc1155Transfers,
 }
 
 // ─── Upsert ─────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
 import { buildErc20TransferSeed, buildErc721TransferSeed, buildErc1155TransferSeed, buildCreateClaimActionInput, generateEthereumAddress } from '@repo/test-utils'
-import { ChainId } from '@repo/types'
+import { ChainId, TokenType } from '@repo/types'
 
 // Mock next/cache since it's not available outside Next.js runtime
 vi.mock('next/cache', () => ({
@@ -61,7 +61,7 @@ describe('createClaimAction', () => {
     const { createClaimAction } = await import('@/actions/claims.actions')
 
     const result = await createClaimAction(
-      buildCreateClaimActionInput({ tokenAddress, counterpartyAddress, chainId: ChainId.ETHEREUM, tokenType: 'erc721' }),
+      buildCreateClaimActionInput({ tokenAddress, counterpartyAddress, chainId: ChainId.ETHEREUM, tokenType: TokenType.ERC721 }),
     )
 
     expect(result?.data?.claimId).toBeDefined()
@@ -83,7 +83,7 @@ describe('createClaimAction', () => {
     const { createClaimAction } = await import('@/actions/claims.actions')
 
     const result = await createClaimAction(
-      buildCreateClaimActionInput({ tokenAddress, counterpartyAddress, chainId: ChainId.ETHEREUM, tokenType: 'erc1155' }),
+      buildCreateClaimActionInput({ tokenAddress, counterpartyAddress, chainId: ChainId.ETHEREUM, tokenType: TokenType.ERC1155 }),
     )
 
     expect(result?.data?.claimId).toBeDefined()
@@ -119,7 +119,7 @@ describe('createClaimAction', () => {
       tokenAddress: 'invalid',
       counterpartyAddress: generateEthereumAddress().toLowerCase(),
       isProverSender: true,
-      tokenType: 'erc20',
+      tokenType: TokenType.ERC20,
       chainId: ChainId.ETHEREUM,
     })
 

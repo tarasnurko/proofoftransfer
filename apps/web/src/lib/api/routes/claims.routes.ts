@@ -9,13 +9,14 @@ import {
   padTransfersArray,
   padMerkleProofsArray,
 } from '@repo/circuit-utils'
+import { TokenType } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
-import { getErc20Transfers, getErc721Transfers, getErc1155Transfers, upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
+import { TRANSFER_QUERY_FN, upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import { etherscanService } from '@/services/etherscan'
 import { ethereumAddressSchema } from '@/validations/address'
-import { MAX_CLAIM_TRANSFERS } from '@/validations/claim'
+import { MAX_CLAIM_TRANSFERS, tokenTypeSchema } from '@/validations/claim'
 import {
   prepareSigningBase,
   mapDbTransferToHashInput,
@@ -51,7 +52,7 @@ const loadTransfersBody = z.object({
   tokenAddress: z.string(),
   counterpartyAddress: z.string(),
   isProverSender: z.boolean().default(true),
-  tokenType: z.enum(['erc20', 'erc721', 'erc1155']).default('erc20'),
+  tokenType: tokenTypeSchema.default(TokenType.ERC20),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
 })
@@ -94,14 +95,7 @@ export const claimsRoutes = new Hono()
         toTimestamp: claim.toBlockTimestamp || undefined,
       }
 
-      let transfers
-      if (claim.tokenType === 'erc721') {
-        transfers = await getErc721Transfers(queryParams)
-      } else if (claim.tokenType === 'erc1155') {
-        transfers = await getErc1155Transfers(queryParams)
-      } else {
-        transfers = await getErc20Transfers(queryParams)
-      }
+      const transfers = await TRANSFER_QUERY_FN[claim.tokenType as TokenType](queryParams)
 
       return c.json(transfers.map(mapDbToEtherscanTransfer))
     },
@@ -135,14 +129,12 @@ export const claimsRoutes = new Hono()
         toTimestamp: claim.toBlockTimestamp || undefined,
       }
 
-      let transfers
-      if (claim.tokenType === 'erc721') {
-        transfers = await etherscanService.getERC721Transfers(fetchParams)
-      } else if (claim.tokenType === 'erc1155') {
-        transfers = await etherscanService.getERC1155Transfers(fetchParams)
-      } else {
-        transfers = await etherscanService.getERC20Transfers(fetchParams)
+      const etherscanFetchFn = {
+        [TokenType.ERC20]: () => etherscanService.getERC20Transfers(fetchParams),
+        [TokenType.ERC721]: () => etherscanService.getERC721Transfers(fetchParams),
+        [TokenType.ERC1155]: () => etherscanService.getERC1155Transfers(fetchParams),
       }
+      const transfers = await etherscanFetchFn[claim.tokenType as TokenType]()
 
       return c.json({ transfers })
     },
@@ -279,7 +271,7 @@ export const claimsRoutes = new Hono()
         tokenAddress: transfer.contractAddress.toLowerCase(),
       })
 
-      if (tokenType === 'erc721') {
+      if (tokenType === TokenType.ERC721) {
         const erc721Transfers = await etherscanService.getERC721Transfers(fetchParams)
 
         if (!erc721Transfers.length) throw new Error('No transfers found matching these constraints')
@@ -293,7 +285,7 @@ export const claimsRoutes = new Hono()
         return c.json({ transfers: stored })
       }
 
-      if (tokenType === 'erc1155') {
+      if (tokenType === TokenType.ERC1155) {
         const erc1155Transfers = await etherscanService.getERC1155Transfers(fetchParams)
 
         if (!erc1155Transfers.length) throw new Error('No transfers found matching these constraints')

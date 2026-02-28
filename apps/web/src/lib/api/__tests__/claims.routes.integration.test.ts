@@ -3,6 +3,7 @@ import { createClaim } from '@/db/queries/claims'
 import { createProof } from '@/db/queries/proofs'
 import { upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
 import { buildClaimSeed, buildProofSeed, buildErc20TransferSeed, buildErc721TransferSeed, buildErc1155TransferSeed } from '@repo/test-utils'
+import { TokenType } from '@repo/types'
 
 // The hono app imports modules that may reference next/cache transitively
 vi.mock('next/cache', () => ({
@@ -58,7 +59,7 @@ describe('claims routes (Hono)', () => {
         tokenAddress,
         counterpartyAddress,
         isProverSender: true,
-        tokenType: 'erc20',
+        tokenType: TokenType.ERC20,
         minTransfersCount: 0,
         maxTransfersCount: 0,
         chainId: 1,
@@ -85,7 +86,7 @@ describe('claims routes (Hono)', () => {
         tokenAddress,
         counterpartyAddress,
         isProverSender: true,
-        tokenType: 'erc721',
+        tokenType: TokenType.ERC721,
         chainId: 1,
       }))
 
@@ -110,7 +111,7 @@ describe('claims routes (Hono)', () => {
         tokenAddress,
         counterpartyAddress,
         isProverSender: true,
-        tokenType: 'erc1155',
+        tokenType: TokenType.ERC1155,
         chainId: 1,
       }))
 

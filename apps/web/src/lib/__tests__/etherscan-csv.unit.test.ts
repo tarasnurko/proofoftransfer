@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { TokenType } from '@repo/types'
 import { parseEtherscanCsv } from '../etherscan-csv'
 
 /** Real Etherscan ERC20 transfer CSV format */
@@ -75,7 +76,7 @@ describe('parseEtherscanCsv', () => {
       text: NFT_CSV,
       tokenAddress: '0xd10ffc8ff04c49f0034bf26126f5110caf7f7b34',
       tokenDecimals: 0,
-      tokenType: 'erc721',
+      tokenType: TokenType.ERC721,
     })
 
     expect(result).toHaveLength(3)
@@ -96,7 +97,7 @@ describe('parseEtherscanCsv', () => {
       text: NFT_CSV,
       tokenAddress: '0xe78e58f677c42e3037c3ff94e74c0709d34e448c',
       tokenDecimals: 0,
-      tokenType: 'erc1155',
+      tokenType: TokenType.ERC1155,
     })
 
     expect(result).toHaveLength(3)
