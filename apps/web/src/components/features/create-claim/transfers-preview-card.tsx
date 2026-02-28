@@ -50,7 +50,7 @@ export function TransfersPreviewCard({
             <CardTitle className="text-2xl font-bold">Transfers Preview</CardTitle>
             <CardDescription>{transfers.length} transfers found</CardDescription>
           </div>
-          {isConnected && userTransferCount > 0 ? (
+          {isConnected ? (
             <Button
               type="button"
               variant={showOnlyMyTransfers ? 'default' : 'outline'}
@@ -64,13 +64,19 @@ export function TransfersPreviewCard({
         </div>
       </CardHeader>
       <CardContent>
-        <VirtualTransferList
-          transfers={mappedTransfers}
-          token={token}
-          walletAddress={walletAddress}
-          chainId={chainId}
-          maxHeight={300}
-        />
+        {showOnlyMyTransfers && !mappedTransfers.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            You don&apos;t have any transfers in this list
+          </p>
+        ) : (
+          <VirtualTransferList
+            transfers={mappedTransfers}
+            token={token}
+            walletAddress={walletAddress}
+            chainId={chainId}
+            maxHeight={300}
+          />
+        )}
       </CardContent>
     </Card>
   )

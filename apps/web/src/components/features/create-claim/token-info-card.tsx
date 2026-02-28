@@ -45,7 +45,7 @@ export function TokenInfoCard({
         <CardDescription>Specify the blockchain and token</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="chainId">Chain *</Label>
             <Controller
@@ -81,6 +81,24 @@ export function TokenInfoCard({
                     <SelectItem value={TokenType.ERC20}>ERC-20</SelectItem>
                     <SelectItem value={TokenType.ERC721}>ERC-721</SelectItem>
                     <SelectItem value={TokenType.ERC1155}>ERC-1155</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="isProverSender">Proving *</Label>
+            <Controller
+              name="isProverSender"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value ? 'sender' : 'recipient'} onValueChange={(v) => field.onChange(v === 'sender')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sender">Prove I sent</SelectItem>
+                    <SelectItem value="recipient">Prove I received</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -134,27 +152,6 @@ export function TokenInfoCard({
           ) : null}
         </div>
 
-        <div className="max-w-xs space-y-2">
-          <Label htmlFor="isProverSender">Prover Role *</Label>
-          <Controller
-            name="isProverSender"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value ? 'sender' : 'recipient'} onValueChange={(v) => field.onChange(v === 'sender')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sender">I am the Sender</SelectItem>
-                  <SelectItem value="recipient">I am the Recipient</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            Whether the prover sent or received the transfers
-          </p>
-        </div>
       </CardContent>
     </Card>
   )
