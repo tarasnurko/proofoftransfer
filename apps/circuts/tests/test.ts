@@ -277,7 +277,7 @@ describe("Circuit tests", () => {
       assert.strictEqual(isValid, true, "Proof should be valid");
     });
 
-    it("should verify proof with zero transfer amount and zero constraints", async () => {
+    it("should fail with zero transfer amount", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
         to: counterpartyAddress,
@@ -302,17 +302,9 @@ describe("Circuit tests", () => {
         ...baseParams(),
       });
 
-      const { witness } = await noir.execute(inputs);
-      const proofData = await ultraHonkBackend.generateProof(witness);
-      const isValid = await ultraHonkBackend.verifyProof({
-        proof: proofData.proof,
-        publicInputs: proofData.publicInputs,
-      });
-
-      assert.strictEqual(
-        isValid,
-        true,
-        "Should succeed with zero amount and zero constraints",
+      await assert.rejects(
+        async () => await noir.execute(inputs),
+        /amount must not be zero/,
       );
     });
 

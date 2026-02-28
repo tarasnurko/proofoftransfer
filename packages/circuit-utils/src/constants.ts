@@ -26,5 +26,5 @@ export const ZERO_VALUES = [
   "20573465072802610782433647728016690255957082140373729717410229928299050369802",
 ];
 
-export const MERKLE_TREE_HEIGHT = 20;
+export const MERKLE_TREE_HEIGHT = 20; // max amount of leaves 2 ** 20 = 1,048,576 ? should decrease to 16 (65,536) or 17 (131,072)
 export const MAX_TRANSFERS = 50;

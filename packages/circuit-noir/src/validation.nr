@@ -37,6 +37,8 @@ pub fn validate_transfers(
             let transfer = transfers[i];
             let transfer_block_timestamp = transfer.block_timestamp;
 
+            assert(transfer.amount != 0, f"Transfer {i} amount must not be zero");
+
             transfers_sum += transfer.amount;
 
             assert(

@@ -2,22 +2,19 @@
  * Parses Etherscan token transfer CSV exports.
  *
  * Supported formats:
- *   ERC-20:  Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
- *   ERC-721: Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId
- *   ERC-1155: Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId, TokenValue
+ *   ERC-20:     Transaction Hash, Blockno, UnixTimestamp, DateTime (UTC), From, To, Quantity, Method
+ *   NFT (721+1155): Transaction Hash, Blockno, UnixTimestamp, DateTime (UTC), From, To, ContractAddress, TokenName, TokenSymbol, Token ID, Type, Quantity
  */
 import Papa from 'papaparse'
 import { parseUnits } from 'viem'
 import type { EtherscanTransfer } from '@/types'
 
 const ERC20_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'quantity']
-const ERC721_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'tokenid']
-const ERC1155_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'tokenid', 'tokenvalue']
+const NFT_HEADERS = ['transactionhash', 'blockno', 'unixtimestamp', 'from', 'to', 'tokenid', 'type', 'quantity']
 
 const FORMAT_HINTS: Record<string, string> = {
   erc20: 'Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity',
-  erc721: 'Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId',
-  erc1155: 'Transaction Hash, Blockno, UnixTimestamp, From, To, TokenId, TokenValue',
+  nft: 'Transaction Hash, Blockno, UnixTimestamp, From, To, Token ID, Type, Quantity',
 }
 
 export interface ParseEtherscanCsvParams {
@@ -28,7 +25,8 @@ export interface ParseEtherscanCsvParams {
 }
 
 export function getExpectedCsvFormat(tokenType?: string): string {
-  return FORMAT_HINTS[tokenType || 'erc20'] || FORMAT_HINTS.erc20!
+  const key = tokenType === 'erc20' || !tokenType ? 'erc20' : 'nft'
+  return FORMAT_HINTS[key]!
 }
 
 export function parseEtherscanCsv({
@@ -52,7 +50,8 @@ export function parseEtherscanCsv({
   }
 
   const headers = Object.keys(data[0]!)
-  const requiredHeaders = getRequiredHeaders(tokenType)
+  const isNft = tokenType === 'erc721' || tokenType === 'erc1155'
+  const requiredHeaders = isNft ? NFT_HEADERS : ERC20_HEADERS
   const hasValidFormat = requiredHeaders.every((h) =>
     headers.some((header) => header.includes(h)),
   )
@@ -84,7 +83,7 @@ export function parseEtherscanCsv({
     if (tokenType === 'erc1155') {
       return {
         ...base,
-        value: row['tokenvalue'] || '0',
+        value: row['quantity'] || '0',
         tokenId: row['tokenid'] || '0',
       }
     }
@@ -102,10 +101,4 @@ export function parseEtherscanCsv({
   }
 
   return parsed
-}
-
-function getRequiredHeaders(tokenType: string): string[] {
-  if (tokenType === 'erc721') return ERC721_HEADERS
-  if (tokenType === 'erc1155') return ERC1155_HEADERS
-  return ERC20_HEADERS
 }
