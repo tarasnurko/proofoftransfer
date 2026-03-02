@@ -14,6 +14,11 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3005',
     trace: 'on-first-retry',
+    launchOptions: {
+      slowMo: Number(process.env.SLOW_MO) || 0,
+      args: ['--window-position=0,0', '--window-size=9999,9999'],
+    },
+    viewport: null,
   },
   projects: [
     {
@@ -24,7 +29,7 @@ export default defineConfig({
         'proof-details.spec.ts',
         'create-claim.spec.ts',
       ],
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], viewport: null, deviceScaleFactor: undefined },
     },
     {
       name: 'wallet',
