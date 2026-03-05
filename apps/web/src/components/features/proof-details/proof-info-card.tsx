@@ -37,6 +37,13 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
           </div>
         </div>
 
+        {proof.message && (
+          <div>
+            <div className="text-sm font-bold text-muted-foreground">Message</div>
+            <div className="mt-1 text-sm">{proof.message}</div>
+          </div>
+        )}
+
         <div>
           <div className="text-sm font-bold text-muted-foreground">Proof Data</div>
           <details className="mt-1">

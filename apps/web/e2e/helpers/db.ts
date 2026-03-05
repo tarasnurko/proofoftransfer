@@ -9,6 +9,7 @@ import type {
   InsertErc20TransferEntity,
   InsertErc721TransferEntity,
   InsertErc1155TransferEntity,
+  InsertEnsCacheEntity,
 } from '../../src/db/index.types'
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://pot:pot_dev_password@localhost:5432/proofoftransfer'
@@ -51,8 +52,13 @@ export async function seedTransfer(data: InsertErc20TransferEntity) {
   return seedErc20Transfer(data)
 }
 
+export async function seedEnsCache(data: InsertEnsCacheEntity) {
+  const [record] = await testDb.insert(schema.ensCacheTable).values(data).returning()
+  return record!
+}
+
 export async function truncateAll() {
-  await testDb.execute(sql`TRUNCATE TABLE proof_verifications, proofs, erc20_transfers, erc721_transfers, erc1155_transfers, claims, tokens CASCADE`)
+  await testDb.execute(sql`TRUNCATE TABLE proof_verifications, proofs, erc20_transfers, erc721_transfers, erc1155_transfers, claims, tokens, ens_cache CASCADE`)
 }
 
 export async function closeDb() {

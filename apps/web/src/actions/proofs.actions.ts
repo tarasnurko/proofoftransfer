@@ -63,6 +63,7 @@ export const submitProofAction = createRateLimitedActionClient('submitProof', RA
       nullifier: parsedInput.nullifier,
       proofData: parsedInput.proofData,
       publicInputs: parsedInput.publicInputs,
+      message: parsedInput.message ?? null,
     };
 
     const result = await createProof(proofData);

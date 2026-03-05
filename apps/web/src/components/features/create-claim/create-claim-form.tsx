@@ -36,6 +36,7 @@ export function CreateClaimForm() {
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors },
   } = useForm<CreateClaimClientInput>({
     resolver: zodResolver(createClaimClientSchema),
@@ -104,6 +105,10 @@ export function CreateClaimForm() {
     return () => subscription.unsubscribe()
   }, [watch])
 
+  useEffect(() => {
+    setValue('toDate', new Date())
+  }, [setValue])
+
   const filteredTransfers = useMemo(() => {
     if (!fetchedTransfers) return null
     const decimals = tokenData?.decimals ?? 18
@@ -143,7 +148,7 @@ export function CreateClaimForm() {
   })
 
   const handleFetchTransfers = useCallback(async () => {
-    const valid = await trigger(['tokenAddress', 'counterpartyAddress', 'claimMessage', 'fromDate', 'toDate'])
+    const valid = await trigger(['tokenAddress', 'counterpartyAddress', 'claimMessage', 'fromDate', 'toDate', 'minTransfersSum', 'maxTransfersSum', 'minTransfersCount', 'maxTransfersCount'])
     if (!valid) {
       toast.error('Please fill the form correctly')
       return
@@ -230,6 +235,7 @@ export function CreateClaimForm() {
 
       <TimeRangeCard
         control={control}
+        watch={watch}
         error={errors.toDate?.message}
       />
 

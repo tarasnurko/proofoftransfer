@@ -38,6 +38,8 @@ export interface TestFixtures {
     usdc: TestToken
   }
   recipient: string
+  counterpartyShared: string  // recipient address, has ENS "gooddao.eth", used by most claims
+  counterpartyUnique: string  // uniqueCounterparty1 address, has ENS "devguild.eth", used by exactly 1 claim
   senders: string[]
   senderKeys: string[]
   claims: TestClaim[]

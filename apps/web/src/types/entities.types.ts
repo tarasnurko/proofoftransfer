@@ -19,6 +19,7 @@ export interface ProofEntity {
   nullifier: string
   proofData: string
   publicInputs: object
+  message?: string | null
   createdAt: Date
   verified?: boolean
   verificationResult?: {

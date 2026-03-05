@@ -92,7 +92,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
     }
   }, [walletAddress, walletClient, claim, claimId])
 
-  const handleGenerateProof = useCallback(async () => {
+  const handleGenerateProof = useCallback(async (message?: string) => {
     if (!preparedProof) return
 
     setGeneratingProof(true)
@@ -104,6 +104,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
         nullifier: generated.nullifier,
         proofData: generated.proofData,
         publicInputs: generated.publicInputs,
+        message,
       })
 
       if (submitResult?.serverError) {

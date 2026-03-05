@@ -57,6 +57,7 @@ export const proofsTable = pgTable(
     nullifier: varchar({ length: 78 }).notNull(),
     proofData: text().notNull(),
     publicInputs: jsonb().notNull(),
+    message: text(),
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [

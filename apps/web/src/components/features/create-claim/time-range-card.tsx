@@ -1,18 +1,22 @@
 'use client'
 
-import type { Control } from 'react-hook-form'
+import type { Control, UseFormWatch } from 'react-hook-form'
 import { Controller } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { DatePicker } from '@/components/ui/date-picker'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
 import type { CreateClaimClientInput } from '@/validations/claim'
 
 interface TimeRangeCardProps {
   control: Control<CreateClaimClientInput>
+  watch: UseFormWatch<CreateClaimClientInput>
   error?: string
 }
 
-export function TimeRangeCard({ control, error }: TimeRangeCardProps) {
+export function TimeRangeCard({ control, watch, error }: TimeRangeCardProps) {
+  const chainId = watch('chainId')
+  const toDate = watch('toDate')
+
   return (
     <Card className="border-4">
       <CardHeader>
@@ -27,10 +31,12 @@ export function TimeRangeCard({ control, error }: TimeRangeCardProps) {
               name="fromDate"
               control={control}
               render={({ field }) => (
-                <DatePicker
-                  date={field.value || undefined}
-                  onSelect={(date) => field.onChange(date || null)}
-                  placeholder="Select start date"
+                <DateTimePicker
+                  value={field.value || undefined}
+                  onChange={(date) => field.onChange(date || null)}
+                  placeholder="Select start date & time"
+                  maxDate={toDate ? new Date(Math.min(new Date().getTime(), toDate.getTime())) : new Date()}
+                  chainId={chainId}
                 />
               )}
             />
@@ -42,10 +48,12 @@ export function TimeRangeCard({ control, error }: TimeRangeCardProps) {
               name="toDate"
               control={control}
               render={({ field }) => (
-                <DatePicker
-                  date={field.value || undefined}
-                  onSelect={(date) => field.onChange(date || null)}
-                  placeholder="Select end date"
+                <DateTimePicker
+                  value={field.value || undefined}
+                  onChange={(date) => field.onChange(date || null)}
+                  placeholder="Select end date & time"
+                  maxDate={new Date()}
+                  chainId={chainId}
                 />
               )}
             />

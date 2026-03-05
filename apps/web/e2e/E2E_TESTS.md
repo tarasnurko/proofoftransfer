@@ -25,10 +25,19 @@
   - check: 5 "view details" links on page 2
   - check: clicking page "1" returns to "Showing 1 to 10 of 15 claims"
 - Filters claims by message text search
-  - check: typing "Ethereum claim" shows 8 claims
-  - check: "Ethereum claim #1" through "#8" all visible
+  - check: typing "reward" shows 3 claims
+  - check: "DAO contributor received at least 3 weekly reward transfers" visible
+  - check: "Prove I received liquidity rewards during Q1 2025" visible
+  - check: "Staking reward distribution…" visible
+  - check: typing "salary" shows 1 claim
+  - check: "Monthly salary payment proof for remote contractor Jan–Mar 2025" visible
 - Filters claims by token address search
-  - check: pasting TST token address shows 8 claims
+  - check: pasting TST token address shows 6 claims (only TST-based Ethereum claims)
+- Filters by shared counterparty address shows multiple
+  - check: pasting shared counterparty address (gooddao.eth) shows 12 claims
+- Filters by unique counterparty address shows one
+  - check: pasting unique counterparty address (devguild.eth) shows "Showing 1 to 1 of 1 claims"
+  - check: "open-source grant payment" text visible
 - Shows empty state when search has no matches
   - check: text "No Matches Found"
   - check: text "Try adjusting your search or filters"
@@ -36,12 +45,12 @@
   - check: selecting "Ethereum" → 8 claims
   - check: switching to "Base" → 7 claims
 - Combines chain filter with text search
-  - check: Ethereum chain + search "Ethereum claim #1" → "Showing 1 to 1 of 1 claims"
-  - check: "Ethereum claim #1" visible
+  - check: Ethereum chain + search "donated 100 TST" → "Showing 1 to 1 of 1 claims"
+  - check: "Prove I donated 100 TST to the public goods fund" visible
 - Sorts by newest first (default)
-  - check: "Base claim #7" visible on page 1
+  - check: "Base ecosystem early adopter…" visible on page 1 (last seeded claim)
 - Sorts by oldest first
-  - check: "Ethereum claim #1" visible on page 1
+  - check: "Prove I donated 100 TST to the public goods fund" visible on page 1 (first seeded claim)
 - Sorts by most proofs
   - check: first card has "3 Proofs" badge
 - Sorts by least proofs

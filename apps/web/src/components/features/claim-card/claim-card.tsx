@@ -68,11 +68,11 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
 
       <CardContent className="flex-1 space-y-3">
         <div className="grid gap-2 rounded border-2 border-border bg-secondary/30 p-3 text-sm">
-          <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+          <div className="grid grid-cols-[110px_1fr] items-center gap-2">
             <span className="font-bold">Chain:</span>
             <ChainBadge chainId={claim.chainId} />
           </div>
-          <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+          <div className="grid grid-cols-[110px_1fr] items-center gap-2">
             <span className="font-bold">Token:</span>
             <div className="flex items-center gap-2">
               <span className="text-sm">{tokenDisplay}</span>
@@ -80,7 +80,7 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
               <CopyHash hash={claim.tokenAddress} chars={0} />
             </div>
           </div>
-          <div className="grid grid-cols-[80px_1fr] items-start gap-2">
+          <div className="grid grid-cols-[110px_1fr] items-start gap-2">
             <span className="font-bold">Counterparty:</span>
             <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
           </div>
