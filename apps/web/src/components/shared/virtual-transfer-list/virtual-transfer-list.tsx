@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { ExternalLink } from 'lucide-react'
 import { Address } from '@/components/shared/address'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,6 +11,8 @@ import { isAddressEqual, type Address as ViemAddress } from 'viem'
 import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
 import { formatDate } from '@/utils/format.utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { getExplorerTxUrl } from '@/utils/explorer.utils'
+import { truncateAddress } from '@/utils/format.utils'
 import { TokenType } from '@repo/types'
 
 export interface TransferDisplayItem {
@@ -128,8 +131,22 @@ export function VirtualTransferList({
                     <Badge className="bg-accent text-accent-foreground">You</Badge>
                   )}
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {formatDate(transfer.timestamp * 1000)}
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>{formatDate(transfer.timestamp * 1000)}</span>
+                  {transfer.txHash && chainId && getExplorerTxUrl(chainId, transfer.txHash) ? (
+                    <>
+                      <span>·</span>
+                      <a
+                        href={getExplorerTxUrl(chainId, transfer.txHash)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono underline decoration-1 underline-offset-2 hover:opacity-70"
+                      >
+                        {truncateAddress(transfer.txHash)}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-center gap-3">

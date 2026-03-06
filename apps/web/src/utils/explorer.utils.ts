@@ -38,3 +38,9 @@ export function getExplorerAddressUrl(chainId: number, address: string): Nullabl
   if (!base) return null
   return `${base}/address/${address}`
 }
+
+export function getExplorerTxUrl(chainId: number, txHash: string): Nullable<string> {
+  const base = EXPLORER_URLS[chainId]
+  if (!base) return null
+  return `${base}/tx/${txHash}`
+}

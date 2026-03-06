@@ -51,14 +51,14 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
   const maxAmount = formatClaimAmount(claim.maxTransfersSum, claim.token)
 
   return (
-    <Card className="flex flex-col border-4 transition-all hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(200,200,200,0.3)]">
+    <Card className="flex h-full flex-col border-4 transition-all hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(200,200,200,0.3)]">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-1">
             <CardDescription className="font-mono text-xs">
               ID: {claim.id.slice(0, 8)}...
             </CardDescription>
-            <CardTitle className="text-pretty leading-tight">{claim.message}</CardTitle>
+            <CardTitle className="line-clamp-3 text-pretty leading-tight">{claim.message}</CardTitle>
           </div>
           <Badge variant="secondary" className="shrink-0 border-2 font-bold whitespace-nowrap">
             {claim.proofCount} {claim.proofCount === 1 ? 'Proof' : 'Proofs'}
@@ -66,7 +66,7 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-3">
+      <CardContent className="flex flex-1 flex-col justify-end space-y-3">
         <div className="grid gap-2 rounded border-2 border-border bg-secondary/30 p-3 text-sm">
           <div className="grid grid-cols-[110px_1fr] items-center gap-2">
             <span className="font-bold">Chain:</span>
@@ -99,13 +99,15 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
             <span>{getAmountConstraint(minAmount, maxAmount)}</span>
           </div>
 
-          {(claim.minTransfersCount > 0 || claim.maxTransfersCount > 0) ? (
-            <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
-              <Hash className="h-4 w-4 text-muted-foreground" />
-              <span className="font-bold">Count:</span>
-              <span>{formatCountConstraint(claim.minTransfersCount, claim.maxTransfersCount)}</span>
-            </div>
-          ) : null}
+          <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
+            <Hash className="h-4 w-4 text-muted-foreground" />
+            <span className="font-bold">Count:</span>
+            <span>
+              {claim.minTransfersCount > 0 || claim.maxTransfersCount > 0
+                ? formatCountConstraint(claim.minTransfersCount, claim.maxTransfersCount)
+                : 'No constraints'}
+            </span>
+          </div>
 
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />

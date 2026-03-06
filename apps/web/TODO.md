@@ -5,8 +5,8 @@
 - [?] when sharing in (telegram, instagram etc) link to claim - show in image claim details
 - [?] when sharing proof link - generate some deterministic abstract svg from this proof
 - [?] add more parameters to claim + add ability to select whether prover is sender or recipient
-- [] when generating proof - add some text input
-- [] when creating claim allow user to select hours and minutes, also show block numbers under inputs
+- [?] when generating proof - add some text input
+- [?] when creating claim allow user to select hours and minutes, also show block numbers under inputs
 - [] when creating claim - show how much users are with specified constraints, show users and their transfers
 - [] add sorting for transfers when generating proof, filter transfers by amount. Check how much who transfered (token amount and count)
 - [] export all proofs for claim in csv/json

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { LAUNCH_OPTIONS } from './e2e/config'
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,7 +17,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     launchOptions: {
       slowMo: Number(process.env.SLOW_MO) || 0,
-      args: ['--window-position=0,0', '--window-size=9999,9999'],
+      ...LAUNCH_OPTIONS,
     },
     viewport: null,
   },

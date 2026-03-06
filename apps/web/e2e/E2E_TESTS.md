@@ -113,7 +113,7 @@
 
 ## Static — Create Claim (`create-claim.spec.ts`)
 
-- Renders form
+- Renders form and datetime picker works
   - check: heading "Create Claim"
   - check: card "Claim Details"
   - check: card "Token Information"
@@ -121,6 +121,10 @@
   - check: card "Time Range"
   - check: button "Cancel"
   - check: button "Fetch Transfers"
+  - check: open Start Date picker, navigate to previous month, click day 5
+  - check: select hour 14 in HH column, minute 30 in MM column, click "Done"
+  - check: "Block: 12345678" visible within 3s (mocked API)
+  - check: API called with correct timestamp (day=5, hour=14, minute=30)
 - Validation errors on empty submit
   - check: toast "Please fill the form correctly"
 - Message input works

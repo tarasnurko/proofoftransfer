@@ -21,6 +21,7 @@ interface TransferDisplayItem {
   from: string
   amount: string
   timestamp: number
+  txHash?: string
   tokenId?: string
 }
 
@@ -29,6 +30,7 @@ export function mapTransferToDisplayItem(transfer: EtherscanTransfer): TransferD
     from: transfer.from,
     amount: transfer.value,
     timestamp: parseInt(transfer.timeStamp),
+    txHash: transfer.hash,
     tokenId: transfer.tokenId,
   }
 }
