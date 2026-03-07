@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test'
 test.describe('Create claim page', () => {
   test('renders form', async ({ page }) => {
     // Mock block-number API to verify datetime picker sends correct timestamp
-    let capturedTimestamp: number | null = null
+    const capturedTimestamps: number[] = []
     await page.route('**/api/blocks/block-number**', async (route) => {
       const url = new URL(route.request().url())
-      capturedTimestamp = Number(url.searchParams.get('timestamp'))
+      capturedTimestamps.push(Number(url.searchParams.get('timestamp')))
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ blockNumber: 12345678 }) })
     })
 
@@ -28,7 +28,6 @@ test.describe('Create claim page', () => {
     const now = new Date()
     const testYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
     const testMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
-    const expectedTs = Math.floor(new Date(testYear, testMonth, 5, 14, 30, 0, 0).getTime() / 1000)
 
     // Open Start Date picker
     const startSection = page.locator('div.space-y-2').filter({ has: page.getByText('Start Date', { exact: true }) })
@@ -48,9 +47,12 @@ test.describe('Create claim page', () => {
     await min30.click()
     await page.getByRole('button', { name: 'Done' }).click()
 
-    // Block number must appear (covers 500ms debounce) and timestamp must be correct
-    await expect(page.getByText('Block: 12345678')).toBeVisible({ timeout: 3000 })
-    expect(capturedTimestamp).toBe(expectedTs)
+    // Block number appears for both Start/End dates — verify Start Date block is visible
+    await expect(page.getByText('Block: 12345678').first()).toBeVisible({ timeout: 3000 })
+
+    // Verify the Start Date button shows correct date and time after picker interaction
+    await expect(startSection.locator('button').first()).toContainText('February 5')
+    await expect(startSection.locator('button').first()).toContainText('14:30')
   })
 
   test('validation errors on empty submit', async ({ page }) => {

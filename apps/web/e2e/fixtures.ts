@@ -1,9 +1,31 @@
-import { test as base, BrowserContext, Page } from '@playwright/test'
+import { test as base, chromium, BrowserContext, Page } from '@playwright/test'
 import dappwright, { Dappwright, MetaMaskWallet } from '@tenkeylabs/dappwright'
+import { LAUNCH_OPTIONS } from './config'
 
 const SEED_PHRASE = 'test test test test test test test test test test test junk'
 
 let sharedContext: BrowserContext
+
+// dappwright hardcodes its own args and ignores options.args, so we patch
+// launchPersistentContext to inject the same window size args used by static tests.
+// Node.js module cache guarantees dappwright uses the same chromium object.
+async function bootstrapWithWindowSize() {
+  const original = chromium.launchPersistentContext.bind(chromium)
+  ;(chromium as any).launchPersistentContext = async (userDataDir: string, options: any = {}) =>
+    original(userDataDir, { ...options, args: [...(options.args ?? []), ...LAUNCH_OPTIONS.args] })
+
+  try {
+    const [, , context] = await dappwright.bootstrap('', {
+      wallet: 'metamask',
+      version: MetaMaskWallet.recommendedVersion,
+      seed: SEED_PHRASE,
+      headless: false,
+    })
+    return context
+  } finally {
+    ;(chromium as any).launchPersistentContext = original
+  }
+}
 
 export const test = base.extend<
   { context: BrowserContext; wallet: Dappwright; page: Page },
@@ -12,13 +34,7 @@ export const test = base.extend<
   walletContext: [
     async ({}, use) => {
       if (!sharedContext) {
-        const [, , context] = await dappwright.bootstrap('', {
-          wallet: 'metamask',
-          version: MetaMaskWallet.recommendedVersion,
-          seed: SEED_PHRASE,
-          headless: false,
-        })
-        sharedContext = context
+        sharedContext = await bootstrapWithWindowSize()
       }
       await use(sharedContext)
     },

@@ -61,7 +61,8 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
       const { eip712, chainId } = await prepRes.json()
 
       const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
-      const derivedNullifier = signResult.nullifier
+      // Format nullifier to match DB format (0x-prefixed, 32-byte hex)
+      const derivedNullifier = '0x' + BigInt(signResult.nullifier).toString(16).padStart(64, '0')
 
       if (derivedNullifier === proof.nullifier) {
         toast.error('Cannot verify your own proof')

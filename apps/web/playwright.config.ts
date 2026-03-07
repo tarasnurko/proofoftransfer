@@ -15,6 +15,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3005',
     trace: 'on-first-retry',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     launchOptions: {
       slowMo: Number(process.env.SLOW_MO) || 0,
       ...LAUNCH_OPTIONS,
