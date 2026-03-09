@@ -1,4 +1,5 @@
-import { type DB } from '../client'
+import { getClient } from '../client'
+import type { DB } from '../index.types'
 import { erc20TransfersTable, erc721TransfersTable, erc1155TransfersTable } from '../schema'
 import type {
   Erc20TransferEntity,
@@ -10,7 +11,6 @@ import type {
   TransferEntity,
 } from '../index.types'
 import { eq, and, gte, lte } from 'drizzle-orm'
-import { getClient } from '../helpers'
 import { TokenType } from '@repo/types'
 
 const DEFAULT_TRANSFERS_LIMIT = 5000

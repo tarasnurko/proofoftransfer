@@ -159,11 +159,12 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
 
-    // Wallet may auto-connect (wagmi remembers), causing button to detach mid-click
-    const connectBtn = page.getByRole('button', { name: 'Connect Wallet to Verify' })
-    const signVerifyBtn = page.getByRole('button', { name: 'Sign & Verify Proof' })
+    // Scope to Verify Proof card to avoid header's Connect Wallet button
+    const verifyCard = page.locator('div').filter({ has: page.getByText('Verify Proof', { exact: true }) }).first()
+    const connectBtn = verifyCard.getByRole('button', { name: /Connect Wallet/i })
+    const signClaimBtn = verifyCard.getByRole('button', { name: 'Sign Claim' })
 
-    await expect(connectBtn.or(signVerifyBtn)).toBeVisible({ timeout: 15_000 })
+    await expect(connectBtn.or(signClaimBtn)).toBeVisible({ timeout: 15_000 })
 
     if (await connectBtn.isVisible().catch(() => false)) {
       try {
@@ -173,21 +174,19 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
       } catch {
         // Wallet auto-connected — button detached, proceed
       }
-      await expect(signVerifyBtn).toBeVisible({ timeout: 15_000 })
+      await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
     }
 
-    // Fetch transfers
-    await page.getByRole('button', { name: 'Fetch Transfers' }).click()
-    await expect(page.getByText(/transfers fetched/i)).toBeVisible({ timeout: 15_000 })
+    // Wait for wagmi to fully initialize walletClient after page navigation
+    await page.waitForTimeout(2_000)
 
-    // Listen for self-verify toast BEFORE signing — it may auto-dismiss during wallet.sign()
-    const selfVerifyToast = page.getByText('Cannot verify your own proof')
-      .waitFor({ state: 'visible', timeout: 60_000 })
-
-    await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()
+    // Sign claim — prover signing triggers self-verify block message
+    await signClaimBtn.click()
     await wallet.sign()
 
-    await selfVerifyToast
+    // Should see blocking message instead of transfer form
+    await expect(page.getByText('Cannot Verify Own Proof')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('The prover cannot verify their own proof')).toBeVisible()
   })
 
   // ── Step 4: Verify Proof (different account) ──
@@ -212,11 +211,12 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
 
-    // Wallet may auto-reconnect (EIP-6963 / wagmi persistence), handle both states
-    const connectBtn = page.getByRole('button', { name: 'Connect Wallet to Verify' })
-    const signVerifyBtn = page.getByRole('button', { name: 'Sign & Verify Proof' })
+    // Scope to Verify Proof card to avoid header's Connect Wallet button
+    const verifyCard = page.locator('div').filter({ has: page.getByText('Verify Proof', { exact: true }) }).first()
+    const connectBtn = verifyCard.getByRole('button', { name: /Connect Wallet/i })
+    const signClaimBtn = verifyCard.getByRole('button', { name: 'Sign Claim' })
 
-    await expect(connectBtn.or(signVerifyBtn)).toBeVisible({ timeout: 15_000 })
+    await expect(connectBtn.or(signClaimBtn)).toBeVisible({ timeout: 15_000 })
 
     if (await connectBtn.isVisible().catch(() => false)) {
       try {
@@ -226,20 +226,29 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
       } catch {
         // Wallet auto-connected — button detached, proceed
       }
-      await expect(signVerifyBtn).toBeVisible({ timeout: 15_000 })
+      await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
     }
 
-    // Fetch transfers from blockchain
+    // Wait for wagmi to fully initialize walletClient after page navigation
+    await page.waitForTimeout(2_000)
+
+    // Step 1: Sign claim to derive verifier identity
+    await signClaimBtn.click()
+    await wallet.sign()
+
+    // Should see "Claim Signed" and transfer form (not blocked)
+    await expect(page.getByText('Claim Signed')).toBeVisible({ timeout: 15_000 })
+
+    // Step 2: Fetch transfers from blockchain
     await page.getByRole('button', { name: 'Fetch Transfers' }).click()
     await expect(page.getByText(/transfers fetched/i)).toBeVisible({ timeout: 15_000 })
 
-    // Listen for ANY toast BEFORE signing to capture the actual result
+    // Step 3: Verify proof
+    // Listen for ANY toast BEFORE clicking to capture the actual result
     const anyToast = page.locator('[data-sonner-toast]').first()
       .waitFor({ state: 'visible', timeout: 120_000 })
 
-    // Sign & Verify
-    await page.getByRole('button', { name: 'Sign & Verify Proof' }).click()
-    await wallet.sign()
+    await page.getByRole('button', { name: 'Verify Proof' }).click()
 
     await anyToast
     const toastText = await page.locator('[data-sonner-toast]').first().textContent().catch(() => 'none')
@@ -251,6 +260,6 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     }
 
     // Also check permanent text appeared
-    await expect(page.getByText('Proof has been verified successfully')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Verification Successful')).toBeVisible({ timeout: 10_000 })
   })
 })

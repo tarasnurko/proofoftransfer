@@ -18,9 +18,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-2xl font-bold">Proof Information</CardTitle>
           <div className="flex items-center gap-3">
-            {proof.verificationStats ? (
-              <VerificationStats stats={proof.verificationStats} />
-            ) : null}
+            <VerificationStats stats={proof.verificationStats ?? { successful: 0, failed: 0 }} />
             {proof.verified !== undefined ? (
               <Badge variant={proof.verified ? 'default' : 'destructive'} className="text-lg">
                 {proof.verified ? 'Valid' : 'Invalid'}

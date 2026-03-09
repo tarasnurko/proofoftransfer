@@ -154,6 +154,9 @@ export function GenerateProofCard({
                     {generatingProof && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {generatingProof ? 'Generating Proof...' : 'Generate Proof'}
                   </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Proof generation may take 30+ seconds
+                  </p>
                 </>
               )}
             </div>

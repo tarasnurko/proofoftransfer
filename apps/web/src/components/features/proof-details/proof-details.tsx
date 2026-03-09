@@ -15,6 +15,7 @@ import { verifyProofAction } from '@/actions/proofs.actions'
 import { api } from '@/lib/api/client'
 import { signClaimAndDeriveNullifier } from '@/lib/proof'
 import { parseEtherscanCsv } from '@/lib/etherscan-csv'
+import { buildMerkleRootClient } from '@/lib/merkle-client'
 
 interface ProofDetailsProps {
   claim: ClaimEntity
@@ -30,7 +31,10 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
   const { open } = useAppKit()
 
   const [proof, setProof] = useState(initialProof)
+  const [signingClaim, setSigningClaim] = useState(false)
+  const [derivedNullifier, setDerivedNullifier] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
   const [transfers, setTransfers] = useState<EtherscanTransfer[]>([])
   const [fetchingTransfers, setFetchingTransfers] = useState(false)
   const [csvFiles, setCsvFiles] = useState<Array<{ name: string; transfers: EtherscanTransfer[] }>>([])
@@ -40,35 +44,32 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
     ...csvFiles.flatMap((f) => f.transfers),
   ]
 
-  const handleVerify = useCallback(async () => {
-    if (!walletAddress || !walletClient || !claim) {
-      toast.error('Connect your wallet first')
-      return
-    }
+  const isSelfVerify = derivedNullifier ? derivedNullifier === proof.nullifier : false
 
-    if (!allTransfers.length) {
-      toast.error('Fetch or upload transfers first')
-      return
-    }
-
-    setVerifying(true)
+  const handleSignClaim = useCallback(async () => {
+    if (!walletClient) return
+    setSigningClaim(true)
     try {
       const prepRes = await api.api.claims[':id']['verifier-signing-data'].$get({
         param: { id: claimId },
       })
       if (!prepRes.ok) throw new Error('Failed to prepare signing data')
-
       const { eip712, chainId } = await prepRes.json()
-
       const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
-      // Format nullifier to match DB format (0x-prefixed, 32-byte hex)
-      const derivedNullifier = '0x' + BigInt(signResult.nullifier).toString(16).padStart(64, '0')
+      const nullifier = '0x' + BigInt(signResult.nullifier).toString(16).padStart(64, '0')
+      setDerivedNullifier(nullifier)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to sign claim')
+    } finally {
+      setSigningClaim(false)
+    }
+  }, [walletClient, claimId])
 
-      if (derivedNullifier === proof.nullifier) {
-        toast.error('Cannot verify your own proof')
-        return
-      }
+  const handleVerify = useCallback(async () => {
+    if (!derivedNullifier || !allTransfers.length) return
 
+    setVerifying(true)
+    try {
       const verifyTransfers = allTransfers.map((t) => ({
         from: t.from,
         to: t.to,
@@ -78,10 +79,12 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
         hash: t.hash,
       }))
 
+      const merkleRoot = await buildMerkleRootClient(verifyTransfers)
+
       const result = await verifyProofAction({
         id: proofId,
         nullifier: derivedNullifier,
-        transfers: verifyTransfers,
+        merkleRoot,
       })
 
       if (result?.serverError) {
@@ -90,22 +93,30 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
 
       if (result?.data?.isValid) {
         toast.success('Proof verified successfully!')
+        setVerificationError(null)
+      } else {
+        const errorMsg = result?.data?.error || 'Proof verification failed'
+        toast.error(errorMsg)
+        setVerificationError(errorMsg)
+      }
+
+      if (result?.data?.stats) {
         setProof(prev => ({
           ...prev,
           verificationStats: {
-            successful: (prev.verificationStats?.successful ?? 0) + 1,
-            failed: prev.verificationStats?.failed ?? 0,
+            successful: result.data!.stats.successful,
+            failed: result.data!.stats.failed,
           },
         }))
-      } else {
-        toast.error(result?.data?.error || 'Proof verification failed')
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to verify proof')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to verify proof'
+      toast.error(errorMsg)
+      setVerificationError(errorMsg)
     } finally {
       setVerifying(false)
     }
-  }, [walletAddress, walletClient, claim, claimId, proofId, proof.nullifier, allTransfers])
+  }, [derivedNullifier, proofId, allTransfers])
 
   const fetchTransfersForVerification = useCallback(async () => {
     setFetchingTransfers(true)
@@ -174,12 +185,17 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
           transfers={transfers}
           csvFiles={csvFiles}
           verifying={verifying}
+          verificationError={verificationError}
           fetchingTransfers={fetchingTransfers}
           isConnected={isConnected}
           alreadyVerified={alreadyVerified}
+          isSelfVerify={isSelfVerify}
+          derivedNullifier={derivedNullifier}
+          signingClaim={signingClaim}
           hasTransfers={!!allTransfers.length}
           onVerify={handleVerify}
           onConnectWallet={() => open()}
+          onSignClaim={handleSignClaim}
           onFetchTransfers={fetchTransfersForVerification}
           onCsvUpload={handleCsvUpload}
           onRemoveCsv={handleRemoveCsv}

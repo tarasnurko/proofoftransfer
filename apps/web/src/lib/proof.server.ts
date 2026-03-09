@@ -19,15 +19,7 @@ import { getClaimById } from '@/db/queries/claims'
 import type { Eip712ClaimFields } from '@/lib/proof'
 import { TokenType, TOKEN_TYPE_CIRCUIT_VALUE } from '@repo/types'
 import type { ClaimEntity, TransferEntity } from '@/db/index.types'
-
-export interface TransferHashInput {
-  from: string
-  to: string
-  contractAddress: string
-  value: string
-  timeStamp: string
-  hash: string
-}
+import type { TransferHashInput } from '@/types'
 
 export function mapDbTransferToHashInput(transfer: TransferEntity): TransferHashInput {
   const amount = 'amount' in transfer ? transfer.amount : '1'
@@ -112,9 +104,8 @@ export async function buildEip712ClaimFields(
 interface VerifyProofServerParams {
   proofData: string
   publicInputs: string[]
-  claimId: string
   transfersRootHash: string
-  externalTransfers?: TransferHashInput[]
+  verifierMerkleRoot: string
 }
 
 interface VerifyProofServerResult {
@@ -124,39 +115,18 @@ interface VerifyProofServerResult {
 
 export async function verifyProofServer(params: VerifyProofServerParams): Promise<VerifyProofServerResult> {
   try {
-    const bb = await BarretenbergImpl.new({ threads: 1 })
-
-    let transfers: TransferHashInput[]
-
-    if (params.externalTransfers?.length) {
-      transfers = [...params.externalTransfers].sort(
-        (a, b) => Number(a.timeStamp) - Number(b.timeStamp),
-      )
-    } else {
-      const claim = await getClaimById(params.claimId)
-      if (!claim) throw new Error('Claim not found')
-
-      const queryParams = buildTransferQueryFromClaim(claim)
-      const dbTransfers = await TRANSFER_QUERY_FN[claim.tokenType as TokenType](queryParams)
-      transfers = dbTransfers.map(mapDbTransferToHashInput)
-    }
-
-    const { merkleRoot } = await buildTransfersMerkleTree(bb, transfers)
-
-    const computedRootBigInt = BigInt(merkleRoot)
-    const expectedRootBigInt = BigInt(params.transfersRootHash)
-
-    if (computedRootBigInt !== expectedRootBigInt) {
+    if (BigInt(params.verifierMerkleRoot) !== BigInt(params.transfersRootHash)) {
       return {
         isValid: false,
-        error: `Root mismatch: computed ${computedRootBigInt}, expected ${expectedRootBigInt}`,
+        error: 'Transfers root mismatch — your transfers don\'t match the claim\'s transfers',
       }
     }
 
-    const circuitPath = path.join(process.cwd(), 'public', 'circuit.json')
-    const circuitRaw = await readFile(circuitPath, 'utf-8')
+    const bb = await BarretenbergImpl.new({ threads: 1 })
+    const circuitRaw = await readFile(
+      path.join(process.cwd(), 'public', 'circuit.json'), 'utf-8',
+    )
     const circuit = JSON.parse(circuitRaw)
-
     const backend = new UltraHonkBackend(circuit.bytecode, bb)
 
     const verified = await backend.verifyProof({
@@ -166,8 +136,7 @@ export async function verifyProofServer(params: VerifyProofServerParams): Promis
 
     return { isValid: verified }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    return { isValid: false, error: errorMessage }
+    return { isValid: false, error: error instanceof Error ? error.message : String(error) }
   }
 }
 

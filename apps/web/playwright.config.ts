@@ -36,7 +36,7 @@ export default defineConfig({
     },
     {
       name: 'wallet',
-      testMatch: ['wallet-flow.spec.ts', 'flows.spec.ts'],
+      testMatch: ['wallet-flow.spec.ts', 'flows.spec.ts', 'verify-proof.spec.ts'],
       // dappwright manages its own chromium context with MetaMask extension
     },
   ],

@@ -29,6 +29,15 @@ export interface ProofEntity {
   verificationStats?: VerificationStats
 }
 
+export interface TransferHashInput {
+  from: string
+  to: string
+  contractAddress: string
+  value: string
+  timeStamp: string
+  hash: string
+}
+
 export interface EtherscanTransfer {
   hash: string
   from: string

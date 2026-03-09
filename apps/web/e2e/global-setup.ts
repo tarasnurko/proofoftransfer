@@ -97,6 +97,7 @@ export default async function globalSetup() {
   await mintTokens(client, usdcAddress, allMintTargets, parseUnits('100000', USDC.decimals))
 
   // Interleaved transfers — mix tokens, noise, and recipient outgoing
+  // Enough variety to produce 8+ TST and 6+ USDC transfers to recipient
   const transfers: TransferSpec[] = [
     { from: senders[0]!.key, to: recipient.address, amount: parseUnits('100', TST.decimals), tokenAddress: tstAddress },
     { from: senders[0]!.key, to: recipient.address, amount: parseUnits('1000', USDC.decimals), tokenAddress: usdcAddress },
@@ -107,6 +108,18 @@ export default async function globalSetup() {
     { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('77', USDC.decimals), tokenAddress: usdcAddress },
     { from: senders[2]!.key, to: recipient.address, amount: parseUnits('500', TST.decimals), tokenAddress: tstAddress },
     { from: recipient.key, to: noiseSender.address, amount: parseUnits('100', USDC.decimals), tokenAddress: usdcAddress },
+    // Additional transfers for more realistic data
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('75', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('150', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('300', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('800', USDC.decimals), tokenAddress: usdcAddress },
+    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('33', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('420', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('3000', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('175', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('600', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('90', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('450', USDC.decimals), tokenAddress: usdcAddress },
   ]
   await makeTransfers(transfers)
 

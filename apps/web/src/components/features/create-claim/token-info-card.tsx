@@ -87,7 +87,7 @@ export function TokenInfoCard({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="isProverSender">Proving *</Label>
+            <Label htmlFor="isProverSender">Prover Role *</Label>
             <Controller
               name="isProverSender"
               control={control}
@@ -97,8 +97,8 @@ export function TokenInfoCard({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sender">Prove I sent</SelectItem>
-                    <SelectItem value="recipient">Prove I received</SelectItem>
+                    <SelectItem value="sender">Sender</SelectItem>
+                    <SelectItem value="recipient">Recipient</SelectItem>
                   </SelectContent>
                 </Select>
               )}

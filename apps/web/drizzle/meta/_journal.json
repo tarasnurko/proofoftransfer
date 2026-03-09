@@ -15,6 +15,13 @@
       "when": 1772658013154,
       "tag": "0001_glamorous_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773051465900,
+      "tag": "0002_yummy_the_watchers",
+      "breakpoints": true
     }
   ]
 }

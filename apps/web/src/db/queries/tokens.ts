@@ -1,9 +1,10 @@
-import { type DB } from '../client'
+import { getClient } from '../client'
+import type { DB } from '../index.types'
 import { tokensTable } from '../schema'
 import type { InsertTokenEntity, TokenEntity } from '../index.types'
 import type { Nullable } from '@/types'
 import { eq, and } from 'drizzle-orm'
-import { entityOrError, entityOrNull, getClient } from '../helpers'
+import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createToken(data: InsertTokenEntity, tx?: DB): Promise<TokenEntity> {
   return entityOrError(

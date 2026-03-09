@@ -13,18 +13,14 @@ export function VerificationStats({ stats, size = 'md' }: VerificationStatsProps
 
   return (
     <div className={`flex items-center gap-3 ${textClass} font-bold`}>
-      {stats.successful > 0 && (
-        <span className={`flex items-center ${gapClass} text-accent`}>
-          <CheckCircle2 className={iconClass} />
-          {stats.successful}{size === 'md' && ' verified'}
-        </span>
-      )}
-      {stats.failed > 0 && (
-        <span className={`flex items-center ${gapClass} text-destructive`}>
-          <XCircle className={iconClass} />
-          {stats.failed}{size === 'md' && ' failed'}
-        </span>
-      )}
+      <span className={`flex items-center ${gapClass} text-accent`}>
+        <CheckCircle2 className={iconClass} />
+        {stats.successful}{size === 'md' && ' verified'}
+      </span>
+      <span className={`flex items-center ${gapClass} text-destructive`}>
+        <XCircle className={iconClass} />
+        {stats.failed}{size === 'md' && ' failed'}
+      </span>
     </div>
   )
 }

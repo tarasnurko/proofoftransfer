@@ -138,11 +138,9 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
       <PageHeader
         title="Claim Details"
         actions={
-          claim.proofCount > 0 ? (
-            <Badge className="shrink-0 whitespace-nowrap border-2 text-sm font-bold">
-              {claim.proofCount} Proof{claim.proofCount !== 1 ? 's' : ''}
-            </Badge>
-          ) : undefined
+          <Badge className="shrink-0 whitespace-nowrap border-2 text-sm font-bold">
+            {claim.proofCount} Proof{claim.proofCount !== 1 ? 's' : ''}
+          </Badge>
         }
       />
 

@@ -16,23 +16,15 @@ import {
   createVerification,
   getSuccessfulVerificationByNullifier,
   deleteFailedVerificationsByNullifier,
+  getVerificationStats,
 } from "@/db/queries/verifications";
 import type { InsertProofEntity } from "@/db/index.types";
 import { verifyProofServer } from "@/lib/proof.server";
 
-const externalTransferSchema = z.object({
-  from: z.string(),
-  to: z.string(),
-  contractAddress: z.string(),
-  value: z.string(),
-  timeStamp: z.string(),
-  hash: z.string(),
-});
-
 const verifyProofSchema = z.object({
   id: z.string().uuid("Invalid ID format"),
   nullifier: z.string().regex(/^0x[a-fA-F0-9]+$/, "Invalid nullifier format"),
-  transfers: z.array(externalTransferSchema).min(1, "Transfers are required"),
+  merkleRoot: z.string().min(1, "Merkle root is required"),
 });
 
 export const submitProofAction = createRateLimitedActionClient('submitProof', RATE_LIMITS.SUBMIT_PROOF)
@@ -74,9 +66,23 @@ export const submitProofAction = createRateLimitedActionClient('submitProof', RA
     return { proofId: result.id };
   });
 
+/**
+ * Verify a proof as a third-party verifier.
+ *
+ * Verification counting rules (per nullifier per proof):
+ * - Each user gets at most ONE verification record at a time
+ * - First failure: failed count +1
+ * - Retry failure (same user): old failure deleted, new created — count unchanged
+ * - Success after failure: old failure deleted, success created — failed -1, successful +1
+ * - Already succeeded: blocked, cannot re-verify
+ *
+ * The client builds a merkle root from their transfers and sends it.
+ * The server compares roots and runs the ZK verifier.
+ * Updated stats are returned so the UI reflects the current state.
+ */
 export const verifyProofAction = createRateLimitedActionClient('verifyProof', RATE_LIMITS.VERIFY_PROOF)
   .inputSchema(verifyProofSchema)
-  .action(async ({ parsedInput: { id: proofId, nullifier, transfers } }) => {
+  .action(async ({ parsedInput: { id: proofId, nullifier, merkleRoot: verifierMerkleRoot } }) => {
     const proof = await getProofById(proofId);
 
     if (!proof) {
@@ -102,25 +108,22 @@ export const verifyProofAction = createRateLimitedActionClient('verifyProof', RA
     const verification = await verifyProofServer({
       proofData: proof.proofData,
       publicInputs: proof.publicInputs as string[],
-      claimId: proof.claimId,
       transfersRootHash: proof.claim.merkleRoot,
-      externalTransfers: transfers,
+      verifierMerkleRoot,
     });
 
     const isValid = verification.isValid;
     const errorMessage = verification.error;
 
-    try {
-      await deleteFailedVerificationsByNullifier({ proofId, nullifier });
-      await createVerification({
-        proofId,
-        verifierNullifier: nullifier,
-        isValid,
-        errorMessage: errorMessage || null,
-      });
-    } catch (error) {
-      console.error("verification recording failed:", error);
-    }
+    await deleteFailedVerificationsByNullifier({ proofId, nullifier });
+    await createVerification({
+      proofId,
+      verifierNullifier: nullifier,
+      isValid,
+      errorMessage: errorMessage || null,
+    });
 
-    return { isValid, error: errorMessage };
+    const stats = await getVerificationStats(proofId);
+
+    return { isValid, error: errorMessage, stats };
   });

@@ -131,9 +131,7 @@ export function ProofsListCard({
                     <div className="text-xs text-muted-foreground">
                       {formatDate(proof.createdAt)}
                     </div>
-                    {proof.verificationStats ? (
-                      <VerificationStats stats={proof.verificationStats} size="sm" />
-                    ) : null}
+                    <VerificationStats stats={proof.verificationStats ?? { successful: 0, failed: 0 }} size="sm" />
                   </div>
                 </Link>
               ))}

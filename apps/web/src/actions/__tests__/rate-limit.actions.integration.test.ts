@@ -6,7 +6,6 @@ import {
   buildClaimSeed,
   buildCreateClaimActionInput,
   buildProofSeed,
-  buildExternalTransfer,
   generateEthereumAddress,
 } from '@repo/test-utils'
 import { ChainId } from '@repo/types'
@@ -82,7 +81,7 @@ describe('verifyProofAction rate limit', () => {
   const baseVerifyInput = {
     id: '00000000-0000-0000-0000-000000000000',
     nullifier: buildProofSeed('dummy').nullifier,
-    transfers: [buildExternalTransfer()],
+    merkleRoot: '12345678901234567890',
   }
 
   it('allows 5 calls but blocks 6th within window (5/min)', async () => {

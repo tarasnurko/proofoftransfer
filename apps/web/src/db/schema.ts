@@ -1,5 +1,9 @@
-import { pgTable, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
+import { pgTable, pgEnum, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { TokenType } from '@repo/types'
+import { enumToPgEnum } from './helpers'
+
+export const tokenTypeEnum = pgEnum('token_type_enum', enumToPgEnum(TokenType))
 
 export const tokensTable = pgTable(
   'tokens',
@@ -26,7 +30,7 @@ export const claimsTable = pgTable(
     tokenAddress: varchar({ length: 42 }).notNull(),
     counterpartyAddress: varchar({ length: 42 }).notNull(),
     isProverSender: boolean().notNull(),
-    tokenType: varchar({ length: 10 }).notNull(),
+    tokenType: tokenTypeEnum().notNull(),
     minTransfersSum: varchar({ length: 78 }).notNull().default('0'),
     maxTransfersSum: varchar({ length: 78 }).notNull().default('0'),
     minTransfersCount: integer().notNull().default(0),

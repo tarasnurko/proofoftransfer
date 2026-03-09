@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { isAddressEqual, type Address as ViemAddress } from 'viem'
 import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
-import { formatDate } from '@/utils/format.utils'
+import { formatDateTime } from '@/utils/format.utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getExplorerTxUrl } from '@/utils/explorer.utils'
 import { truncateAddress } from '@/utils/format.utils'
@@ -132,7 +132,7 @@ export function VirtualTransferList({
                   )}
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{formatDate(transfer.timestamp * 1000)}</span>
+                  <span>{formatDateTime(transfer.timestamp * 1000)}</span>
                   {transfer.txHash && chainId && getExplorerTxUrl(chainId, transfer.txHash) ? (
                     <>
                       <span>·</span>

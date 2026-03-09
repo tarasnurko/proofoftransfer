@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Barretenberg } from '@aztec/bb.js'
 import { buildTransfersMerkleTree, mapDbTransferToHashInput } from '../proof.server'
-import type { TransferHashInput } from '../proof.server'
+import type { TransferHashInput } from '@/types'
 import type { Erc20TransferEntity, Erc721TransferEntity } from '@/db/index.types'
 
 const makeTransferHashInput = (overrides: Partial<TransferHashInput> = {}): TransferHashInput => ({
