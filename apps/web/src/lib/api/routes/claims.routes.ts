@@ -11,6 +11,7 @@ import {
 } from '@repo/circuit-utils'
 import { TokenType } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
+import { getVerificationByNullifier } from '@/db/queries/verifications'
 import { TRANSFER_QUERY_FN, upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
@@ -41,6 +42,11 @@ const proofsQuery = z.object({
 
 const nullifierQuery = z.object({
   nullifier: z.string().min(1),
+})
+
+const verifierStatusParam = z.object({
+  id: z.string().uuid(),
+  proofId: z.string().uuid(),
 })
 
 const proverSigningBody = z.object({
@@ -110,6 +116,24 @@ export const claimsRoutes = new Hono()
       const { nullifier } = c.req.valid('query')
       const exists = await checkNullifierExists({ claimId: id, nullifier })
       return c.json({ exists })
+    },
+  )
+  .get(
+    '/:id/proofs/:proofId/verifier-status',
+    createRateLimitMiddleware('getVerifierStatus', RATE_LIMITS.GET_VERIFIER_STATUS),
+    zValidator('param', verifierStatusParam),
+    zValidator('query', nullifierQuery),
+    async (c) => {
+      const { proofId } = c.req.valid('param')
+      const { nullifier } = c.req.valid('query')
+      const verification = await getVerificationByNullifier({ proofId, nullifier })
+      if (!verification) return c.json({ hasAttempted: false })
+      return c.json({
+        hasAttempted: true,
+        isValid: verification.isValid,
+        errorMessage: verification.errorMessage,
+        verifiedAt: verification.verifiedAt.toISOString(),
+      })
     },
   )
   .get(

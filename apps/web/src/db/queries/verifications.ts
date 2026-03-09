@@ -37,6 +37,22 @@ interface ProofNullifierParams {
   nullifier: string
 }
 
+export async function getVerificationByNullifier({ proofId, nullifier }: ProofNullifierParams) {
+  return entityOrNull(
+    await db
+      .select()
+      .from(proofVerificationsTable)
+      .where(
+        and(
+          eq(proofVerificationsTable.proofId, proofId),
+          eq(proofVerificationsTable.verifierNullifier, nullifier),
+        )
+      )
+      .orderBy(desc(proofVerificationsTable.verifiedAt))
+      .limit(1)
+  )
+}
+
 export async function getSuccessfulVerificationByNullifier({ proofId, nullifier }: ProofNullifierParams) {
   return entityOrNull(
     await db

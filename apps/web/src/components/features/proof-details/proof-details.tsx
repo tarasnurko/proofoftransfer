@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback } from 'react'
 import { useConnection, useWalletClient } from 'wagmi'
+import { useQueryClient } from '@tanstack/react-query'
+import { useMounted } from '@/hooks/use-mounted'
 import { useAppKit } from '@reown/appkit/react'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
 import { BackLink } from '@/components/shared/back-link'
@@ -11,7 +13,9 @@ import { ProofInfoCard } from './proof-info-card'
 import { VerifyProofCard } from './verify-proof-card'
 import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/types'
 import { toast } from 'sonner'
+import { QUERY_KEYS } from '@/constants'
 import { verifyProofAction } from '@/actions/proofs.actions'
+import { useGetVerifierStatus } from '@/hooks/queries'
 import { api } from '@/lib/api/client'
 import { signClaimAndDeriveNullifier } from '@/lib/proof'
 import { parseEtherscanCsv } from '@/lib/etherscan-csv'
@@ -26,9 +30,12 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
   const claimId = claim.id
   const proofId = initialProof.id
 
-  const { address: walletAddress, isConnected } = useConnection()
+  const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
   const { open } = useAppKit()
+  const queryClient = useQueryClient()
+  const mounted = useMounted()
+  const isConnected = mounted && rawIsConnected
 
   const [proof, setProof] = useState(initialProof)
   const [signingClaim, setSigningClaim] = useState(false)
@@ -38,6 +45,8 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
   const [transfers, setTransfers] = useState<EtherscanTransfer[]>([])
   const [fetchingTransfers, setFetchingTransfers] = useState(false)
   const [csvFiles, setCsvFiles] = useState<Array<{ name: string; transfers: EtherscanTransfer[] }>>([])
+
+  const { data: verifierStatus } = useGetVerifierStatus({ claimId, proofId, nullifier: derivedNullifier })
 
   const allTransfers = [
     ...transfers,
@@ -108,6 +117,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
             failed: result.data!.stats.failed,
           },
         }))
+        await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VERIFIER_STATUS, proofId] })
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to verify proof'
@@ -165,7 +175,8 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
     setCsvFiles(prev => prev.filter((_, i) => i !== index))
   }, [])
 
-  const alreadyVerified = !!proof.verificationStats?.successful
+  const previousAttempt = verifierStatus?.hasAttempted ? verifierStatus : null
+  const alreadyVerified = previousAttempt?.isValid ?? false
 
   return (
     <>
@@ -193,6 +204,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
           derivedNullifier={derivedNullifier}
           signingClaim={signingClaim}
           hasTransfers={!!allTransfers.length}
+          previousAttempt={previousAttempt}
           onVerify={handleVerify}
           onConnectWallet={() => open()}
           onSignClaim={handleSignClaim}

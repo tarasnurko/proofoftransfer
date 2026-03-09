@@ -44,5 +44,6 @@ export default defineConfig({
     command: 'pnpm dev',
     port: 3005,
     reuseExistingServer: !process.env.CI,
+    env: { DISABLE_RATE_LIMIT: 'true' },
   },
 })

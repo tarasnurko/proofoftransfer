@@ -89,8 +89,8 @@ test.describe('Claim details page', () => {
     const claim = fixtures.claims[2]!
     await page.goto(`/claims/${claim.id}`)
 
-    // No proof badge
-    await expect(page.getByText(/\d+ Proof/)).not.toBeVisible()
+    // Badge shows 0 Proofs
+    await expect(page.getByText('0 Proofs', { exact: true })).toBeVisible()
 
     // Proofs section shows empty state
     await expect(page.getByRole('heading', { name: 'No Proofs' })).toBeVisible()

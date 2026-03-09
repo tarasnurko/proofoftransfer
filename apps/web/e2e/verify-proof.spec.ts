@@ -32,6 +32,9 @@ test.describe('Verify proof flows', () => {
     await page.goto(proofUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
 
+    // Wait for hydration (useMounted) before checking buttons
+    await page.waitForTimeout(2_000)
+
     // Scope to Verify Proof card to avoid header's Connect Wallet button
     const verifyCard = page.locator('div').filter({ has: page.getByText('Verify Proof', { exact: true }) }).first()
     const connectBtn = verifyCard.getByRole('button', { name: /Connect Wallet/i })
@@ -47,15 +50,18 @@ test.describe('Verify proof flows', () => {
       } catch {
         // Auto-connected
       }
+      await page.bringToFront()
       await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
     }
 
-    // Wait for wagmi to fully initialize walletClient after page navigation
+    // Wait for wagmi to fully initialize walletClient
     await page.waitForTimeout(2_000)
 
     // Step 1: Sign claim
+    await page.bringToFront()
     await signClaimBtn.click()
     await wallet.sign()
+    await page.bringToFront()
 
     // Should see transfer form (not blocked)
     await expect(page.getByText('Claim Signed')).toBeVisible({ timeout: 15_000 })
@@ -72,7 +78,7 @@ test.describe('Verify proof flows', () => {
     await errorToast
 
     // Persistent error banner should be visible
-    await expect(page.getByText('Verification failed')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Verification failed', { exact: true })).toBeVisible({ timeout: 10_000 })
 
     // Failed stats should update
     await expect(page.getByText(/failed/i).locator('visible=true').first()).toBeVisible({ timeout: 5_000 })

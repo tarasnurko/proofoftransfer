@@ -123,15 +123,21 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
       try { await wallet.approve() } catch {}
     }
 
+    await page.bringToFront()
     await expect(connectedText).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('button', { name: 'Sign Claim' })).toBeVisible({ timeout: 30_000 })
 
     // Sign the claim (EIP-712) — listen for toast BEFORE signing
     const claimSignedToast = page.getByText('Claim Signed', { exact: true })
       .waitFor({ state: 'visible', timeout: 60_000 })
+    await page.bringToFront()
     await page.getByRole('button', { name: 'Sign Claim' }).click()
     await wallet.sign()
+    await page.bringToFront()
     await claimSignedToast
+
+    // Add a public note to the proof
+    await page.getByPlaceholder('Add a public note').fill('E2E test proof message')
 
     // Generate proof (ZK circuit — slow)
     await page.getByRole('button', { name: 'Generate Proof' }).click()
@@ -145,6 +151,9 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
     proofPageUrl = page.url()
     expect(proofPageUrl.split('/proofs/')[1]!.split(/[/?#]/)[0]!).toBeTruthy()
+
+    // Verify message is displayed on proof page
+    await expect(page.getByText('E2E test proof message')).toBeVisible({ timeout: 10_000 })
   })
 
   // ── Step 3: Self-verification rejection ──
@@ -159,30 +168,22 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.goto(proofPageUrl)
     await expect(page.getByRole('heading', { name: 'Proof Details' })).toBeVisible()
 
-    // Scope to Verify Proof card to avoid header's Connect Wallet button
+    // Wait for hydration (useMounted) — wallet is already connected from Step 2,
+    // but the component briefly shows "Connect Wallet" before hydration settles.
+    await page.waitForTimeout(2_000)
+
+    // Scope to Verify Proof card
     const verifyCard = page.locator('div').filter({ has: page.getByText('Verify Proof', { exact: true }) }).first()
-    const connectBtn = verifyCard.getByRole('button', { name: /Connect Wallet/i })
     const signClaimBtn = verifyCard.getByRole('button', { name: 'Sign Claim' })
+    await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
 
-    await expect(connectBtn.or(signClaimBtn)).toBeVisible({ timeout: 15_000 })
-
-    if (await connectBtn.isVisible().catch(() => false)) {
-      try {
-        await connectBtn.click({ timeout: 5_000 })
-        await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
-        try { await wallet.approve() } catch {}
-      } catch {
-        // Wallet auto-connected — button detached, proceed
-      }
-      await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
-    }
-
-    // Wait for wagmi to fully initialize walletClient after page navigation
+    // Wait for wagmi to fully initialize walletClient
     await page.waitForTimeout(2_000)
 
     // Sign claim — prover signing triggers self-verify block message
     await signClaimBtn.click()
     await wallet.sign()
+    await page.bringToFront()
 
     // Should see blocking message instead of transfer form
     await expect(page.getByText('Cannot Verify Own Proof')).toBeVisible({ timeout: 15_000 })
@@ -226,6 +227,7 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
       } catch {
         // Wallet auto-connected — button detached, proceed
       }
+      await page.bringToFront()
       await expect(signClaimBtn).toBeVisible({ timeout: 15_000 })
     }
 
@@ -233,8 +235,10 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.waitForTimeout(2_000)
 
     // Step 1: Sign claim to derive verifier identity
+    await page.bringToFront()
     await signClaimBtn.click()
     await wallet.sign()
+    await page.bringToFront()
 
     // Should see "Claim Signed" and transfer form (not blocked)
     await expect(page.getByText('Claim Signed')).toBeVisible({ timeout: 15_000 })
@@ -251,10 +255,10 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.getByRole('button', { name: 'Verify Proof' }).click()
 
     await anyToast
+    await page.bringToFront()
     const toastText = await page.locator('[data-sonner-toast]').first().textContent().catch(() => 'none')
 
     if (!toastText?.includes('Proof verified successfully')) {
-      await page.bringToFront()
       await page.screenshot({ path: 'test-results/verify-proof-failure.png' })
       throw new Error(`Verify proof failed with toast: "${toastText}"`)
     }

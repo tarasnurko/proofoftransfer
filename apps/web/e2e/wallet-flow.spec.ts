@@ -6,8 +6,9 @@ test.describe('Wallet flow', () => {
   test('connects MetaMask wallet', async ({ page, wallet }) => {
     await page.goto(BASE_URL)
 
-    const addressText = page.getByText(/0x[a-fA-F0-9]{4}\.\.\./).first()
-    const connectBtn = page.getByRole('button', { name: 'Connect Wallet' })
+    const header = page.locator('header')
+    const addressText = header.getByText(/0x[a-fA-F0-9]{4}\.\.\./).first()
+    const connectBtn = page.getByRole('button', { name: 'Connect Wallet' }).first()
 
     // Wallet may already be connected (site permissions persist across tests)
     await expect(addressText.or(connectBtn)).toBeVisible({ timeout: 15_000 })

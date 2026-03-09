@@ -16,6 +16,12 @@ interface CsvFile {
   transfers: EtherscanTransfer[]
 }
 
+interface PreviousAttempt {
+  isValid: boolean
+  errorMessage: string | null
+  verifiedAt: string
+}
+
 interface VerifyProofCardProps {
   proof: ProofEntity
   claim: ClaimEntity
@@ -30,6 +36,7 @@ interface VerifyProofCardProps {
   derivedNullifier: string | null
   signingClaim: boolean
   hasTransfers: boolean
+  previousAttempt: PreviousAttempt | null
   onVerify: () => void
   onConnectWallet: () => void
   onSignClaim: () => void
@@ -52,6 +59,7 @@ export function VerifyProofCard({
   derivedNullifier,
   signingClaim,
   hasTransfers,
+  previousAttempt,
   onVerify,
   onConnectWallet,
   onSignClaim,
@@ -145,6 +153,19 @@ export function VerifyProofCard({
           <Check className="h-4 w-4 text-accent" />
           <span className="font-bold">Claim Signed</span>
         </div>
+
+        {previousAttempt && !previousAttempt.isValid && (
+          <div className="flex items-start gap-3 border-2 border-yellow-500 bg-yellow-500/5 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+            <div>
+              <p className="text-sm font-bold text-yellow-700">Previous verification failed</p>
+              {previousAttempt.errorMessage && (
+                <p className="text-sm text-yellow-600">{previousAttempt.errorMessage}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">You can retry with different transfers</p>
+            </div>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
