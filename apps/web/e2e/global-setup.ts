@@ -153,19 +153,25 @@ export default async function globalSetup() {
   await seedEnsCache({ address: recipient.address.toLowerCase(), name: 'gooddao.eth', expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), resolvedAt: new Date() })
   await seedEnsCache({ address: uniqueCounterparty1.address.toLowerCase(), name: 'devguild.eth', expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), resolvedAt: new Date() })
 
-  // 15 diverse claims: 8 Ethereum + 7 Base
+  // 18 diverse claims: 10 Ethereum + 8 Base
   // Variety: different token types, ENS counterparties, dates, constraints, message lengths, prover roles
   const claims = []
 
   // ── Ethereum claims (chain 1) ──
 
-  // 1. Short message, TST ERC20, recipient has ENS, no constraints, prover=sender
+  // 1. TST ERC20, recipient has ENS, all constraints filled, prover=sender
   claims.push(await seedClaim(buildClaimSeed({
     message: 'Prove I donated 100 TST to the public goods fund',
     tokenAddress: tstAddress.toLowerCase(),
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: true,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2024_Q2_START,
+    minTransfersSum: '50000000000000000000',
+    maxTransfersSum: '500000000000000000000',
+    minTransfersCount: 2,
+    maxTransfersCount: 10,
   })))
 
   // 2. Long message, TST ERC20, unique counterparty with ENS, has toDate, prover=sender
@@ -314,12 +320,56 @@ export default async function globalSetup() {
     toBlockTimestamp: TS_2025_Q1_START,
   })))
 
-  // Seed proofs: claims[0] gets 3, claims[1] gets 1
+  // 16. TST ERC20, all constraints, huge numbers
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Whale treasury rebalance — massive cross-protocol transfer batch',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+    minTransfersSum: '999999000000000000000000',
+    maxTransfersSum: '50000000000000000000000000',
+    minTransfersCount: 100,
+    maxTransfersCount: 9999,
+  })))
+
+  // 17. TST ERC20, mixed one-sided constraints: min amount only + max count only
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Partial constraints — min amount with max transfer count',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: uniqueCounterparty2.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2025_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+    minTransfersSum: '1000000000000000000000',
+    maxTransfersCount: 5,
+  })))
+
+  // 18. USDC ERC20, mixed one-sided constraints: max amount only + min count only
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Capped amount with minimum transfer count requirement',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: false,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2024_Q2_START,
+    maxTransfersSum: '50000000000',
+    minTransfersCount: 3,
+  })))
+
+  // Seed proofs: claims[0] gets 3 with varying messages, claims[1] gets 1
   const proofs = []
-  for (let i = 0; i < 3; i++) {
-    const proof = await seedProof(buildProofSeed(claims[0]!.id))
-    proofs.push(proof)
-  }
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id, {
+    message: 'Quick test proof for basic transfer verification',
+  })))
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id)))
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id, {
+    message: 'This is a comprehensive proof message demonstrating the full 500-character capacity of the message field. It includes detailed context about the transfer verification: the prover submitted on-chain evidence of 8 ERC-20 token transfers to the public goods fund over Q1 2024. All transfers were verified against the merkle root computed from the claim constraints. The zero-knowledge circuit confirmed sender identity without revealing the private key. Verification passed on first attempt.',
+  })))
   const singleProof = await seedProof(buildProofSeed(claims[1]!.id))
   proofs.push(singleProof)
 

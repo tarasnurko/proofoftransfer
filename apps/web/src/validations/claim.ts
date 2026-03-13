@@ -43,8 +43,8 @@ const COUNT_RANGE_MESSAGE = {
   path: ['maxTransfersCount'],
 }
 
-function checkDateRange(data: { fromDate?: Date | null; toDate?: Date | null }): boolean {
-  if (data.fromDate && data.toDate && data.toDate < data.fromDate) return false
+function checkDateRange(data: { fromDate?: Date | null; toDate: Date }): boolean {
+  if (data.fromDate && data.toDate < data.fromDate) return false
   return true
 }
 
@@ -67,7 +67,7 @@ export const createClaimSchema = z
     minTransfersCount: z.number().int().min(0).default(0),
     maxTransfersCount: z.number().int().min(0).default(0),
     fromDate: z.date().optional(),
-    toDate: z.date().optional(),
+    toDate: z.date(),
     chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
   })
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
@@ -88,7 +88,7 @@ export const createClaimClientSchema = z
     minTransfersCount: z.number().int().min(0).default(0),
     maxTransfersCount: z.number().int().min(0).default(0),
     fromDate: z.date().optional().nullable(),
-    toDate: z.date().optional().nullable(),
+    toDate: z.date(),
     chainId: z.nativeEnum(ChainId).default(ChainId.ETHEREUM),
   })
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
@@ -105,7 +105,7 @@ export const fetchTransfersSchema = z
     isProverSender: z.boolean().default(true),
     tokenType: tokenTypeSchema.default(TokenType.ERC20),
     fromDate: z.date().optional(),
-    toDate: z.date().optional(),
+    toDate: z.date(),
   })
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
 

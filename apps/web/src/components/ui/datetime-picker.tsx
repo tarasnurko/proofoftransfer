@@ -59,6 +59,7 @@ interface DateTimePickerProps {
   disabled?: boolean
   maxDate?: Date
   chainId?: number
+  clearable?: boolean
 }
 
 export function DateTimePicker({
@@ -68,6 +69,7 @@ export function DateTimePicker({
   disabled,
   maxDate,
   chainId,
+  clearable = true,
 }: DateTimePickerProps) {
   const [open, setOpen] = useState(false)
   const [blockNumber, setBlockNumber] = useState<number | null>(null)
@@ -148,7 +150,7 @@ export function DateTimePicker({
             <span className="flex-1 truncate">
               {value ? format(value, 'PPP HH:mm') : placeholder}
             </span>
-            {value && !disabled ? (
+            {value && !disabled && clearable ? (
               <span
                 role="button"
                 tabIndex={0}

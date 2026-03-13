@@ -120,6 +120,7 @@ describe('createClaimAction', () => {
       counterpartyAddress: generateEthereumAddress().toLowerCase(),
       isProverSender: true,
       tokenType: TokenType.ERC20,
+      toDate: new Date(),
       chainId: ChainId.ETHEREUM,
     })
 

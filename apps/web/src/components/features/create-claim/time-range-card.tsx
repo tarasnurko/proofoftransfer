@@ -54,13 +54,14 @@ export function TimeRangeCard({ control, watch, error }: TimeRangeCardProps) {
                   placeholder="Select end date & time"
                   maxDate={new Date()}
                   chainId={chainId}
+                  clearable={false}
                 />
               )}
             />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">Leave empty for no time constraints</p>
+        <p className="text-sm text-muted-foreground">Start date is optional. End date is always set.</p>
       </CardContent>
     </Card>
   )

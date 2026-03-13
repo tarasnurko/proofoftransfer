@@ -8,11 +8,13 @@ import { EnsService } from '@/services/ens/ens.service'
 import {
   parseNullifierToIdenticon,
   identiconStripsSvg,
-  DataCell,
+  HashCell,
+  ClaimDataGrid,
   formatOgAmount,
   formatOgCounterparty,
   formatOgPeriod,
   formatOgCreatedAt,
+  formatOgDateTime,
   formatOgTransferCount,
 } from '@/lib/og'
 
@@ -61,8 +63,12 @@ export default async function Image({
   const amount = formatOgAmount(claim.minTransfersSum, claim.maxTransfersSum, claim.token?.decimals)
   const transferCount = formatOgTransferCount(claim.minTransfersCount, claim.maxTransfersCount)
   const period = formatOgPeriod(claim.fromBlockTimestamp, claim.toBlockTimestamp)
-  const createdAt = formatOgCreatedAt(claim.createdAt)
-  const message = claim.message.length > 80 ? claim.message.slice(0, 80) + '...' : claim.message
+  const claimCreatedAt = formatOgDateTime(claim.createdAt)
+  const proofCreatedAt = formatOgDateTime(proofResult.createdAt)
+  const message = claim.message.length > 120 ? claim.message.slice(0, 120) + '...' : claim.message
+  const proofMessage = proofResult.message
+    ? (proofResult.message.length > 230 ? proofResult.message.slice(0, 230) + '...' : proofResult.message)
+    : null
   const truncHex = (s: string) => s.length > 64 ? `${s.slice(0, 33)}...${s.slice(-28)}` : s
   const nullifierDisplay = truncHex(proofResult.nullifier)
   const proofDataDisplay = truncHex(proofResult.proofData)
@@ -84,35 +90,40 @@ export default async function Image({
               <span style={{ fontSize: '14px', fontWeight: 900, color: '#fff', backgroundColor: '#000', padding: '4px 14px', letterSpacing: '2px' }}>PROOF</span>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#16a34a', marginLeft: '8px' }}>{stats.successful} verified</span>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#dc2626' }}>{stats.failed} failed</span>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: chainColor, border: `3px solid ${chainColor}`, padding: '3px 12px', marginLeft: 'auto' }}>{chainName}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginLeft: 'auto' }}>{proofCreatedAt}</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: chainColor, border: `3px solid ${chainColor}`, padding: '3px 12px' }}>{chainName}</span>
             </div>
-            {/* Proof ID + Claim ID */}
+            {/* Proof ID */}
             <span style={{ fontSize: '20px', fontWeight: 900, color: '#000', marginTop: '14px' }}>{proofResult.id}</span>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#888', marginTop: '2px' }}>Claim: {claimId}</span>
-            {/* Message */}
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#888', marginTop: '2px' }}>Claim: {claimId} | {claimCreatedAt}</span>
+            {/* Claim message */}
             <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: '10px', flex: 1 }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#000', lineHeight: 1.2, overflow: 'hidden', flex: 1 }}>{message}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#000', lineHeight: 1.2, overflow: 'hidden' }}>{message}</div>
+                {proofMessage && (
+                  <div style={{ display: 'flex', flexDirection: 'column', marginTop: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#888', letterSpacing: '1.5px' }}>PROOF MESSAGE</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#555', lineHeight: 1.3, marginTop: '4px' }}>{proofMessage}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           {/* Nullifier + Proof Data row */}
           <div style={{ display: 'flex', borderTop: '4px solid #000' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px 16px', borderRight: '4px solid #000' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', letterSpacing: '1.5px' }}>NULLIFIER</span>
-              <span style={{ fontSize: '14px', fontWeight: 900, color: '#333', marginTop: '2px' }}>{nullifierDisplay}</span>
-            </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px 16px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', letterSpacing: '1.5px' }}>PROOF DATA</span>
-              <span style={{ fontSize: '14px', fontWeight: 900, color: '#333', marginTop: '2px' }}>{proofDataDisplay}</span>
-            </div>
+            <HashCell label="NULLIFIER" value={nullifierDisplay} borderRight />
+            <HashCell label="PROOF DATA" value={proofDataDisplay} />
           </div>
           {/* Data grid */}
-          <div style={{ display: 'flex', borderTop: '4px solid #000' }}>
-            <DataCell label="TOKEN" value={tokenName || tokenSymbol || claim.tokenAddress} value2={tokenTypeLabel} flex={1} />
-            <DataCell label="COUNTERPARTY" value={counterparty} flex={1.2} />
-            <DataCell label="AMOUNT" value={amount} value2={transferCount || undefined} />
-            <DataCell label="PERIOD" value={period.value} value2={period.value2} flex={1.2} />
-            <DataCell label="CREATED" value={createdAt} flex={0.8} borderRight={false} />
-          </div>
+          <ClaimDataGrid
+            tokenLabel={tokenName || tokenSymbol || claim.tokenAddress}
+            tokenTypeLabel={tokenTypeLabel}
+            proverRole={claim.isProverSender ? 'Sender' : 'Recipient'}
+            counterparty={counterparty}
+            amount={amount}
+            transferCount={transferCount}
+            period={period}
+          />
         </div>
       </div>
     ),

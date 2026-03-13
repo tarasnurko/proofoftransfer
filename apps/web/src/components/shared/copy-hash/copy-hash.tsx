@@ -3,6 +3,7 @@
 import { Copy } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { truncateHex } from '@/utils/format.utils'
 
 interface CopyHashProps {
   hash: string
@@ -10,12 +11,10 @@ interface CopyHashProps {
   label?: string
 }
 
-export function CopyHash({ hash, chars = 8, label }: CopyHashProps) {
+export function CopyHash({ hash, chars = 10, label }: CopyHashProps) {
   const { copied, copy } = useCopyToClipboard()
 
-  const truncated = chars > 0
-    ? (hash.length > chars * 2 + 2 ? `${hash.slice(0, chars + 2)}...${hash.slice(-chars)}` : hash)
-    : null
+  const truncated = chars > 0 ? truncateHex(hash, chars + 2, chars) : null
 
   return (
     <span className="inline-flex items-center gap-1.5">

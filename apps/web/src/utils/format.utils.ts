@@ -2,9 +2,14 @@ import Big from 'big.js'
 import { format } from 'date-fns'
 import { DATE_FORMAT, DATE_TIME_FORMAT } from '@/constants'
 
-export function truncateAddress(address: string, chars = 4): string {
+export function truncateHex(hex: string, start = 18, end = 14): string {
+  if (hex.length <= start + end) return hex
+  return `${hex.slice(0, start)}…${hex.slice(-end)}`
+}
+
+export function truncateAddress(address: string, chars = 6): string {
   if (!address) return ''
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`
+  return truncateHex(address, chars + 2, chars)
 }
 
 export function formatTokenValue(amount: string, decimals: number): string {

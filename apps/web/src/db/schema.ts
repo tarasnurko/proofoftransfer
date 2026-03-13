@@ -36,7 +36,7 @@ export const claimsTable = pgTable(
     minTransfersCount: integer().notNull().default(0),
     maxTransfersCount: integer().notNull().default(0),
     fromBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
-    toBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
+    toBlockTimestamp: bigint({ mode: 'number' }).notNull(),
     chainId: integer().notNull(),
     merkleRoot: varchar({ length: 78 }).notNull(),
     createdAt: timestamp().notNull().defaultNow(),

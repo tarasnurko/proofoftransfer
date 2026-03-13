@@ -52,7 +52,7 @@ export function CreateClaimForm() {
       minTransfersCount: 0,
       maxTransfersCount: 0,
       fromDate: null,
-      toDate: null,
+      toDate: new Date(),
     },
   })
 
@@ -104,10 +104,6 @@ export function CreateClaimForm() {
     })
     return () => subscription.unsubscribe()
   }, [watch])
-
-  useEffect(() => {
-    setValue('toDate', new Date())
-  }, [setValue])
 
   const filteredTransfers = useMemo(() => {
     if (!fetchedTransfers) return null
@@ -165,7 +161,7 @@ export function CreateClaimForm() {
       isProverSender: formValues.isProverSender,
       tokenType: formValues.tokenType,
       fromDate: formValues.fromDate ?? undefined,
-      toDate: formValues.toDate ?? undefined,
+      toDate: formValues.toDate,
     })
   }, [trigger, loadTransfersMutation, watch, resolvedRecipientAddress])
 
@@ -181,7 +177,7 @@ export function CreateClaimForm() {
         ...data,
         counterpartyAddress: resolvedRecipientAddress,
         fromDate: data.fromDate ?? undefined,
-        toDate: data.toDate ?? undefined,
+        toDate: data.toDate,
       })
 
       if (result?.serverError) {

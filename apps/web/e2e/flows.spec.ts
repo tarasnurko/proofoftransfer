@@ -110,20 +110,30 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
     await page.goto(`${BASE_URL}/claims/${createdClaimId}`)
     await expect(page.getByRole('heading', { name: 'Claim Details' })).toBeVisible()
 
-    // Connect wallet — MetaMask may auto-connect for known sites (no popup)
+    // Force disconnect any auto-reconnected wallet (PERSIST_WALLET may reconnect as wrong account)
+    await page.evaluate(async () => {
+      const provider = (window as any).ethereum
+      if (provider) {
+        try { await provider.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }) } catch {}
+      }
+      localStorage.removeItem('wagmi.store')
+      localStorage.removeItem('wagmi.recentConnectorId')
+    })
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Claim Details' })).toBeVisible()
+    await page.waitForTimeout(2_000)
+
+    // Connect wallet as Account 2
     const connectedText = page.getByText('Connected:')
     const connectWalletBtn = page.getByRole('button', { name: 'Connect Wallet' })
+    await expect(connectWalletBtn.first()).toBeVisible({ timeout: 15_000 })
 
-    await expect(connectedText.or(connectWalletBtn.first())).toBeVisible({ timeout: 15_000 })
-
-    if (await connectWalletBtn.first().isVisible().catch(() => false)) {
-      // Use last() to target the Generate Proof card button (not the header one)
-      await connectWalletBtn.last().click()
-      await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
-      try { await wallet.approve() } catch {}
-    }
-
+    // Use last() to target the Generate Proof card button (not the header one)
+    await connectWalletBtn.last().click()
+    await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
+    try { await wallet.approve() } catch {}
     await page.bringToFront()
+
     await expect(connectedText).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('button', { name: 'Sign Claim' })).toBeVisible({ timeout: 30_000 })
 

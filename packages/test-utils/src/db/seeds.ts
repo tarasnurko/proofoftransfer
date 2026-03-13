@@ -105,6 +105,7 @@ export function buildCreateClaimActionInput(overrides: Record<string, unknown> =
     maxTransfersSum: '0',
     minTransfersCount: 0,
     maxTransfersCount: 0,
+    toDate: new Date(),
     chainId: 1,
     ...overrides,
   }

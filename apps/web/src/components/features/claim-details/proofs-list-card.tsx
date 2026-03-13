@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Pagination } from '@/components/shared/pagination'
-import { formatDate } from '@/utils/format.utils'
+import { formatDate, truncateHex } from '@/utils/format.utils'
 import type { ProofEntity } from '@/types'
 import type { PreparedProofData } from '@/lib/proof'
 import { PROOFS_SORT_LABELS, type ProofsSortValue } from '@/constants'
@@ -60,7 +60,7 @@ export function ProofsListCard({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by nullifier or ID..."
+                placeholder="Search by nullifier, note, or ID..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="border-2 pl-9"
@@ -108,7 +108,7 @@ export function ProofsListCard({
                 <Link
                   key={proof.id}
                   href={`/claims/${claimId}/proofs/${proof.id}`}
-                  className={`block border-4 p-4 transition-colors hover:bg-muted ${preparedProof && proof.nullifier === preparedProof.nullifier ? 'border-accent bg-accent/5' : 'border-border'}`}
+                  className={`flex flex-col border-4 p-4 transition-colors hover:bg-muted ${preparedProof && proof.nullifier === preparedProof.nullifier ? 'border-accent bg-accent/5' : 'border-border'}`}
                 >
                   <div className="mb-2 flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -123,11 +123,11 @@ export function ProofsListCard({
                       </Badge>
                     )}
                   </div>
-                  <div className="mb-2 font-mono text-xs">{proof.nullifier.slice(0, 20)}...</div>
+                  <div className="mb-2 font-mono text-xs">{truncateHex(proof.nullifier)}</div>
                   {proof.message && (
                     <div className="mb-2 text-xs text-muted-foreground line-clamp-2">{proof.message}</div>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="mt-auto flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
                       {formatDate(proof.createdAt)}
                     </div>

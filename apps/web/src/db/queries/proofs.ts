@@ -34,6 +34,7 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
     const pattern = `%${options.search}%`
     const searchCondition = or(
       ilike(proofsTable.nullifier, pattern),
+      ilike(proofsTable.message, pattern),
       sql`${proofsTable.id}::text ILIKE ${pattern}`,
     )
     if (searchCondition) conditions.push(searchCondition)
