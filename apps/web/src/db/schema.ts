@@ -1,5 +1,9 @@
-import { pgTable, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
+import { pgTable, pgEnum, uuid, text, varchar, bigint, integer, timestamp, jsonb, boolean, index, unique } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { TokenType } from '@repo/types'
+import { enumToPgEnum } from './helpers'
+
+export const tokenTypeEnum = pgEnum('token_type_enum', enumToPgEnum(TokenType))
 
 export const tokensTable = pgTable(
   'tokens',
@@ -24,20 +28,24 @@ export const claimsTable = pgTable(
     message: text().notNull(),
     messageHash: varchar({ length: 78 }).notNull(),
     tokenAddress: varchar({ length: 42 }).notNull(),
-    recipientAddress: varchar({ length: 42 }).notNull(),
+    counterpartyAddress: varchar({ length: 42 }).notNull(),
+    isProverSender: boolean().notNull(),
+    tokenType: tokenTypeEnum().notNull(),
     minTransfersSum: varchar({ length: 78 }).notNull().default('0'),
     maxTransfersSum: varchar({ length: 78 }).notNull().default('0'),
+    minTransfersCount: integer().notNull().default(0),
+    maxTransfersCount: integer().notNull().default(0),
     fromBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
-    toBlockTimestamp: bigint({ mode: 'number' }).notNull().default(0),
+    toBlockTimestamp: bigint({ mode: 'number' }).notNull(),
     chainId: integer().notNull(),
     merkleRoot: varchar({ length: 78 }).notNull(),
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
     index('message_hash_idx').on(table.messageHash),
-    index('token_recipient_chain_idx').on(
+    index('token_counterparty_chain_idx').on(
       table.tokenAddress,
-      table.recipientAddress,
+      table.counterpartyAddress,
       table.chainId
     ),
   ]
@@ -53,6 +61,7 @@ export const proofsTable = pgTable(
     nullifier: varchar({ length: 78 }).notNull(),
     proofData: text().notNull(),
     publicInputs: jsonb().notNull(),
+    message: text(),
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
@@ -81,8 +90,8 @@ export const proofVerificationsTable = pgTable(
   ]
 )
 
-export const transfersTable = pgTable(
-  'transfers',
+export const erc20TransfersTable = pgTable(
+  'erc20_transfers',
   {
     id: uuid().primaryKey().defaultRandom(),
     chainId: integer().notNull(),
@@ -97,17 +106,54 @@ export const transfersTable = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
-    unique('transfers_chain_tx_log_idx').on(
-      table.chainId,
-      table.txHash,
-      table.logIndex
-    ),
-    index('transfers_recipient_token_idx').on(
-      table.recipientAddress,
-      table.tokenAddress,
-      table.chainId
-    ),
-    index('transfers_timestamp_idx').on(table.blockTimestamp),
+    unique('erc20_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    index('erc20_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
+    index('erc20_transfers_timestamp_idx').on(table.blockTimestamp),
+  ]
+)
+
+export const erc721TransfersTable = pgTable(
+  'erc721_transfers',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    chainId: integer().notNull(),
+    txHash: varchar({ length: 66 }).notNull(),
+    logIndex: integer().notNull(),
+    blockNumber: bigint({ mode: 'number' }).notNull(),
+    blockTimestamp: bigint({ mode: 'number' }).notNull(),
+    senderAddress: varchar({ length: 42 }).notNull(),
+    recipientAddress: varchar({ length: 42 }).notNull(),
+    tokenAddress: varchar({ length: 42 }).notNull(),
+    tokenId: varchar({ length: 78 }).notNull(),
+    createdAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [
+    unique('erc721_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    index('erc721_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
+    index('erc721_transfers_timestamp_idx').on(table.blockTimestamp),
+  ]
+)
+
+export const erc1155TransfersTable = pgTable(
+  'erc1155_transfers',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    chainId: integer().notNull(),
+    txHash: varchar({ length: 66 }).notNull(),
+    logIndex: integer().notNull(),
+    blockNumber: bigint({ mode: 'number' }).notNull(),
+    blockTimestamp: bigint({ mode: 'number' }).notNull(),
+    senderAddress: varchar({ length: 42 }).notNull(),
+    recipientAddress: varchar({ length: 42 }).notNull(),
+    tokenAddress: varchar({ length: 42 }).notNull(),
+    tokenId: varchar({ length: 78 }).notNull(),
+    amount: varchar({ length: 78 }).notNull(),
+    createdAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [
+    unique('erc1155_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    index('erc1155_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
+    index('erc1155_transfers_timestamp_idx').on(table.blockTimestamp),
   ]
 )
 

@@ -6,6 +6,7 @@ import { getClaimById } from '@/db/queries/claims'
 import { getProofById } from '@/db/queries/proofs'
 import { getVerificationStats } from '@/db/queries/verifications'
 import { getChainName } from '@/utils/explorer.utils'
+import { z } from 'zod'
 import type { ProofEntity } from '@/types'
 
 export async function generateMetadata({
@@ -14,6 +15,9 @@ export async function generateMetadata({
   params: Promise<{ id: string; proofId: string }>
 }): Promise<Metadata> {
   const { id: claimId, proofId } = await params
+  const uuidSchema = z.string().uuid()
+  if (!uuidSchema.safeParse(claimId).success || !uuidSchema.safeParse(proofId).success) return { title: 'Proof Not Found' }
+
   const [claim, proofResult] = await Promise.all([
     getClaimById(claimId),
     getProofById(proofId),
@@ -37,6 +41,8 @@ export default async function ProofDetailsPage({
   params: Promise<{ id: string; proofId: string }>
 }) {
   const { id: claimId, proofId } = await params
+  const uuidCheck = z.string().uuid()
+  if (!uuidCheck.safeParse(claimId).success || !uuidCheck.safeParse(proofId).success) notFound()
 
   const [claim, proofResult] = await Promise.all([
     getClaimById(claimId),

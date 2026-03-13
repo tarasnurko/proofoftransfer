@@ -4,7 +4,7 @@ import { type MerkleTree, MerkleTree as MerkleTreeImpl, fieldToBigint } from '@r
 export const buildMerkleTreeWithTransfers = async (
   allTransfers: EtherscanERC20Transfer[],
   hashTransferFn: (
-    transfer: Pick<EtherscanERC20Transfer, 'from' | 'to' | 'contractAddress' | 'value' | 'timeStamp'>,
+    transfer: { from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string },
   ) => Promise<Uint8Array>,
   merkleTreeZeroValuesStrArr: string[],
   poseidon2HashFn: (left: string, right: string) => Promise<string>,

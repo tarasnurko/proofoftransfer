@@ -1,9 +1,10 @@
 import { eq, inArray } from 'drizzle-orm'
 import type { Nullable } from '@/types/common.types'
-import { db, type DB } from '../client'
+import { db, getClient } from '../client'
+import type { DB } from '../index.types'
 import { ensCacheTable } from '../schema'
 import type { EnsCacheEntity } from '../index.types'
-import { entityOrNull, getClient } from '../helpers'
+import { entityOrNull } from '../helpers'
 
 export async function getEnsByAddress(address: string, tx?: DB): Promise<Nullable<EnsCacheEntity>> {
   return entityOrNull(

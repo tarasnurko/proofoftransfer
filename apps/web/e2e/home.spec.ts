@@ -39,27 +39,50 @@ test.describe('Home page', () => {
     await page.goto('/')
 
     const searchInput = page.getByPlaceholder(/search/i)
-    await searchInput.fill('Ethereum claim')
 
-    // Wait for debounced search to apply
-    await expect(page.getByText(/showing.*of.*8.*claims/i)).toBeVisible({ timeout: 5000 })
+    // "reward" appears in 3 Ethereum claims
+    await searchInput.fill('reward')
+    await expect(page.getByText('Showing 1 to 3 of 3 claims')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('DAO contributor received at least 3 weekly reward transfers').first()).toBeVisible()
+    await expect(page.getByText('Prove I received liquidity rewards during Q1 2025').first()).toBeVisible()
+    await expect(page.getByText(/Staking reward distribution/).first()).toBeVisible()
 
-    // All visible claims should be Ethereum
-    for (let i = 1; i <= 8; i++) {
-      // Only first page (10 items max) but there are only 8
-      await expect(page.getByText(`Ethereum claim #${i}`).first()).toBeVisible()
-    }
+    // "salary" appears in only 1 claim
+    await searchInput.fill('salary')
+    await expect(page.getByText('Showing 1 to 1 of 1 claims')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Monthly salary payment proof for remote contractor Jan–Mar 2025').first()).toBeVisible()
   })
 
-  test('search filters by address', async ({ page }) => {
+  test('search filters by token address', async ({ page }) => {
     await page.goto('/')
 
     const tokenAddress = fixtures.tokens.tst.address
     const searchInput = page.getByPlaceholder(/search/i)
     await searchInput.fill(tokenAddress)
 
-    // Should show claims with this token address (8 Ethereum claims)
-    await expect(page.getByText(/showing.*of.*8.*claims/i)).toBeVisible({ timeout: 5000 })
+    // Should show claims with TST token address (6 Ethereum claims use TST)
+    await expect(page.getByText(/showing.*of.*6.*claims/i)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('search filters by shared counterparty address shows multiple', async ({ page }) => {
+    await page.goto('/')
+
+    const searchInput = page.getByPlaceholder(/search/i)
+    await searchInput.fill(fixtures.counterpartyShared)
+
+    // 5 Ethereum + 7 Base = 12 claims share this counterparty
+    await expect(page.getByText(/showing.*of.*12.*claims/i)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('search filters by unique counterparty address shows one', async ({ page }) => {
+    await page.goto('/')
+
+    const searchInput = page.getByPlaceholder(/search/i)
+    await searchInput.fill(fixtures.counterpartyUnique)
+
+    // Only 1 Ethereum claim has this unique counterparty (devguild.eth)
+    await expect(page.getByText('Showing 1 to 1 of 1 claims')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/open-source grant payment/).first()).toBeVisible()
   })
 
   test('search shows empty state', async ({ page }) => {
@@ -101,19 +124,19 @@ test.describe('Home page', () => {
 
     // Then search for specific claim
     const searchInput = page.getByPlaceholder(/search/i)
-    await searchInput.fill('Ethereum claim #1')
+    await searchInput.fill('donated 100 TST')
 
     await expect(page.getByText('Showing 1 to 1 of 1 claims')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('Ethereum claim #1').first()).toBeVisible()
+    await expect(page.getByText('Prove I donated 100 TST to the public goods fund').first()).toBeVisible()
   })
 
   test('sort newest first (default)', async ({ page }) => {
     await page.goto('/')
 
     // Default sort is newest first — last created claim should appear first
-    // Claims are created in order: Ethereum #1-8, Base #1-7
-    // Newest = Base #7 — should be visible on page 1
-    await expect(page.getByText('Base claim #7').first()).toBeVisible()
+    // Claims are created in order: Ethereum 1-8, Base 1-7
+    // Newest = last Base claim
+    await expect(page.getByText(/Base ecosystem early adopter/).first()).toBeVisible()
   })
 
   test('sort oldest first', async ({ page }) => {
@@ -124,8 +147,8 @@ test.describe('Home page', () => {
     await sortSelect.click()
     await page.getByRole('option', { name: 'Oldest First' }).click()
 
-    // Oldest = Ethereum claim #1
-    await expect(page.getByText('Ethereum claim #1').first()).toBeVisible({ timeout: 5000 })
+    // Oldest = first Ethereum claim
+    await expect(page.getByText('Prove I donated 100 TST to the public goods fund').first()).toBeVisible({ timeout: 5000 })
   })
 
   test('sort most proofs', async ({ page }) => {

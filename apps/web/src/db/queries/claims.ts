@@ -1,9 +1,10 @@
 import { cache } from 'react'
-import { db, type DB } from '../client'
+import { db, getClient } from '../client'
+import type { DB } from '../index.types'
 import { claimsTable, proofsTable, tokensTable } from '../schema'
 import type { InsertClaimEntity, ClaimEntity } from '../index.types'
 import { eq, desc, asc, count, and, or, ilike, sql, type SQL } from 'drizzle-orm'
-import { entityOrError, entityOrNull, getClient } from '../helpers'
+import { entityOrError, entityOrNull } from '../helpers'
 import type { ClaimsSortBy } from '@/constants'
 import type { SortOrder } from '@/types'
 
@@ -39,7 +40,7 @@ export async function getClaims(options?: GetClaimsParams) {
     const pattern = `%${options.search}%`
     const searchCondition = or(
       ilike(claimsTable.message, pattern),
-      ilike(claimsTable.recipientAddress, pattern),
+      ilike(claimsTable.counterpartyAddress, pattern),
       ilike(claimsTable.tokenAddress, pattern),
       ilike(claimsTable.messageHash, pattern),
       sql`${claimsTable.id}::text ILIKE ${pattern}`,

@@ -1,3 +1,8 @@
+// BN254 scalar field modulus used by Noir
+const BN254_FIELD_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+
+export const reduceToField = (value: bigint): bigint => value % BN254_FIELD_MODULUS;
+
 export const bigintToField = (value: bigint): Uint8Array => {
   const buffer = new Uint8Array(32);
   let v = value;

@@ -45,8 +45,11 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
 
   const userTransfers = useMemo(() => {
     if (!walletAddress) return []
-    return transfers.filter(t => isAddressEqual(t.from as Address, walletAddress as Address))
-  }, [transfers, walletAddress])
+    return transfers.filter(transfer => {
+      const field = claim.isProverSender ? transfer.from : transfer.to
+      return isAddressEqual(field as Address, walletAddress as Address)
+    })
+  }, [transfers, walletAddress, claim.isProverSender])
 
   const displayedTransfers = showOnlyMyTransfers ? userTransfers : transfers
   const userTransferCount = userTransfers.length
@@ -89,7 +92,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
     }
   }, [walletAddress, walletClient, claim, claimId])
 
-  const handleGenerateProof = useCallback(async () => {
+  const handleGenerateProof = useCallback(async (message?: string) => {
     if (!preparedProof) return
 
     setGeneratingProof(true)
@@ -101,6 +104,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
         nullifier: generated.nullifier,
         proofData: generated.proofData,
         publicInputs: generated.publicInputs,
+        message,
       })
 
       if (submitResult?.serverError) {
@@ -134,11 +138,9 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
       <PageHeader
         title="Claim Details"
         actions={
-          claim.proofCount > 0 ? (
-            <Badge className="shrink-0 whitespace-nowrap border-2 text-sm font-bold">
-              {claim.proofCount} Proof{claim.proofCount !== 1 ? 's' : ''}
-            </Badge>
-          ) : undefined
+          <Badge className="shrink-0 whitespace-nowrap border-2 text-sm font-bold">
+            {claim.proofCount} Proof{claim.proofCount !== 1 ? 's' : ''}
+          </Badge>
         }
       />
 
@@ -154,6 +156,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
           showOnlyMyTransfers={showOnlyMyTransfers}
           onToggleMyTransfers={() => setShowOnlyMyTransfers(prev => !prev)}
           walletAddress={walletAddress}
+          tokenType={claim.tokenType}
           isLoading={transfersLoading}
         />
 

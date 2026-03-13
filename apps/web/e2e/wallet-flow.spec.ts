@@ -6,15 +6,23 @@ test.describe('Wallet flow', () => {
   test('connects MetaMask wallet', async ({ page, wallet }) => {
     await page.goto(BASE_URL)
 
-    // Click connect wallet button in the app
-    await page.getByRole('button', { name: /connect/i }).first().click()
+    const header = page.locator('header')
+    const addressText = header.getByText(/0x[a-fA-F0-9]{4}\.\.\./).first()
+    const connectBtn = page.getByRole('button', { name: 'Connect Wallet' }).first()
 
-    // Click MetaMask option in the modal
-    await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
+    // Wallet may already be connected (site permissions persist across tests)
+    await expect(addressText.or(connectBtn)).toBeVisible({ timeout: 15_000 })
 
-    // Approve connection in MetaMask
-    await wallet.approve()
+    if (await connectBtn.isVisible().catch(() => false)) {
+      await connectBtn.click()
+      try {
+        await page.getByText(/metamask/i).first().click({ timeout: 10_000 })
+        await wallet.approve()
+      } catch {
+        // Wallet might auto-connect without showing modal
+      }
+    }
 
-    await expect(page.getByText(/0x[a-fA-F0-9]{4}\.\.\./).first()).toBeVisible({ timeout: 15_000 })
+    await expect(addressText).toBeVisible({ timeout: 15_000 })
   })
 })

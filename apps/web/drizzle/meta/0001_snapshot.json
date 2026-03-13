@@ -1,6 +1,6 @@
 {
-  "id": "1f442b22-3668-4db3-89f9-e6abea961bea",
-  "prevId": "69d560db-29c3-47b7-ae2f-854f9a8b2dcd",
+  "id": "4531501a-2e93-4e4c-a9cd-bdd0168f9ad8",
+  "prevId": "ea3b8272-4a90-4403-841b-b0d83b127926",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -33,9 +33,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "recipientAddress": {
-          "name": "recipientAddress",
+        "counterpartyAddress": {
+          "name": "counterpartyAddress",
           "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isProverSender": {
+          "name": "isProverSender",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenType": {
+          "name": "tokenType",
+          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": true
         },
@@ -52,6 +64,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
+        },
+        "minTransfersCount": {
+          "name": "minTransfersCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "maxTransfersCount": {
+          "name": "maxTransfersCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "fromBlockTimestamp": {
           "name": "fromBlockTimestamp",
@@ -103,8 +129,8 @@
           "method": "btree",
           "with": {}
         },
-        "token_recipient_chain_idx": {
-          "name": "token_recipient_chain_idx",
+        "token_counterparty_chain_idx": {
+          "name": "token_counterparty_chain_idx",
           "columns": [
             {
               "expression": "tokenAddress",
@@ -113,7 +139,7 @@
               "nulls": "last"
             },
             {
-              "expression": "recipientAddress",
+              "expression": "counterpartyAddress",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -188,6 +214,414 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.erc1155_transfers": {
+      "name": "erc1155_transfers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logIndex": {
+          "name": "logIndex",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockNumber": {
+          "name": "blockNumber",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockTimestamp": {
+          "name": "blockTimestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senderAddress": {
+          "name": "senderAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipientAddress": {
+          "name": "recipientAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenAddress": {
+          "name": "tokenAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenId": {
+          "name": "tokenId",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "erc1155_transfers_recipient_token_idx": {
+          "name": "erc1155_transfers_recipient_token_idx",
+          "columns": [
+            {
+              "expression": "recipientAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tokenAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chainId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "erc1155_transfers_timestamp_idx": {
+          "name": "erc1155_transfers_timestamp_idx",
+          "columns": [
+            {
+              "expression": "blockTimestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "erc1155_transfers_chain_tx_log_idx": {
+          "name": "erc1155_transfers_chain_tx_log_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chainId",
+            "txHash",
+            "logIndex"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.erc20_transfers": {
+      "name": "erc20_transfers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logIndex": {
+          "name": "logIndex",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockNumber": {
+          "name": "blockNumber",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockTimestamp": {
+          "name": "blockTimestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senderAddress": {
+          "name": "senderAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipientAddress": {
+          "name": "recipientAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenAddress": {
+          "name": "tokenAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "erc20_transfers_recipient_token_idx": {
+          "name": "erc20_transfers_recipient_token_idx",
+          "columns": [
+            {
+              "expression": "recipientAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tokenAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chainId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "erc20_transfers_timestamp_idx": {
+          "name": "erc20_transfers_timestamp_idx",
+          "columns": [
+            {
+              "expression": "blockTimestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "erc20_transfers_chain_tx_log_idx": {
+          "name": "erc20_transfers_chain_tx_log_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chainId",
+            "txHash",
+            "logIndex"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.erc721_transfers": {
+      "name": "erc721_transfers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logIndex": {
+          "name": "logIndex",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockNumber": {
+          "name": "blockNumber",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockTimestamp": {
+          "name": "blockTimestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senderAddress": {
+          "name": "senderAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipientAddress": {
+          "name": "recipientAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenAddress": {
+          "name": "tokenAddress",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenId": {
+          "name": "tokenId",
+          "type": "varchar(78)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "erc721_transfers_recipient_token_idx": {
+          "name": "erc721_transfers_recipient_token_idx",
+          "columns": [
+            {
+              "expression": "recipientAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tokenAddress",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chainId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "erc721_transfers_timestamp_idx": {
+          "name": "erc721_transfers_timestamp_idx",
+          "columns": [
+            {
+              "expression": "blockTimestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "erc721_transfers_chain_tx_log_idx": {
+          "name": "erc721_transfers_chain_tx_log_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chainId",
+            "txHash",
+            "logIndex"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -344,6 +778,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -473,140 +913,6 @@
           "columns": [
             "address",
             "chainId"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.transfers": {
-      "name": "transfers",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "chainId": {
-          "name": "chainId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "txHash": {
-          "name": "txHash",
-          "type": "varchar(66)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logIndex": {
-          "name": "logIndex",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "blockNumber": {
-          "name": "blockNumber",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "blockTimestamp": {
-          "name": "blockTimestamp",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "senderAddress": {
-          "name": "senderAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recipientAddress": {
-          "name": "recipientAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tokenAddress": {
-          "name": "tokenAddress",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "varchar(78)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "transfers_recipient_token_idx": {
-          "name": "transfers_recipient_token_idx",
-          "columns": [
-            {
-              "expression": "recipientAddress",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tokenAddress",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chainId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "transfers_timestamp_idx": {
-          "name": "transfers_timestamp_idx",
-          "columns": [
-            {
-              "expression": "blockTimestamp",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "transfers_chain_tx_log_idx": {
-          "name": "transfers_chain_tx_log_idx",
-          "nullsNotDistinct": false,
-          "columns": [
-            "chainId",
-            "txHash",
-            "logIndex"
           ]
         }
       },

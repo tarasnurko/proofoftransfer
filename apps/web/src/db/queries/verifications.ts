@@ -1,8 +1,9 @@
-import { db, type DB } from '../client'
+import { db, getClient } from '../client'
+import type { DB } from '../index.types'
 import { proofVerificationsTable } from '../schema'
 import type { InsertProofVerificationEntity, ProofVerificationEntity } from '../index.types'
 import { eq, and, desc, count, sql } from 'drizzle-orm'
-import { entityOrError, entityOrNull, getClient } from '../helpers'
+import { entityOrError, entityOrNull } from '../helpers'
 
 export async function createVerification(data: InsertProofVerificationEntity, tx?: DB): Promise<ProofVerificationEntity> {
   return entityOrError(
@@ -36,6 +37,22 @@ interface ProofNullifierParams {
   nullifier: string
 }
 
+export async function getVerificationByNullifier({ proofId, nullifier }: ProofNullifierParams) {
+  return entityOrNull(
+    await db
+      .select()
+      .from(proofVerificationsTable)
+      .where(
+        and(
+          eq(proofVerificationsTable.proofId, proofId),
+          eq(proofVerificationsTable.verifierNullifier, nullifier),
+        )
+      )
+      .orderBy(desc(proofVerificationsTable.verifiedAt))
+      .limit(1)
+  )
+}
+
 export async function getSuccessfulVerificationByNullifier({ proofId, nullifier }: ProofNullifierParams) {
   return entityOrNull(
     await db
@@ -52,6 +69,12 @@ export async function getSuccessfulVerificationByNullifier({ proofId, nullifier 
   )
 }
 
+/**
+ * Delete previous failed verifications for this nullifier+proof.
+ * Called before each new verification attempt to ensure at most
+ * one verification record per user per proof at any time.
+ * This implements the "retry replaces, not accumulates" rule.
+ */
 export async function deleteFailedVerificationsByNullifier({ proofId, nullifier }: ProofNullifierParams, tx?: DB) {
   return getClient(tx)
     .delete(proofVerificationsTable)

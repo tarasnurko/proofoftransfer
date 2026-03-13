@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Barretenberg } from '@aztec/bb.js'
 import { buildTransfersMerkleTree, mapDbTransferToHashInput } from '../proof.server'
-import type { TransferHashInput } from '../proof.server'
-import type { TransferEntity } from '@/db/index.types'
+import type { TransferHashInput } from '@/types'
+import type { Erc20TransferEntity, Erc721TransferEntity } from '@/db/index.types'
 
 const makeTransferHashInput = (overrides: Partial<TransferHashInput> = {}): TransferHashInput => ({
   from: '0x' + '1'.repeat(40),
@@ -10,6 +10,7 @@ const makeTransferHashInput = (overrides: Partial<TransferHashInput> = {}): Tran
   contractAddress: '0x' + '3'.repeat(40),
   value: '1000000000000000000',
   timeStamp: '1700000000',
+  hash: '0x' + '4'.repeat(64),
   ...overrides,
 })
 
@@ -54,8 +55,8 @@ describe('proof.server', () => {
   })
 
   describe('mapDbTransferToHashInput', () => {
-    it('maps TransferEntity to TransferHashInput', () => {
-      const entity: TransferEntity = {
+    it('maps ERC-20 entity to TransferHashInput', () => {
+      const entity: Erc20TransferEntity = {
         id: 'test-id',
         chainId: 1,
         txHash: '0xhash',
@@ -76,7 +77,27 @@ describe('proof.server', () => {
         contractAddress: '0xtoken',
         value: '1000',
         timeStamp: '1700000000',
+        hash: '0xhash',
       })
+    })
+
+    it('maps ERC-721 entity with value=1', () => {
+      const entity: Erc721TransferEntity = {
+        id: 'test-id',
+        chainId: 1,
+        txHash: '0xhash',
+        logIndex: 0,
+        blockNumber: 1000000,
+        blockTimestamp: 1700000000,
+        senderAddress: '0xsender',
+        recipientAddress: '0xrecipient',
+        tokenAddress: '0xtoken',
+        tokenId: '42',
+        createdAt: new Date(),
+      }
+
+      const result = mapDbTransferToHashInput(entity)
+      expect(result.value).toBe('1')
     })
   })
 })

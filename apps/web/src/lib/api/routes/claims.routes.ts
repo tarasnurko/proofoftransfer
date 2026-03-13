@@ -9,18 +9,20 @@ import {
   padTransfersArray,
   padMerkleProofsArray,
 } from '@repo/circuit-utils'
+import { TokenType } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
-import { getTransfersForClaim, upsertTransfers } from '@/db/queries/transfers'
+import { getVerificationByNullifier } from '@/db/queries/verifications'
+import { TRANSFER_QUERY_FN, upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
 import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import { etherscanService } from '@/services/etherscan'
 import { ethereumAddressSchema } from '@/validations/address'
-import { MAX_CLAIM_TRANSFERS } from '@/validations/claim'
+import { MAX_CLAIM_TRANSFERS, tokenTypeSchema } from '@/validations/claim'
 import {
   prepareSigningBase,
   mapDbTransferToHashInput,
 } from '@/lib/proof.server'
-import type { InsertTransferEntity } from '@/db/index.types'
+import type { InsertErc20TransferEntity, InsertErc721TransferEntity, InsertErc1155TransferEntity } from '@/db/index.types'
 import { RATE_LIMITS } from '@/services/rate-limit'
 import { fetchAndStoreToken } from './tokens.routes'
 import { createRateLimitMiddleware } from '../middleware/rate-limit.middleware'
@@ -42,6 +44,11 @@ const nullifierQuery = z.object({
   nullifier: z.string().min(1),
 })
 
+const verifierStatusParam = z.object({
+  id: z.string().uuid(),
+  proofId: z.string().uuid(),
+})
+
 const proverSigningBody = z.object({
   proverAddress: ethereumAddressSchema,
 })
@@ -49,7 +56,9 @@ const proverSigningBody = z.object({
 const loadTransfersBody = z.object({
   chainId: z.number(),
   tokenAddress: z.string(),
-  recipientAddress: z.string(),
+  counterpartyAddress: z.string(),
+  isProverSender: z.boolean().default(true),
+  tokenType: tokenTypeSchema.default(TokenType.ERC20),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
 })
@@ -79,7 +88,21 @@ export const claimsRoutes = new Hono()
     zValidator('param', claimIdParam),
     async (c) => {
       const { id } = c.req.valid('param')
-      const transfers = await getTransfersForClaim(id)
+      const claim = await getClaimById(id)
+      if (!claim) return c.json({ error: 'Claim not found' }, 404)
+
+      const queryParams = {
+        chainId: claim.chainId,
+        tokenAddress: claim.tokenAddress,
+        ...(claim.isProverSender
+          ? { recipientAddress: claim.counterpartyAddress }
+          : { senderAddress: claim.counterpartyAddress }),
+        fromTimestamp: claim.fromBlockTimestamp || undefined,
+        toTimestamp: claim.toBlockTimestamp || undefined,
+      }
+
+      const transfers = await TRANSFER_QUERY_FN[claim.tokenType as TokenType](queryParams)
+
       return c.json(transfers.map(mapDbToEtherscanTransfer))
     },
   )
@@ -96,6 +119,24 @@ export const claimsRoutes = new Hono()
     },
   )
   .get(
+    '/:id/proofs/:proofId/verifier-status',
+    createRateLimitMiddleware('getVerifierStatus', RATE_LIMITS.GET_VERIFIER_STATUS),
+    zValidator('param', verifierStatusParam),
+    zValidator('query', nullifierQuery),
+    async (c) => {
+      const { proofId } = c.req.valid('param')
+      const { nullifier } = c.req.valid('query')
+      const verification = await getVerificationByNullifier({ proofId, nullifier })
+      if (!verification) return c.json({ hasAttempted: false })
+      return c.json({
+        hasAttempted: true,
+        isValid: verification.isValid,
+        errorMessage: verification.errorMessage,
+        verifiedAt: verification.verifiedAt.toISOString(),
+      })
+    },
+  )
+  .get(
     '/:id/etherscan-transfers',
     createRateLimitMiddleware('getEtherscanTransfers', RATE_LIMITS.GET_ETHERSCAN_TRANSFERS),
     zValidator('param', claimIdParam),
@@ -104,13 +145,20 @@ export const claimsRoutes = new Hono()
       const claim = await getClaimById(id)
       if (!claim) return c.json({ error: 'Claim not found' }, 404)
 
-      const transfers = await etherscanService.getERC20Transfers({
+      const fetchParams = {
         chainId: claim.chainId,
         tokenAddress: claim.tokenAddress,
-        recipientAddress: claim.recipientAddress,
+        address: claim.counterpartyAddress,
         fromTimestamp: claim.fromBlockTimestamp || undefined,
         toTimestamp: claim.toBlockTimestamp || undefined,
-      })
+      }
+
+      const etherscanFetchFn = {
+        [TokenType.ERC20]: () => etherscanService.getERC20Transfers(fetchParams),
+        [TokenType.ERC721]: () => etherscanService.getERC721Transfers(fetchParams),
+        [TokenType.ERC1155]: () => etherscanService.getERC1155Transfers(fetchParams),
+      }
+      const transfers = await etherscanFetchFn[claim.tokenType as TokenType]()
 
       return c.json({ transfers })
     },
@@ -127,6 +175,8 @@ export const claimsRoutes = new Hono()
       const { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId } =
         await prepareSigningBase(id)
 
+      const isProverSender = claim.isProverSender
+
       const proverIndices: number[] = []
       const proverTransferData: Array<{
         from: string
@@ -138,13 +188,15 @@ export const claimsRoutes = new Hono()
       }> = []
 
       claimTransfers.forEach((transfer, index) => {
-        if (isAddressEqual(transfer.senderAddress as Address, proverAddress as Address)) {
+        const matchField = isProverSender ? transfer.senderAddress : transfer.recipientAddress
+        if (isAddressEqual(matchField as Address, proverAddress as Address)) {
           proverIndices.push(index)
+          const amount = 'amount' in transfer ? transfer.amount : '1'
           proverTransferData.push({
             from: transfer.senderAddress,
             to: transfer.recipientAddress,
             contractAddress: transfer.tokenAddress,
-            value: transfer.amount,
+            value: amount,
             timeStamp: transfer.blockTimestamp.toString(),
             hash: transfer.txHash,
           })
@@ -171,6 +223,8 @@ export const claimsRoutes = new Hono()
       const maxSum = BigInt(claim.maxTransfersSum || '0')
       const fromTs = BigInt(claim.fromBlockTimestamp || 0)
       const toTs = BigInt(claim.toBlockTimestamp || 0)
+      const minCount = claim.minTransfersCount || 0
+      const maxCount = claim.maxTransfersCount || 0
 
       for (const transfer of proverTransferData) {
         const timestamp = BigInt(transfer.timeStamp)
@@ -179,6 +233,8 @@ export const claimsRoutes = new Hono()
       }
       if (minSum && totalSum < minSum) throw new Error(`Sum ${totalSum} below minimum ${minSum}`)
       if (maxSum && totalSum > maxSum) throw new Error(`Sum ${totalSum} above maximum ${maxSum}`)
+      if (minCount && proverTransferData.length < minCount) throw new Error(`Count ${proverTransferData.length} below minimum ${minCount}`)
+      if (maxCount && proverTransferData.length > maxCount) throw new Error(`Count ${proverTransferData.length} above maximum ${maxCount}`)
 
       return c.json({
         eip712,
@@ -209,7 +265,7 @@ export const claimsRoutes = new Hono()
     zValidator('json', loadTransfersBody),
     async (c) => {
       const body = c.req.valid('json')
-      const { chainId, tokenAddress, recipientAddress } = body
+      const { chainId, tokenAddress, counterpartyAddress, tokenType } = body
 
       const fromTimestamp = body.fromDate
         ? Math.floor(new Date(body.fromDate).getTime() / 1000)
@@ -220,25 +276,15 @@ export const claimsRoutes = new Hono()
 
       await fetchAndStoreToken(tokenAddress, chainId)
 
-      const fetchedTransfers = await etherscanService.getERC20Transfers({
+      const fetchParams = {
         chainId,
         tokenAddress,
-        recipientAddress,
+        address: counterpartyAddress,
         fromTimestamp: fromTimestamp || undefined,
         toTimestamp: toTimestamp || undefined,
-      })
-
-      if (!fetchedTransfers.length) {
-        throw new Error('No transfers found matching these constraints')
       }
 
-      if (fetchedTransfers.length > MAX_CLAIM_TRANSFERS) {
-        throw new Error(
-          `Too many transfers (${fetchedTransfers.length}). Narrow your constraints.`,
-        )
-      }
-
-      const transfersData: InsertTransferEntity[] = fetchedTransfers.map((transfer) => ({
+      const mapBaseFields = (transfer: { hash: string; transactionIndex: string; blockNumber: string; timeStamp: string; from: string; to: string; contractAddress: string }) => ({
         chainId,
         txHash: transfer.hash,
         logIndex: parseInt(transfer.transactionIndex, 10),
@@ -247,10 +293,47 @@ export const claimsRoutes = new Hono()
         senderAddress: transfer.from.toLowerCase(),
         recipientAddress: transfer.to.toLowerCase(),
         tokenAddress: transfer.contractAddress.toLowerCase(),
+      })
+
+      if (tokenType === TokenType.ERC721) {
+        const erc721Transfers = await etherscanService.getERC721Transfers(fetchParams)
+
+        if (!erc721Transfers.length) throw new Error('No transfers found matching these constraints')
+        if (erc721Transfers.length > MAX_CLAIM_TRANSFERS) throw new Error(`Too many transfers (${erc721Transfers.length}). Narrow your constraints.`)
+
+        const data: InsertErc721TransferEntity[] = erc721Transfers.map((transfer) => ({
+          ...mapBaseFields(transfer),
+          tokenId: transfer.tokenID || '0',
+        }))
+        const stored = await upsertErc721Transfers(data)
+        return c.json({ transfers: stored })
+      }
+
+      if (tokenType === TokenType.ERC1155) {
+        const erc1155Transfers = await etherscanService.getERC1155Transfers(fetchParams)
+
+        if (!erc1155Transfers.length) throw new Error('No transfers found matching these constraints')
+        if (erc1155Transfers.length > MAX_CLAIM_TRANSFERS) throw new Error(`Too many transfers (${erc1155Transfers.length}). Narrow your constraints.`)
+
+        const data: InsertErc1155TransferEntity[] = erc1155Transfers.map((transfer) => ({
+          ...mapBaseFields(transfer),
+          tokenId: transfer.tokenID || '0',
+          amount: transfer.tokenValue || '1',
+        }))
+        const stored = await upsertErc1155Transfers(data)
+        return c.json({ transfers: stored })
+      }
+
+      const erc20Transfers = await etherscanService.getERC20Transfers(fetchParams)
+
+      if (!erc20Transfers.length) throw new Error('No transfers found matching these constraints')
+      if (erc20Transfers.length > MAX_CLAIM_TRANSFERS) throw new Error(`Too many transfers (${erc20Transfers.length}). Narrow your constraints.`)
+
+      const data: InsertErc20TransferEntity[] = erc20Transfers.map((transfer) => ({
+        ...mapBaseFields(transfer),
         amount: transfer.value,
       }))
-
-      const stored = await upsertTransfers(transfersData)
+      const stored = await upsertErc20Transfers(data)
       return c.json({ transfers: stored })
     },
   )

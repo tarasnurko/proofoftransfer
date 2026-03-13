@@ -4,9 +4,5 @@ type = "bin"
 authors = [""]
 
 [dependencies]
-poseidon = { tag = "v0.2.0", git = "https://github.com/noir-lang/poseidon" }
-
-# TODO: use main branch when this fix will be merged
-ecrecover = { tag = "colinnielsen-patch-1", git = "https://github.com/colinnielsen/ecrecover-noir" }
-
+circuit_noir = { path = "../../packages/circuit-noir" }
 keccak256 = { tag = "v0.1.2", git = "https://github.com/noir-lang/keccak256" }

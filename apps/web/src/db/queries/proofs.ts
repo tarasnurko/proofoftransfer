@@ -1,9 +1,10 @@
 import { cache } from 'react'
-import { db, type DB } from '../client'
+import { db, getClient } from '../client'
+import type { DB } from '../index.types'
 import { proofsTable, claimsTable, proofVerificationsTable } from '../schema'
 import type { InsertProofEntity, ProofEntity } from '../index.types'
 import { eq, and, desc, asc, or, ilike, sql, count, type SQL } from 'drizzle-orm'
-import { entityOrError, entityOrNull, getClient } from '../helpers'
+import { entityOrError, entityOrNull } from '../helpers'
 import type { SortOrder } from '@/types'
 
 export async function createProof(data: InsertProofEntity, tx?: DB): Promise<ProofEntity> {
@@ -33,6 +34,7 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
     const pattern = `%${options.search}%`
     const searchCondition = or(
       ilike(proofsTable.nullifier, pattern),
+      ilike(proofsTable.message, pattern),
       sql`${proofsTable.id}::text ILIKE ${pattern}`,
     )
     if (searchCondition) conditions.push(searchCondition)

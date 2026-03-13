@@ -41,7 +41,13 @@ const ensureCleanup = (): void => {
 
 // --- Core ---
 
+const skipRateLimit = process.env.DISABLE_RATE_LIMIT === 'true'
+
 export const checkRateLimit = (key: string, config: RateLimitConfig): RateLimitResult => {
+  if (skipRateLimit) {
+    return { limited: false, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs }
+  }
+
   ensureCleanup()
   const now = Date.now()
   const entry = store.get(key)
@@ -81,6 +87,7 @@ export const RATE_LIMITS = {
   GET_PROOFS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
   GET_TRANSFERS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
   GET_NULLIFIER_EXISTS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
+  GET_VERIFIER_STATUS: { maxRequests: 30, windowMs: MS_PER_MINUTE },
 
   // Hono: expensive external/computation
   GET_ETHERSCAN_TRANSFERS: { maxRequests: 5, windowMs: MS_PER_MINUTE },

@@ -1,7 +1,5 @@
 use dep::poseidon::poseidon2;
 
-// a little but changed from https://github.com/Cyfrin/zk-mixer-cu/blob/main/circuits/src/merkle_tree.nr
-
 pub fn compute_merkle_root<let N: u32>(
     leaf: Field,
     proof: [Field; N],

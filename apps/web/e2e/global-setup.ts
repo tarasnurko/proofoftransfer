@@ -9,9 +9,12 @@ import {
   mintTokens,
   makeTransfers,
   readTransferEvents,
+  buildClaimSeed,
+  buildProofSeed,
+  buildTokenSeed,
   type TransferSpec,
 } from '@repo/test-utils'
-import { seedClaim, seedProof, seedToken, seedTransfer, truncateAll, closeDb } from './helpers/db'
+import { seedClaim, seedProof, seedToken, seedTransfer, seedEnsCache, truncateAll, closeDb } from './helpers/db'
 
 const FIXTURE_DIR = join(process.cwd(), 'e2e/.fixtures')
 const FIXTURE_PATH = join(FIXTURE_DIR, 'test-data.json')
@@ -21,6 +24,18 @@ const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`
 
 const TST = { name: 'Test Token', symbol: 'TST', decimals: 18, chainId: 1 } as const
 const USDC = { name: 'USD Coin', symbol: 'USDC', decimals: 6, chainId: 8453 } as const
+const NFT1 = { name: 'Art Collection', symbol: 'ART', decimals: 0, chainId: 1 } as const
+const NFT2 = { name: 'Game Items', symbol: 'ITEM', decimals: 0, chainId: 8453 } as const
+
+// Fixed fake addresses for non-deployed tokens (only used in DB, not on-chain)
+const NFT1_ADDRESS = '0xaaaa000000000000000000000000000000000001'
+const NFT2_ADDRESS = '0xbbbb000000000000000000000000000000000002'
+
+// Timestamps for date constraints
+const TS_2024_Q1_START = 1704067200  // 2024-01-01
+const TS_2024_Q2_START = 1711929600  // 2024-04-01
+const TS_2025_Q1_START = 1735689600  // 2025-01-01
+const TS_2025_Q2_START = 1743465600  // 2025-04-01
 
 let anvilProcess: ChildProcess | null = null
 
@@ -64,6 +79,9 @@ export default async function globalSetup() {
   const recipient = ANVIL_ACCOUNTS[4]!
   const noiseSender = ANVIL_ACCOUNTS[5]!
   const noiseRecipient = ANVIL_ACCOUNTS[6]!
+  const uniqueCounterparty1 = ANVIL_ACCOUNTS[7]!
+  const uniqueCounterparty2 = ANVIL_ACCOUNTS[8]!
+  const uniqueCounterparty3 = ANVIL_ACCOUNTS[9]!
 
   // Deploy tokens
   const tstAddress = await deployTestERC20(client, TST.name, TST.symbol, TST.decimals)
@@ -79,6 +97,7 @@ export default async function globalSetup() {
   await mintTokens(client, usdcAddress, allMintTargets, parseUnits('100000', USDC.decimals))
 
   // Interleaved transfers — mix tokens, noise, and recipient outgoing
+  // Enough variety to produce 8+ TST and 6+ USDC transfers to recipient
   const transfers: TransferSpec[] = [
     { from: senders[0]!.key, to: recipient.address, amount: parseUnits('100', TST.decimals), tokenAddress: tstAddress },
     { from: senders[0]!.key, to: recipient.address, amount: parseUnits('1000', USDC.decimals), tokenAddress: usdcAddress },
@@ -89,6 +108,18 @@ export default async function globalSetup() {
     { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('77', USDC.decimals), tokenAddress: usdcAddress },
     { from: senders[2]!.key, to: recipient.address, amount: parseUnits('500', TST.decimals), tokenAddress: tstAddress },
     { from: recipient.key, to: noiseSender.address, amount: parseUnits('100', USDC.decimals), tokenAddress: usdcAddress },
+    // Additional transfers for more realistic data
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('75', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('150', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('300', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('800', USDC.decimals), tokenAddress: usdcAddress },
+    { from: noiseSender.key, to: noiseRecipient.address, amount: parseUnits('33', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('420', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[0]!.key, to: recipient.address, amount: parseUnits('3000', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('175', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('600', USDC.decimals), tokenAddress: usdcAddress },
+    { from: senders[2]!.key, to: recipient.address, amount: parseUnits('90', TST.decimals), tokenAddress: tstAddress },
+    { from: senders[1]!.key, to: recipient.address, amount: parseUnits('450', USDC.decimals), tokenAddress: usdcAddress },
   ]
   await makeTransfers(transfers)
 
@@ -99,72 +130,247 @@ export default async function globalSetup() {
   // Seed DB
   await truncateAll()
 
-  const tstToken = await seedToken({
+  const tstToken = await seedToken(buildTokenSeed({
     address: tstAddress.toLowerCase(),
     chainId: TST.chainId,
     name: TST.name,
     symbol: TST.symbol,
     decimals: TST.decimals,
-  })
+  }))
 
-  const usdcToken = await seedToken({
+  const usdcToken = await seedToken(buildTokenSeed({
     address: usdcAddress.toLowerCase(),
     chainId: USDC.chainId,
     name: USDC.name,
     symbol: USDC.symbol,
     decimals: USDC.decimals,
-  })
+  }))
 
-  // Seed 15 claims: 8 Ethereum (TST) + 7 Base (USDC)
+  await seedToken(buildTokenSeed({ address: NFT1_ADDRESS, chainId: NFT1.chainId, name: NFT1.name, symbol: NFT1.symbol, decimals: NFT1.decimals }))
+  await seedToken(buildTokenSeed({ address: NFT2_ADDRESS, chainId: NFT2.chainId, name: NFT2.name, symbol: NFT2.symbol, decimals: NFT2.decimals }))
+
+  // ENS records for two counterparties
+  await seedEnsCache({ address: recipient.address.toLowerCase(), name: 'gooddao.eth', expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), resolvedAt: new Date() })
+  await seedEnsCache({ address: uniqueCounterparty1.address.toLowerCase(), name: 'devguild.eth', expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), resolvedAt: new Date() })
+
+  // 18 diverse claims: 10 Ethereum + 8 Base
+  // Variety: different token types, ENS counterparties, dates, constraints, message lengths, prover roles
   const claims = []
-  for (let i = 0; i < 8; i++) {
-    const claim = await seedClaim({
-      message: `Ethereum claim #${i + 1}`,
-      messageHash: '0x' + 'e'.repeat(62) + (i + 1).toString(16).padStart(2, '0'),
-      tokenAddress: tstAddress.toLowerCase(),
-      recipientAddress: recipient.address.toLowerCase(),
-      minTransfersSum: '0',
-      maxTransfersSum: '0',
-      fromBlockTimestamp: 0,
-      toBlockTimestamp: 0,
-      chainId: TST.chainId,
-      merkleRoot: '0x' + '0'.repeat(64),
-    })
-    claims.push(claim)
-  }
-  for (let i = 0; i < 7; i++) {
-    const claim = await seedClaim({
-      message: `Base claim #${i + 1}`,
-      messageHash: '0x' + 'b'.repeat(62) + (i + 1).toString(16).padStart(2, '0'),
-      tokenAddress: usdcAddress.toLowerCase(),
-      recipientAddress: recipient.address.toLowerCase(),
-      minTransfersSum: '0',
-      maxTransfersSum: '0',
-      fromBlockTimestamp: 0,
-      toBlockTimestamp: 0,
-      chainId: USDC.chainId,
-      merkleRoot: '0x' + '0'.repeat(64),
-    })
-    claims.push(claim)
-  }
 
-  // Seed proofs: claims[0] gets 3, claims[1] gets 1
+  // ── Ethereum claims (chain 1) ──
+
+  // 1. TST ERC20, recipient has ENS, all constraints filled, prover=sender
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Prove I donated 100 TST to the public goods fund',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2024_Q2_START,
+    minTransfersSum: '50000000000000000000',
+    maxTransfersSum: '500000000000000000000',
+    minTransfersCount: 2,
+    maxTransfersCount: 10,
+  })))
+
+  // 2. Long message, TST ERC20, unique counterparty with ENS, has toDate, prover=sender
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Verify that my open-source grant payment was sent to the core development team before the Q2 2024 funding deadline as required by the grant agreement',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: uniqueCounterparty1.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    toBlockTimestamp: TS_2024_Q2_START,
+  })))
+
+  // 3. TST ERC20, recipient, prover=recipient (received), minTransfersCount
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'DAO contributor received at least 3 weekly reward transfers',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: false,
+    minTransfersCount: 3,
+  })))
+
+  // 4. NFT ERC721, recipient, prover=sender, no dates
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'NFT royalty payment proof',
+    tokenAddress: NFT1_ADDRESS,
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    tokenType: 'erc721',
+  })))
+
+  // 5. TST ERC20, unique counterparty2, amount range constraint
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Token sale participation between 500 and 5000 TST',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: uniqueCounterparty2.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    minTransfersSum: '500000000000000000000',
+    maxTransfersSum: '5000000000000000000000',
+  })))
+
+  // 6. NFT ERC721, unique counterparty3, no dates, prover=sender
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Protocol upgrade bounty',
+    tokenAddress: NFT1_ADDRESS,
+    counterpartyAddress: uniqueCounterparty3.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    tokenType: 'erc721',
+  })))
+
+  // 7. TST ERC20, recipient, prover=recipient, date range Q1 2025
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Prove I received liquidity rewards during Q1 2025',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: false,
+    fromBlockTimestamp: TS_2025_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+  })))
+
+  // 8. TST ERC20, recipient, very long message, maxTransfersCount
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Staking reward distribution for Q1 2025 validators who maintained 99% uptime during the network upgrade — no more than 5 transfers',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    maxTransfersCount: 5,
+  })))
+
+  // ── Base claims (chain 8453) ──
+
+  // 9. Short message, USDC ERC20, recipient, no constraints
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Base bridge USDC',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: true,
+  })))
+
+  // 10. Medium message, USDC ERC20, recipient (ENS), prover=recipient, minTransfersCount
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Monthly salary payment proof for remote contractor Jan–Mar 2025',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: false,
+    minTransfersCount: 1,
+    fromBlockTimestamp: TS_2025_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+  })))
+
+  // 11. USDC ERC20, recipient, from+to date range
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'DeFi yield farming claim for period 2024 Q1',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2024_Q2_START,
+  })))
+
+  // 12. ERC1155, recipient, prover=recipient
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'NFT collection royalties distribution',
+    tokenAddress: NFT2_ADDRESS,
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: false,
+    tokenType: 'erc1155',
+  })))
+
+  // 13. USDC ERC20, recipient, prover=sender, no constraints
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'USDC swap proof',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: true,
+  })))
+
+  // 14. USDC ERC20, recipient, min amount + max count
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Protocol fee collection — minimum 100 USDC, up to 10 transfers',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: true,
+    minTransfersSum: '100000000',
+    maxTransfersCount: 10,
+  })))
+
+  // 15. Long message, USDC ERC20, recipient, toDate only
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Base ecosystem early adopter airdrop — proof of participation before the official launch date on 2025-01-01',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: true,
+    toBlockTimestamp: TS_2025_Q1_START,
+  })))
+
+  // 16. TST ERC20, all constraints, huge numbers
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Whale treasury rebalance — massive cross-protocol transfer batch',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+    minTransfersSum: '999999000000000000000000',
+    maxTransfersSum: '50000000000000000000000000',
+    minTransfersCount: 100,
+    maxTransfersCount: 9999,
+  })))
+
+  // 17. TST ERC20, mixed one-sided constraints: min amount only + max count only
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Partial constraints — min amount with max transfer count',
+    tokenAddress: tstAddress.toLowerCase(),
+    counterpartyAddress: uniqueCounterparty2.address.toLowerCase(),
+    chainId: TST.chainId,
+    isProverSender: true,
+    fromBlockTimestamp: TS_2025_Q1_START,
+    toBlockTimestamp: TS_2025_Q2_START,
+    minTransfersSum: '1000000000000000000000',
+    maxTransfersCount: 5,
+  })))
+
+  // 18. USDC ERC20, mixed one-sided constraints: max amount only + min count only
+  claims.push(await seedClaim(buildClaimSeed({
+    message: 'Capped amount with minimum transfer count requirement',
+    tokenAddress: usdcAddress.toLowerCase(),
+    counterpartyAddress: recipient.address.toLowerCase(),
+    chainId: USDC.chainId,
+    isProverSender: false,
+    fromBlockTimestamp: TS_2024_Q1_START,
+    toBlockTimestamp: TS_2024_Q2_START,
+    maxTransfersSum: '50000000000',
+    minTransfersCount: 3,
+  })))
+
+  // Seed proofs: claims[0] gets 3 with varying messages, claims[1] gets 1
   const proofs = []
-  for (let i = 0; i < 3; i++) {
-    const proof = await seedProof({
-      claimId: claims[0]!.id,
-      nullifier: '0x' + 'a'.repeat(62) + i.toString(16).padStart(2, '0'),
-      proofData: '0x' + 'cd'.repeat(64),
-      publicInputs: ['0x01', '0x02'],
-    })
-    proofs.push(proof)
-  }
-  const singleProof = await seedProof({
-    claimId: claims[1]!.id,
-    nullifier: '0x' + 'bb'.repeat(32),
-    proofData: '0x' + 'ef'.repeat(64),
-    publicInputs: ['0x03', '0x04'],
-  })
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id, {
+    message: 'Quick test proof for basic transfer verification',
+  })))
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id)))
+  proofs.push(await seedProof(buildProofSeed(claims[0]!.id, {
+    message: 'This is a comprehensive proof message demonstrating the full 500-character capacity of the message field. It includes detailed context about the transfer verification: the prover submitted on-chain evidence of 8 ERC-20 token transfers to the public goods fund over Q1 2024. All transfers were verified against the merkle root computed from the claim constraints. The zero-knowledge circuit confirmed sender identity without revealing the private key. Verification passed on first attempt.',
+  })))
+  const singleProof = await seedProof(buildProofSeed(claims[1]!.id))
   proofs.push(singleProof)
 
   // Seed transfers from real Anvil events
@@ -222,6 +428,8 @@ export default async function globalSetup() {
           },
         },
         recipient: recipient.address.toLowerCase(),
+        counterpartyShared: recipient.address.toLowerCase(),
+        counterpartyUnique: uniqueCounterparty1.address.toLowerCase(),
         senders: senders.map((s) => s.address.toLowerCase()),
         senderKeys: senders.map((s) => s.key),
         claims: claims.map((c) => ({

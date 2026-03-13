@@ -12,6 +12,8 @@ export const submitProofSchema = z.object({
   publicInputs: z
     .array(z.string())
     .min(1, 'Public inputs are required'),
+
+  message: z.string().max(500).optional(),
 })
 
 export type SubmitProofInput = z.infer<typeof submitProofSchema>

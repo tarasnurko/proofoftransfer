@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { LAUNCH_OPTIONS } from './e2e/config'
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,6 +15,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3005',
     trace: 'on-first-retry',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
+    launchOptions: {
+      slowMo: Number(process.env.SLOW_MO) || 0,
+      ...LAUNCH_OPTIONS,
+    },
+    viewport: null,
   },
   projects: [
     {
@@ -24,11 +32,11 @@ export default defineConfig({
         'proof-details.spec.ts',
         'create-claim.spec.ts',
       ],
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], viewport: null, deviceScaleFactor: undefined },
     },
     {
       name: 'wallet',
-      testMatch: ['wallet-flow.spec.ts', 'flows.spec.ts'],
+      testMatch: ['wallet-flow.spec.ts', 'flows.spec.ts', 'verify-proof.spec.ts'],
       // dappwright manages its own chromium context with MetaMask extension
     },
   ],
@@ -36,5 +44,6 @@ export default defineConfig({
     command: 'pnpm dev',
     port: 3005,
     reuseExistingServer: !process.env.CI,
+    env: { DISABLE_RATE_LIMIT: 'true' },
   },
 })

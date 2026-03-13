@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Address } from '@/components/shared/address'
 import { CopyHash } from '@/components/shared/copy-hash'
@@ -31,7 +33,7 @@ interface GenerateProofCardProps {
   signingClaim: boolean
   generatingProof: boolean
   onSignClaim: () => void
-  onGenerateProof: () => void
+  onGenerateProof: (message?: string) => void
 }
 
 export function GenerateProofCard({
@@ -48,6 +50,7 @@ export function GenerateProofCard({
   onGenerateProof,
 }: GenerateProofCardProps) {
   const { open } = useAppKit()
+  const [proofMessage, setProofMessage] = useState('')
 
   const { data: nullifierAlreadyUsed = false } = useCheckNullifierExists({
     claimId,
@@ -131,14 +134,29 @@ export function GenerateProofCard({
                   <p className="text-sm text-muted-foreground">
                     <span className="font-bold text-foreground">{preparedProof.proverTransferCount}</span> matching transfer{preparedProof.proverTransferCount !== 1 ? 's' : ''} ready. Click below to generate the ZK proof.
                   </p>
+                  <div className="space-y-1">
+                    <Textarea
+                      placeholder="Add a public note to your proof… (optional)"
+                      value={proofMessage}
+                      onChange={(e) => setProofMessage(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      className="border-2 resize-none text-sm"
+                      disabled={generatingProof}
+                    />
+                    <div className="text-right text-xs text-muted-foreground">{proofMessage.length}/500</div>
+                  </div>
                   <Button
-                    onClick={onGenerateProof}
+                    onClick={() => onGenerateProof(proofMessage || undefined)}
                     disabled={generatingProof}
                     className="w-full border-4 font-bold"
                   >
                     {generatingProof && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {generatingProof ? 'Generating Proof...' : 'Generate Proof'}
                   </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Proof generation may take 30+ seconds
+                  </p>
                 </>
               )}
             </div>

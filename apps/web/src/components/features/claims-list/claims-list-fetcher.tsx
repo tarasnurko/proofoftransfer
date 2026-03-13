@@ -31,7 +31,7 @@ export async function ClaimsListFetcher({ search, chainId, sortBy, sortOrder, pa
     offset: (page - 1) * CLAIMS_PER_PAGE,
   })
 
-  const uniqueAddresses = [...new Set(claims.map((c) => c.recipientAddress))]
+  const uniqueAddresses = [...new Set(claims.map((c) => c.counterpartyAddress))]
   const ensNames = await EnsService.batchGetEnsNames(uniqueAddresses)
 
   const totalPages = Math.ceil(Number(total) / CLAIMS_PER_PAGE)

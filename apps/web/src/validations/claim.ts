@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { ChainId } from '@repo/types'
+import { ChainId, TokenType } from '@repo/types'
 import { ethereumAddressSchema, ethereumAddressLowercaseSchema, ensOrAddressSchema } from './address'
 
 export const MAX_CLAIM_TRANSFERS = 5000
 
-// ── Shared field schemas ──
+// -- Shared field schemas --
 
 const claimMessageSchema = z
   .string()
@@ -18,7 +18,9 @@ const nonNegativeAmountSchema = z
     message: 'Must be a non-negative number',
   })
 
-// ── Shared refinements ──
+export const tokenTypeSchema = z.nativeEnum(TokenType)
+
+// -- Shared refinements --
 
 function checkAmountRange(data: { minTransfersSum: string; maxTransfersSum: string }): boolean {
   const min = Number(data.minTransfersSum)
@@ -31,8 +33,18 @@ const AMOUNT_RANGE_MESSAGE = {
   path: ['maxTransfersSum'],
 }
 
-function checkDateRange(data: { fromDate?: Date | null; toDate?: Date | null }): boolean {
-  if (data.fromDate && data.toDate && data.toDate < data.fromDate) return false
+function checkCountRange(data: { minTransfersCount: number; maxTransfersCount: number }): boolean {
+  if (data.maxTransfersCount > 0 && data.maxTransfersCount < data.minTransfersCount) return false
+  return true
+}
+
+const COUNT_RANGE_MESSAGE = {
+  message: 'Maximum count must be greater than or equal to minimum count',
+  path: ['maxTransfersCount'],
+}
+
+function checkDateRange(data: { fromDate?: Date | null; toDate: Date }): boolean {
+  if (data.fromDate && data.toDate < data.fromDate) return false
   return true
 }
 
@@ -41,20 +53,25 @@ const DATE_RANGE_MESSAGE = {
   path: ['toDate'],
 }
 
-// ── Schemas ──
+// -- Schemas --
 
 export const createClaimSchema = z
   .object({
     claimMessage: claimMessageSchema,
     tokenAddress: ethereumAddressLowercaseSchema,
-    recipientAddress: ethereumAddressLowercaseSchema,
+    counterpartyAddress: ethereumAddressLowercaseSchema,
+    isProverSender: z.boolean(),
+    tokenType: tokenTypeSchema,
     minTransfersSum: nonNegativeAmountSchema,
     maxTransfersSum: nonNegativeAmountSchema,
+    minTransfersCount: z.number().int().min(0).default(0),
+    maxTransfersCount: z.number().int().min(0).default(0),
     fromDate: z.date().optional(),
-    toDate: z.date().optional(),
+    toDate: z.date(),
     chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
   })
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
+  .refine(checkCountRange, COUNT_RANGE_MESSAGE)
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
 
 export type CreateClaimInput = z.infer<typeof createClaimSchema>
@@ -63,14 +80,19 @@ export const createClaimClientSchema = z
   .object({
     claimMessage: claimMessageSchema,
     tokenAddress: ethereumAddressSchema,
-    recipientAddress: ensOrAddressSchema,
+    counterpartyAddress: ensOrAddressSchema,
+    isProverSender: z.boolean(),
+    tokenType: tokenTypeSchema,
     minTransfersSum: nonNegativeAmountSchema,
     maxTransfersSum: nonNegativeAmountSchema,
+    minTransfersCount: z.number().int().min(0).default(0),
+    maxTransfersCount: z.number().int().min(0).default(0),
     fromDate: z.date().optional().nullable(),
-    toDate: z.date().optional().nullable(),
+    toDate: z.date(),
     chainId: z.nativeEnum(ChainId).default(ChainId.ETHEREUM),
   })
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
+  .refine(checkCountRange, COUNT_RANGE_MESSAGE)
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
 
 export type CreateClaimClientInput = z.infer<typeof createClaimClientSchema>
@@ -79,9 +101,11 @@ export const fetchTransfersSchema = z
   .object({
     chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
     tokenAddress: ethereumAddressLowercaseSchema,
-    recipientAddress: ethereumAddressLowercaseSchema,
+    counterpartyAddress: ethereumAddressLowercaseSchema,
+    isProverSender: z.boolean().default(true),
+    tokenType: tokenTypeSchema.default(TokenType.ERC20),
     fromDate: z.date().optional(),
-    toDate: z.date().optional(),
+    toDate: z.date(),
   })
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
 

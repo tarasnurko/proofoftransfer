@@ -52,9 +52,8 @@ describe("Circuit tests", () => {
   let merkleTreeZeroValuesStrArr: string[];
   const prover = generateAccount();
   const proverAddress = prover.address;
-  const proverAddressBytes32 = addressToBytes32(proverAddress);
-  const userAddress = generateEthereumAddress();
-  const userAddressBytes32 = addressToBytes32(userAddress);
+  const counterpartyAddress = generateEthereumAddress();
+  const counterpartyAddressBytes32 = addressToBytes32(counterpartyAddress);
   const tokenAddress = generateEthereumAddress();
   const tokenAddressBytes32 = addressToBytes32(tokenAddress);
   const claimId = randomUUID();
@@ -66,10 +65,7 @@ describe("Circuit tests", () => {
 
   let poseidon2HashFn: (left: string, right: string) => Promise<string>;
   let hashTransferFn: (
-    transfer: Pick<
-      EtherscanERC20Transfer,
-      "from" | "to" | "contractAddress" | "value" | "timeStamp"
-    >,
+    transfer: { from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string },
   ) => Promise<Uint8Array>;
 
   before(async () => {
@@ -101,20 +97,35 @@ describe("Circuit tests", () => {
     };
 
     hashTransferFn = async (
-      transfer: Pick<
-        EtherscanERC20Transfer,
-        "from" | "to" | "contractAddress" | "value" | "timeStamp"
-      >,
+      transfer: { from: string; to: string; contractAddress: string; value: string; timeStamp: string; hash: string },
     ) => {
       return hashTransfer(barretenbergApi, transfer);
     };
+  });
+
+  // Shared params builder
+  const baseParams = (overrides = {}) => ({
+    prover,
+    claimIdBytes32,
+    claimMessageHashBytes32,
+    tokenAddress,
+    counterpartyAddress,
+    tokenAddressBytes32,
+    counterpartyAddressBytes32,
+    merkleTreeZeroValuesStrArr,
+    poseidon2HashFn,
+    hashTransferFn,
+    barretenbergApi,
+    merkleTreeHeight: MERKLE_TREE_HEIGHT,
+    maxTransfers: MAX_TRANSFERS,
+    ...overrides,
   });
 
   describe("Valid proofs", () => {
     it("should verify proof of single transfer", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -125,19 +136,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       const { witness } = await noir.execute(inputs);
@@ -154,7 +153,7 @@ describe("Circuit tests", () => {
       const proverTransfers = generateTransfers(
         {
           from: proverAddress,
-          to: userAddress,
+          to: counterpartyAddress,
           tokenAddress,
         },
         5,
@@ -167,19 +166,7 @@ describe("Circuit tests", () => {
         proverTransfers,
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       const { witness } = await noir.execute(inputs);
@@ -195,13 +182,15 @@ describe("Circuit tests", () => {
     it("should verify proof with zero constraints (no restrictions)", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
       const constraints = {
         minTransfersSum: 0n,
         maxTransfersSum: 0n,
+        minTransfersCount: 0n,
+        maxTransfersCount: 0n,
         fromBlockTimestamp: 0n,
         toBlockTimestamp: 0n,
       };
@@ -211,19 +200,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       const { witness } = await noir.execute(inputs);
@@ -240,7 +217,7 @@ describe("Circuit tests", () => {
       const proverTransfers = generateTransfers(
         {
           from: proverAddress,
-          to: userAddress,
+          to: counterpartyAddress,
           tokenAddress,
         },
         MAX_TRANSFERS,
@@ -253,19 +230,7 @@ describe("Circuit tests", () => {
         proverTransfers,
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       const { witness } = await noir.execute(inputs);
@@ -283,7 +248,7 @@ describe("Circuit tests", () => {
       const proverTransfers = generateTransfers(
         {
           from: proverAddress,
-          to: userAddress,
+          to: counterpartyAddress,
           tokenAddress,
         },
         5,
@@ -299,19 +264,7 @@ describe("Circuit tests", () => {
         proverTransfers,
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       const { witness } = await noir.execute(inputs);
@@ -324,10 +277,10 @@ describe("Circuit tests", () => {
       assert.strictEqual(isValid, true, "Proof should be valid");
     });
 
-    it("should verify proof with zero transfer amount and zero constraints", async () => {
+    it("should fail with zero transfer amount", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
       proverTransfer.value = "0";
@@ -335,6 +288,8 @@ describe("Circuit tests", () => {
       const constraints = {
         minTransfersSum: 0n,
         maxTransfersSum: 0n,
+        minTransfersCount: 0n,
+        maxTransfersCount: 0n,
         fromBlockTimestamp: BigInt(proverTransfer.timeStamp),
         toBlockTimestamp: BigInt(proverTransfer.timeStamp),
       };
@@ -344,101 +299,19 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
-      const { witness } = await noir.execute(inputs);
-      const proofData = await ultraHonkBackend.generateProof(witness);
-      const isValid = await ultraHonkBackend.verifyProof({
-        proof: proofData.proof,
-        publicInputs: proofData.publicInputs,
-      });
-
-      assert.strictEqual(
-        isValid,
-        true,
-        "Should succeed with zero amount and zero constraints",
+      await assert.rejects(
+        async () => await noir.execute(inputs),
+        /amount must not be zero/,
       );
     });
 
-    it("should produce same signature and nullifier for same inputs", async () => {
+    it("should verify proof with token_type=1 (ERC721)", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
-        tokenAddress,
-      });
-
-      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
-      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
-
-      const result1 = await buildCircuitInputs({
-        proverTransfers: [proverTransfer],
-        constraints,
-        allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
-      });
-
-      const result2 = await buildCircuitInputs({
-        proverTransfers: [proverTransfer],
-        constraints,
-        allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
-      });
-
-      assert.strictEqual(
-        result1.inputs.nullifier,
-        result2.inputs.nullifier,
-        "Same inputs should produce same nullifier",
-      );
-      assert.deepStrictEqual(
-        result1.inputs.prover_signature,
-        result2.inputs.prover_signature,
-        "Same inputs should produce same signature",
-      );
-    });
-  });
-
-  describe("Nullifier & signature validation", () => {
-    it("should fail with wrong nullifier", async () => {
-      const proverTransfer = generateTransfer({
-        from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -449,20 +322,265 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
+        ...baseParams({ tokenType: 1 }),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should be valid with token_type=1");
+    });
+
+    it("should verify proof with token_type=2 (ERC1155)", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
         tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
-        nullifier: "12345",
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams({ tokenType: 2 }),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should be valid with token_type=2");
+    });
+
+    it("should verify proof with sum exactly at minimum", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const transferSum = BigInt(proverTransfer.value);
+      const constraints = {
+        ...getClaimConstraintsFromTransfer(proverTransfer),
+        minTransfersSum: transferSum,
+        maxTransfersSum: 0n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with sum exactly at minimum");
+    });
+
+    it("should verify proof with sum exactly at maximum", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const transferSum = BigInt(proverTransfer.value);
+      const constraints = {
+        ...getClaimConstraintsFromTransfer(proverTransfer),
+        minTransfersSum: 0n,
+        maxTransfersSum: transferSum,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with sum exactly at maximum");
+    });
+
+    it("should verify proof with count exactly at min and max", async () => {
+      const proverTransfers = generateTransfers(
+        {
+          from: proverAddress,
+          to: counterpartyAddress,
+          tokenAddress,
+        },
+        3,
+      );
+
+      const baseConstraints = getClaimConstraintsFromTransfers(proverTransfers);
+      const constraints = {
+        ...baseConstraints,
+        minTransfersCount: 3n,
+        maxTransfersCount: 3n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, proverTransfers);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers,
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with count exactly at min=max=3");
+    });
+
+    it("should verify proof with all constraints enabled simultaneously", async () => {
+      const proverTransfers = generateTransfers(
+        {
+          from: proverAddress,
+          to: counterpartyAddress,
+          tokenAddress,
+        },
+        3,
+      );
+
+      const baseConstraints = getClaimConstraintsFromTransfers(proverTransfers);
+      const totalSum = proverTransfers.reduce((sum, transfer) => sum + BigInt(transfer.value), 0n);
+      const constraints = {
+        minTransfersSum: totalSum,
+        maxTransfersSum: totalSum,
+        minTransfersCount: BigInt(proverTransfers.length),
+        maxTransfersCount: BigInt(proverTransfers.length),
+        fromBlockTimestamp: baseConstraints.fromBlockTimestamp,
+        toBlockTimestamp: baseConstraints.toBlockTimestamp,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, proverTransfers);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers,
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should pass with all constraints enabled");
+    });
+
+    it("should produce same signature and nullifier for same inputs", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const params = {
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      };
+
+      const result1 = await buildCircuitInputs(params);
+      const result2 = await buildCircuitInputs(params);
+
+      assert.strictEqual(
+        (result1.inputs as any).claim.nullifier,
+        (result2.inputs as any).claim.nullifier,
+        "Same inputs should produce same nullifier",
+      );
+      assert.deepStrictEqual(
+        (result1.inputs as any).prover.signature,
+        (result2.inputs as any).prover.signature,
+        "Same inputs should produce same signature",
+      );
+    });
+
+    it("should verify proof when prover is recipient (is_prover_sender=false)", async () => {
+      const senderAddress = generateEthereumAddress();
+      const proverTransfer = generateTransfer({
+        from: senderAddress,
+        to: proverAddress,
+        tokenAddress,
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams({
+          counterpartyAddress: senderAddress,
+          counterpartyAddressBytes32: addressToBytes32(senderAddress),
+          isProverSender: false,
+        }),
+      });
+
+      const { witness } = await noir.execute(inputs);
+      const proofData = await ultraHonkBackend.generateProof(witness);
+      const isValid = await ultraHonkBackend.verifyProof({
+        proof: proofData.proof,
+        publicInputs: proofData.publicInputs,
+      });
+
+      assert.strictEqual(isValid, true, "Proof should be valid when prover is recipient");
+    });
+  });
+
+  describe("Nullifier & signature validation", () => {
+    it("should fail with wrong nullifier", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const constraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams({ nullifier: "12345" }),
       });
 
       await assert.rejects(
@@ -474,7 +592,7 @@ describe("Circuit tests", () => {
     it("should fail when signature is from wrong user", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -487,20 +605,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
-        publicKey: wrongProver.publicKey,
+        ...baseParams({ publicKey: wrongProver.publicKey }),
       });
 
       await assert.rejects(async () => await noir.execute(inputs));
@@ -509,7 +614,7 @@ describe("Circuit tests", () => {
     it("should fail with valid signature but tampered public inputs", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -520,22 +625,10 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
-      inputs.min_transfers_sum = (
+      (inputs as any).constraints.min_transfers_sum = (
         constraints.minTransfersSum + 1000n
       ).toString();
 
@@ -547,7 +640,7 @@ describe("Circuit tests", () => {
     it("should fail when proving non-existent transfer", async () => {
       const fakeTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -558,20 +651,9 @@ describe("Circuit tests", () => {
         proverTransfers: [fakeTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
-        transferProofs: [createEmptyMerkleProof(MERKLE_TREE_HEIGHT)],
+        ...baseParams({
+          transferProofs: [createEmptyMerkleProof(MERKLE_TREE_HEIGHT)],
+        }),
       });
 
       await assert.rejects(
@@ -584,7 +666,7 @@ describe("Circuit tests", () => {
       const wrongTokenAddress = generateEthereumAddress();
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress: wrongTokenAddress,
       });
 
@@ -595,19 +677,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -631,19 +701,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -656,7 +714,7 @@ describe("Circuit tests", () => {
       const wrongSender = generateEthereumAddress();
       const proverTransfer = generateTransfer({
         from: wrongSender,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -667,19 +725,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -693,7 +739,7 @@ describe("Circuit tests", () => {
     it("should fail when transfer sum below minimum", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -708,19 +754,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -732,7 +766,7 @@ describe("Circuit tests", () => {
     it("should fail when transfer sum exceeds maximum", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -747,19 +781,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -771,7 +793,7 @@ describe("Circuit tests", () => {
     it("should fail when transfer timestamp before minimum", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -786,19 +808,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -810,7 +820,7 @@ describe("Circuit tests", () => {
     it("should fail when transfer timestamp after maximum", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -825,19 +835,7 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
       await assert.rejects(
@@ -849,7 +847,7 @@ describe("Circuit tests", () => {
     it("should fail when exceeding MAX_TRANSFERS", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -860,22 +858,10 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
-      inputs.transfers_amount = (MAX_TRANSFERS + 1).toString();
+      (inputs as any).transfers_amount = (MAX_TRANSFERS + 1).toString();
 
       await assert.rejects(
         async () => await noir.execute(inputs),
@@ -886,7 +872,7 @@ describe("Circuit tests", () => {
     it("should fail with transfers_amount = 0", async () => {
       const proverTransfer = generateTransfer({
         from: proverAddress,
-        to: userAddress,
+        to: counterpartyAddress,
         tokenAddress,
       });
 
@@ -897,26 +883,67 @@ describe("Circuit tests", () => {
         proverTransfers: [proverTransfer],
         constraints,
         allTransfers,
-        prover,
-        claimIdBytes32,
-        claimMessageHashBytes32,
-        tokenAddress,
-        userAddress,
-        tokenAddressBytes32,
-        userAddressBytes32,
-        merkleTreeZeroValuesStrArr,
-        poseidon2HashFn,
-        hashTransferFn,
-        barretenbergApi,
-        merkleTreeHeight: MERKLE_TREE_HEIGHT,
-        maxTransfers: MAX_TRANSFERS,
+        ...baseParams(),
       });
 
-      inputs.transfers_amount = "0";
+      (inputs as any).transfers_amount = "0";
 
       await assert.rejects(
         async () => await noir.execute(inputs),
         /Transfers sum .* is below required minimum/,
+      );
+    });
+
+    it("should fail when transfer count below minimum", async () => {
+      const proverTransfer = generateTransfer({
+        from: proverAddress,
+        to: counterpartyAddress,
+        tokenAddress,
+      });
+
+      const baseConstraints = getClaimConstraintsFromTransfer(proverTransfer);
+      const constraints = {
+        ...baseConstraints,
+        minTransfersCount: 5n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, [proverTransfer]);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers: [proverTransfer],
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      await assert.rejects(
+        async () => await noir.execute(inputs),
+        /Transfers count .* is below required minimum/,
+      );
+    });
+
+    it("should fail when transfer count exceeds maximum", async () => {
+      const proverTransfers = generateTransfers(
+        { from: proverAddress, to: counterpartyAddress, tokenAddress },
+        5,
+      );
+
+      const baseConstraints = getClaimConstraintsFromTransfers(proverTransfers);
+      const constraints = {
+        ...baseConstraints,
+        maxTransfersCount: 2n,
+      };
+      const allTransfers = mergeAndShuffle(randomTransfers, proverTransfers);
+
+      const { inputs } = await buildCircuitInputs({
+        proverTransfers,
+        constraints,
+        allTransfers,
+        ...baseParams(),
+      });
+
+      await assert.rejects(
+        async () => await noir.execute(inputs),
+        /Transfers count .* exceeds required maximum/,
       );
     });
   });

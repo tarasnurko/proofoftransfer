@@ -5,15 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1770839331253,
-      "tag": "0000_new_the_twelve",
+      "when": 1771843005441,
+      "tag": "0000_foamy_venom",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1771098506270,
-      "tag": "0001_damp_longshot",
+      "when": 1772658013154,
+      "tag": "0001_glamorous_silverclaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773051465900,
+      "tag": "0002_yummy_the_watchers",
       "breakpoints": true
     }
   ]

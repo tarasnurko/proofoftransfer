@@ -8,7 +8,7 @@ import { RATE_LIMITS } from "@/services/rate-limit";
 import { createClaimSchema } from "@/validations/claim";
 import { dateToTimestamp } from "@/utils/date.utils";
 import { createClaim } from "@/db/queries/claims";
-import { getTransfersByConstraints } from "@/db/queries/transfers";
+import { TRANSFER_QUERY_FN } from "@/db/queries/transfers";
 import {
   buildTransfersMerkleTree,
   mapDbTransferToHashInput,
@@ -27,13 +27,17 @@ export const createClaimAction = createRateLimitedActionClient('createClaim', RA
     const fromBlockTimestamp = dateToTimestamp(parsedInput.fromDate);
     const toBlockTimestamp = dateToTimestamp(parsedInput.toDate);
 
-    const storedTransfers = await getTransfersByConstraints({
+    const transferParams = {
       chainId: parsedInput.chainId,
       tokenAddress: parsedInput.tokenAddress,
-      recipientAddress: parsedInput.recipientAddress,
+      ...(parsedInput.isProverSender
+        ? { recipientAddress: parsedInput.counterpartyAddress }
+        : { senderAddress: parsedInput.counterpartyAddress }),
       fromTimestamp: fromBlockTimestamp || undefined,
       toTimestamp: toBlockTimestamp || undefined,
-    });
+    };
+
+    const storedTransfers = await TRANSFER_QUERY_FN[parsedInput.tokenType](transferParams);
 
     if (!storedTransfers.length) {
       throw new Error("No transfers found — fetch transfers first");
@@ -48,9 +52,13 @@ export const createClaimAction = createRateLimitedActionClient('createClaim', RA
       message: parsedInput.claimMessage,
       messageHash,
       tokenAddress: parsedInput.tokenAddress,
-      recipientAddress: parsedInput.recipientAddress,
+      counterpartyAddress: parsedInput.counterpartyAddress,
+      isProverSender: parsedInput.isProverSender,
+      tokenType: parsedInput.tokenType,
       minTransfersSum: parsedInput.minTransfersSum,
       maxTransfersSum: parsedInput.maxTransfersSum,
+      minTransfersCount: parsedInput.minTransfersCount,
+      maxTransfersCount: parsedInput.maxTransfersCount,
       fromBlockTimestamp,
       toBlockTimestamp,
       chainId: parsedInput.chainId,

@@ -4,4 +4,5 @@ export const QUERY_KEYS = {
   TOKEN: 'token',
   NULLIFIER_EXISTS: 'nullifier-exists',
   ENS_RESOLVE: 'ens-resolve',
+  VERIFIER_STATUS: 'verifier-status',
 } as const

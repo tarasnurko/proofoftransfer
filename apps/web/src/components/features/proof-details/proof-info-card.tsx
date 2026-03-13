@@ -18,9 +18,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-2xl font-bold">Proof Information</CardTitle>
           <div className="flex items-center gap-3">
-            {proof.verificationStats ? (
-              <VerificationStats stats={proof.verificationStats} />
-            ) : null}
+            <VerificationStats stats={proof.verificationStats ?? { successful: 0, failed: 0 }} />
             {proof.verified !== undefined ? (
               <Badge variant={proof.verified ? 'default' : 'destructive'} className="text-lg">
                 {proof.verified ? 'Valid' : 'Invalid'}
@@ -36,6 +34,13 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
             <CopyHash hash={proof.nullifier} />
           </div>
         </div>
+
+        {proof.message && (
+          <div>
+            <div className="text-sm font-bold text-muted-foreground">Message</div>
+            <div className="mt-1 text-sm">{proof.message}</div>
+          </div>
+        )}
 
         <div>
           <div className="text-sm font-bold text-muted-foreground">Proof Data</div>

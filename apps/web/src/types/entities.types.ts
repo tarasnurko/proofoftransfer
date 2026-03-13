@@ -19,6 +19,7 @@ export interface ProofEntity {
   nullifier: string
   proofData: string
   publicInputs: object
+  message?: string | null
   createdAt: Date
   verified?: boolean
   verificationResult?: {
@@ -26,6 +27,15 @@ export interface ProofEntity {
     message?: string
   }
   verificationStats?: VerificationStats
+}
+
+export interface TransferHashInput {
+  from: string
+  to: string
+  contractAddress: string
+  value: string
+  timeStamp: string
+  hash: string
 }
 
 export interface EtherscanTransfer {
@@ -36,4 +46,5 @@ export interface EtherscanTransfer {
   value: string
   timeStamp: string
   blockNumber: string
+  tokenId?: string
 }

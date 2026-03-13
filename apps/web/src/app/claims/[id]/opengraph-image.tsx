@@ -3,7 +3,7 @@ import { getClaimById } from '@/db/queries/claims'
 import { getChainName } from '@/utils/explorer.utils'
 import { CHAIN_HEX_COLORS } from '@/constants'
 import { EnsService } from '@/services/ens/ens.service'
-import { DataCell, formatOgAmount, formatOgRecipient, formatOgPeriod, formatOgCreatedAt } from '@/lib/og'
+import { ClaimDataGrid, formatOgAmount, formatOgCounterparty, formatOgPeriod, formatOgDateTime, formatOgTransferCount } from '@/lib/og'
 
 export const alt = 'Claim details'
 export const size = { width: 1200, height: 630 }
@@ -35,13 +35,15 @@ export default async function Image({
 
   const chainName = getChainName(claim.chainId)
   const chainColor = CHAIN_HEX_COLORS[claim.chainId] ?? '#666'
-  const ensName = await EnsService.getCachedEnsName(claim.recipientAddress)
-  const recipient = ensName || formatOgRecipient(claim.recipientAddress)
+  const ensName = await EnsService.getCachedEnsName(claim.counterpartyAddress)
+  const counterparty = ensName || formatOgCounterparty(claim.counterpartyAddress)
   const tokenName = claim.token?.name
   const tokenSymbol = claim.token?.symbol
+  const tokenTypeLabel = claim.tokenType.toUpperCase()
   const amount = formatOgAmount(claim.minTransfersSum, claim.maxTransfersSum, claim.token?.decimals)
+  const transferCount = formatOgTransferCount(claim.minTransfersCount, claim.maxTransfersCount)
   const period = formatOgPeriod(claim.fromBlockTimestamp, claim.toBlockTimestamp)
-  const createdAt = formatOgCreatedAt(claim.createdAt)
+  const createdAt = formatOgDateTime(claim.createdAt)
 
   return new ImageResponse(
     (
@@ -57,7 +59,8 @@ export default async function Image({
               <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '2px', color: '#888' }}>PROOF OF TRANSFER</span>
               <span style={{ fontSize: '14px', fontWeight: 900, color: '#fff', backgroundColor: '#000', padding: '4px 14px', letterSpacing: '2px' }}>CLAIM</span>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#666', marginLeft: '8px' }}>{claim.proofCount} {claim.proofCount === 1 ? 'proof' : 'proofs'}</span>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: chainColor, border: `3px solid ${chainColor}`, padding: '3px 12px', marginLeft: 'auto' }}>{chainName}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginLeft: 'auto' }}>{createdAt}</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: chainColor, border: `3px solid ${chainColor}`, padding: '3px 12px' }}>{chainName}</span>
             </div>
             {/* Claim ID */}
             <span style={{ fontSize: '20px', fontWeight: 900, color: '#000', marginTop: '14px' }}>{claim.id}</span>
@@ -67,13 +70,15 @@ export default async function Image({
             </div>
           </div>
           {/* Data grid */}
-          <div style={{ display: 'flex', borderTop: '4px solid #000' }}>
-            <DataCell label="TOKEN" value={tokenName || tokenSymbol || claim.tokenAddress} value2={tokenName && tokenSymbol ? tokenSymbol : undefined} flex={1} />
-            <DataCell label="RECIPIENT" value={recipient} flex={1.2} />
-            <DataCell label="AMOUNT" value={amount} />
-            <DataCell label="PERIOD" value={period.value} value2={period.value2} flex={1.2} />
-            <DataCell label="CREATED" value={createdAt} flex={0.8} borderRight={false} />
-          </div>
+          <ClaimDataGrid
+            tokenLabel={tokenName || tokenSymbol || claim.tokenAddress}
+            tokenTypeLabel={tokenTypeLabel}
+            proverRole={claim.isProverSender ? 'Sender' : 'Recipient'}
+            counterparty={counterparty}
+            amount={amount}
+            transferCount={transferCount}
+            period={period}
+          />
         </div>
       </div>
     ),

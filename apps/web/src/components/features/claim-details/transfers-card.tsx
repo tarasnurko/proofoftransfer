@@ -18,6 +18,7 @@ interface TransfersCardProps {
   showOnlyMyTransfers: boolean
   onToggleMyTransfers: () => void
   walletAddress?: string
+  tokenType?: string
   isLoading?: boolean
 }
 
@@ -30,6 +31,7 @@ export function TransfersCard({
   showOnlyMyTransfers,
   onToggleMyTransfers,
   walletAddress,
+  tokenType,
   isLoading,
 }: TransfersCardProps) {
   return (
@@ -65,6 +67,7 @@ export function TransfersCard({
             token={claim.token}
             walletAddress={walletAddress}
             chainId={claim.chainId}
+            tokenType={tokenType}
             maxHeight={400}
             isLoading
           />
@@ -80,6 +83,7 @@ export function TransfersCard({
             token={claim.token}
             walletAddress={walletAddress}
             chainId={claim.chainId}
+            tokenType={tokenType}
             maxHeight={400}
           />
         )}

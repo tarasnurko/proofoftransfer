@@ -13,7 +13,7 @@ interface AddressProps {
   chainId?: number
 }
 
-export function Address({ address, chars = 4, showCopy = true, chainId }: AddressProps) {
+export function Address({ address, chars = 6, showCopy = true, chainId }: AddressProps) {
   const [copied, setCopied] = useState(false)
   const explorerUrl = chainId ? getExplorerAddressUrl(chainId, address) : null
 

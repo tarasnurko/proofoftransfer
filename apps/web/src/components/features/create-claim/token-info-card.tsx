@@ -10,6 +10,7 @@ import { SUPPORTED_CHAINS } from '@/constants'
 import { Loader2 } from 'lucide-react'
 import { Address } from '@/components/shared/address'
 import type { TokenEntity } from '@/db/index.types'
+import { TokenType } from '@repo/types'
 import type { CreateClaimClientInput } from '@/validations/claim'
 import type { Nullable } from '@/types/common.types'
 import type { EnsResolution } from '@/types/blockchain.types'
@@ -23,7 +24,7 @@ interface TokenInfoCardProps {
   ensResolution: Nullable<EnsResolution>
   isResolvingEns: boolean
   ensError: Nullable<string>
-  errors: { tokenAddress?: string; recipientAddress?: string }
+  errors: { tokenAddress?: string; counterpartyAddress?: string }
 }
 
 export function TokenInfoCard({
@@ -44,26 +45,65 @@ export function TokenInfoCard({
         <CardDescription>Specify the blockchain and token</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="max-w-xs space-y-2">
-          <Label htmlFor="chainId">Chain *</Label>
-          <Controller
-            name="chainId"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value.toString()} onValueChange={(value) => field.onChange(Number.parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPPORTED_CHAINS.map((chain) => (
-                    <SelectItem key={chain.id} value={chain.id.toString()}>
-                      {chain.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="chainId">Chain *</Label>
+            <Controller
+              name="chainId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value.toString()} onValueChange={(value) => field.onChange(Number.parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_CHAINS.map((chain) => (
+                      <SelectItem key={chain.id} value={chain.id.toString()}>
+                        {chain.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tokenType">Token Type *</Label>
+            <Controller
+              name="tokenType"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TokenType.ERC20}>ERC-20</SelectItem>
+                    <SelectItem value={TokenType.ERC721}>ERC-721</SelectItem>
+                    <SelectItem value={TokenType.ERC1155}>ERC-1155</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="isProverSender">Prover Role *</Label>
+            <Controller
+              name="isProverSender"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value ? 'sender' : 'recipient'} onValueChange={(v) => field.onChange(v === 'sender')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sender">Sender</SelectItem>
+                    <SelectItem value="recipient">Recipient</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -91,12 +131,12 @@ export function TokenInfoCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="recipientAddress">Recipient *</Label>
+          <Label htmlFor="counterpartyAddress">Counterparty Address *</Label>
           <div className="relative">
             <Input
-              id="recipientAddress"
+              id="counterpartyAddress"
               placeholder="0x... or name.eth"
-              {...register('recipientAddress')}
+              {...register('counterpartyAddress')}
               className="font-mono"
             />
             {isResolvingEns ? (
@@ -105,12 +145,13 @@ export function TokenInfoCard({
               </div>
             ) : null}
           </div>
-          {errors.recipientAddress ? <p className="text-sm text-destructive">{errors.recipientAddress}</p> : null}
+          {errors.counterpartyAddress ? <p className="text-sm text-destructive">{errors.counterpartyAddress}</p> : null}
           {ensError ? <p className="text-sm text-destructive">{ensError}</p> : null}
           {ensResolution?.ensName ? (
             <Address address={ensResolution.address} chars={6} />
           ) : null}
         </div>
+
       </CardContent>
     </Card>
   )
