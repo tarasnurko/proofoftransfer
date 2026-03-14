@@ -13,8 +13,8 @@ test.describe('Home page', () => {
 
     await expect(page.getByRole('heading', { name: 'Transfer Claims' })).toBeVisible()
 
-    // 15 claims total, page size 10
-    await expect(page.getByText('Showing 1 to 10 of 15 claims')).toBeVisible()
+    // 18 claims total, page size 10
+    await expect(page.getByText('Showing 1 to 10 of 18 claims')).toBeVisible()
 
     // Should see 10 claim cards on page 1
     const viewButtons = page.getByRole('link', { name: /view details/i })
@@ -25,14 +25,14 @@ test.describe('Home page', () => {
     // Navigate directly to page 2
     await page.goto('/?page=2')
 
-    await expect(page.getByText('Showing 11 to 15 of 15 claims')).toBeVisible()
+    await expect(page.getByText('Showing 11 to 18 of 18 claims')).toBeVisible()
 
     const viewButtons = page.getByRole('link', { name: /view details/i })
-    await expect(viewButtons).toHaveCount(5)
+    await expect(viewButtons).toHaveCount(8)
 
     // Click page 1 to go back
     await page.getByRole('button', { name: '1' }).click()
-    await expect(page.getByText('Showing 1 to 10 of 15 claims')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Showing 1 to 10 of 18 claims')).toBeVisible({ timeout: 10_000 })
   })
 
   test('search filters by message', async ({ page }) => {
@@ -60,8 +60,8 @@ test.describe('Home page', () => {
     const searchInput = page.getByPlaceholder(/search/i)
     await searchInput.fill(tokenAddress)
 
-    // Should show claims with TST token address (6 Ethereum claims use TST)
-    await expect(page.getByText(/showing.*of.*6.*claims/i)).toBeVisible({ timeout: 5000 })
+    // Should show claims with TST token address (8 Ethereum claims use TST)
+    await expect(page.getByText(/showing.*of.*8.*claims/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('search filters by shared counterparty address shows multiple', async ({ page }) => {
@@ -70,8 +70,8 @@ test.describe('Home page', () => {
     const searchInput = page.getByPlaceholder(/search/i)
     await searchInput.fill(fixtures.counterpartyShared)
 
-    // 5 Ethereum + 7 Base = 12 claims share this counterparty
-    await expect(page.getByText(/showing.*of.*12.*claims/i)).toBeVisible({ timeout: 5000 })
+    // 6 Ethereum + 8 Base = 14 claims share this counterparty
+    await expect(page.getByText(/showing.*of.*14.*claims/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('search filters by unique counterparty address shows one', async ({ page }) => {
@@ -103,15 +103,15 @@ test.describe('Home page', () => {
     await chainSelect.click()
     await page.getByRole('option', { name: 'Ethereum' }).click()
 
-    // Should only show Ethereum claims (8)
-    await expect(page.getByText(/showing.*of.*8.*claims/i)).toBeVisible({ timeout: 5000 })
+    // Should only show Ethereum claims (10)
+    await expect(page.getByText(/showing.*of.*10.*claims/i)).toBeVisible({ timeout: 5000 })
 
     // Switch to Base
     await page.locator('button').filter({ hasText: 'Ethereum' }).click()
     await page.getByRole('option', { name: 'Base' }).click()
 
-    // Should only show Base claims (7)
-    await expect(page.getByText(/showing.*of.*7.*claims/i)).toBeVisible({ timeout: 5000 })
+    // Should only show Base claims (8)
+    await expect(page.getByText(/showing.*of.*8.*claims/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('chain filter + search combined', async ({ page }) => {
@@ -134,9 +134,9 @@ test.describe('Home page', () => {
     await page.goto('/')
 
     // Default sort is newest first — last created claim should appear first
-    // Claims are created in order: Ethereum 1-8, Base 1-7
-    // Newest = last Base claim
-    await expect(page.getByText(/Base ecosystem early adopter/).first()).toBeVisible()
+    // Claims are created in order: Ethereum 1-8, 16-17, Base 9-15, 18
+    // Newest = claim 18
+    await expect(page.getByText(/Capped amount with minimum transfer count/).first()).toBeVisible()
   })
 
   test('sort oldest first', async ({ page }) => {
