@@ -4,14 +4,13 @@ import { useAppKit } from '@reown/appkit/react'
 import { useConnection } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Wallet } from 'lucide-react'
+import { truncateAddress } from '@/utils/format.utils'
 
 export function WalletButton() {
   const { open } = useAppKit()
   const { address, isConnected } = useConnection()
 
-  const truncatedAddress = address
-    ? `${address.slice(0, 6)}...${address.slice(-4)}`
-    : ''
+  const truncatedAddress = address ? truncateAddress(address, 4) : ''
 
   return (
     <Button

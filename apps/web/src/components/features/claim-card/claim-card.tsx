@@ -9,7 +9,7 @@ import { Address } from '@/components/shared/address'
 import { EnsAddress } from '@/components/shared/ens-address'
 import { CopyHash } from '@/components/shared/copy-hash'
 import { ChainBadge } from '@/components/shared/chain-badge'
-import { formatTokenAmount, formatDate, formatCountConstraint } from '@/utils/format.utils'
+import { formatTokenAmount, formatDate, formatCountConstraint, truncateText } from '@/utils/format.utils'
 import type { ClaimEntity } from '@/types'
 import type { Nullable } from '@/types/common.types'
 import { Clock, Hash, Target, TrendingUp, User } from 'lucide-react'
@@ -56,7 +56,7 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-1">
             <CardDescription className="font-mono text-xs">
-              ID: {claim.id.slice(0, 8)}...
+              ID: {truncateText(claim.id, 8)}
             </CardDescription>
             <CardTitle className="line-clamp-3 text-pretty leading-tight">{claim.message}</CardTitle>
           </div>

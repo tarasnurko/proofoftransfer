@@ -4,7 +4,7 @@ import { DATE_FORMAT, DATE_TIME_FORMAT } from '@/constants'
 
 export function truncateHex(hex: string, start = 18, end = 14): string {
   if (hex.length <= start + end) return hex
-  return `${hex.slice(0, start)}…${hex.slice(-end)}`
+  return `${hex.slice(0, start)}...${hex.slice(-end)}`
 }
 
 export function truncateAddress(address: string, chars = 6): string {
@@ -34,6 +34,16 @@ export function formatDate(date: Date | string | number): string {
 
 export function formatDateTime(date: Date | string | number): string {
   return format(new Date(date), DATE_TIME_FORMAT)
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength) + '...'
+}
+
+export function formatNullifier(nullifier: string | bigint): string {
+  const value = typeof nullifier === 'string' ? BigInt(nullifier) : nullifier
+  return '0x' + value.toString(16).padStart(64, '0')
 }
 
 export function formatCountConstraint(min: number, max: number): string {

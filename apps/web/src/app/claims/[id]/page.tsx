@@ -5,6 +5,7 @@ import { ClaimDetails } from '@/components/features/claim-details/claim-details'
 import { getClaimById } from '@/db/queries/claims'
 import { EnsService } from '@/services/ens'
 import { getChainName } from '@/utils/explorer.utils'
+import { truncateText } from '@/utils/format.utils'
 import { z } from 'zod'
 
 export async function generateMetadata({
@@ -24,7 +25,7 @@ export async function generateMetadata({
   const description = `${claim.message} — ${tokenSymbol} on ${chainName}`
 
   return {
-    title: `Claim: ${claim.message.length > 50 ? claim.message.slice(0, 50) + '...' : claim.message}`,
+    title: `Claim: ${truncateText(claim.message, 50)}`,
     description,
     openGraph: { title: `Claim: ${claim.message}`, description },
   }

@@ -3,7 +3,7 @@ import { truncateAddress, formatTokenValue, formatTokenAmount, formatDate } from
 
 describe('truncateAddress', () => {
   it('truncates address with default chars', () => {
-    expect(truncateAddress('0x1234567890abcdef1234567890abcdef12345678')).toBe('0x1234...5678')
+    expect(truncateAddress('0x1234567890abcdef1234567890abcdef12345678')).toBe('0x123456...345678')
   })
 
   it('truncates with custom chars', () => {

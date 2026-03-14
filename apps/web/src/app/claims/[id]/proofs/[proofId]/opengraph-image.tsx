@@ -5,15 +5,14 @@ import { getVerificationStats } from '@/db/queries/verifications'
 import { getChainName } from '@/utils/explorer.utils'
 import { CHAIN_HEX_COLORS } from '@/constants'
 import { EnsService } from '@/services/ens/ens.service'
+import { truncateHex, truncateAddress, truncateText } from '@/utils/format.utils'
 import {
   parseNullifierToIdenticon,
   identiconStripsSvg,
   HashCell,
   ClaimDataGrid,
   formatOgAmount,
-  formatOgCounterparty,
   formatOgPeriod,
-  formatOgCreatedAt,
   formatOgDateTime,
   formatOgTransferCount,
 } from '@/lib/og'
@@ -56,7 +55,7 @@ export default async function Image({
   const { grid, color, bgColor } = parseNullifierToIdenticon(proofResult.nullifier)
   const chainName = getChainName(claim.chainId)
   const chainColor = CHAIN_HEX_COLORS[claim.chainId] ?? '#666'
-  const counterparty = ensName || formatOgCounterparty(claim.counterpartyAddress)
+  const counterparty = ensName || truncateAddress(claim.counterpartyAddress)
   const tokenName = claim.token?.name
   const tokenSymbol = claim.token?.symbol
   const tokenTypeLabel = claim.tokenType.toUpperCase()
@@ -65,13 +64,10 @@ export default async function Image({
   const period = formatOgPeriod(claim.fromBlockTimestamp, claim.toBlockTimestamp)
   const claimCreatedAt = formatOgDateTime(claim.createdAt)
   const proofCreatedAt = formatOgDateTime(proofResult.createdAt)
-  const message = claim.message.length > 120 ? claim.message.slice(0, 120) + '...' : claim.message
-  const proofMessage = proofResult.message
-    ? (proofResult.message.length > 230 ? proofResult.message.slice(0, 230) + '...' : proofResult.message)
-    : null
-  const truncHex = (s: string) => s.length > 64 ? `${s.slice(0, 33)}...${s.slice(-28)}` : s
-  const nullifierDisplay = truncHex(proofResult.nullifier)
-  const proofDataDisplay = truncHex(proofResult.proofData)
+  const message = truncateText(claim.message, 120)
+  const proofMessage = proofResult.message ? truncateText(proofResult.message, 230) : null
+  const nullifierDisplay = truncateHex(proofResult.nullifier, 33, 28)
+  const proofDataDisplay = truncateHex(proofResult.proofData, 33, 28)
 
   return new ImageResponse(
     (

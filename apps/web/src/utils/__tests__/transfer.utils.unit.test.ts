@@ -83,6 +83,7 @@ describe('mapTransferToDisplayItem', () => {
       amount: '1000',
       timestamp: 1700000000,
       tokenId: undefined,
+      txHash: '0xhash',
     })
   })
 

@@ -185,12 +185,6 @@ export function formatOgAmount(rawMin: string, rawMax: string, decimals?: number
   return 'Any'
 }
 
-export function formatOgCounterparty(address: string): string {
-  if (address.startsWith('0x') && address.length === 42) {
-    return `${address.slice(0, 10)}...${address.slice(-8)}`
-  }
-  return address
-}
 
 export function formatOgTransferCount(min: number, max: number): string {
   if (min > 0 && max > 0) return `${min} - ${max}`
@@ -202,11 +196,6 @@ export function formatOgTransferCount(min: number, max: number): string {
 export function formatOgDate(timestamp: number): string {
   if (!timestamp) return ''
   return new Date(timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-}
-
-export function formatOgCreatedAt(timestamp: number | Date): string {
-  const d = timestamp instanceof Date ? timestamp : new Date(timestamp * 1000)
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
 }
 
 export function formatOgDateTime(timestamp: number | Date): string {

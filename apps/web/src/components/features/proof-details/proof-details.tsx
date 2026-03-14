@@ -13,6 +13,7 @@ import { ProofInfoCard } from './proof-info-card'
 import { VerifyProofCard } from './verify-proof-card'
 import type { ClaimEntity, ProofEntity, EtherscanTransfer } from '@/types'
 import { toast } from 'sonner'
+import { formatNullifier } from '@/utils/format.utils'
 import { QUERY_KEYS } from '@/constants'
 import { verifyProofAction } from '@/actions/proofs.actions'
 import { useGetVerifierStatus } from '@/hooks/queries'
@@ -65,7 +66,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
       if (!prepRes.ok) throw new Error('Failed to prepare signing data')
       const { eip712, chainId } = await prepRes.json()
       const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
-      const nullifier = '0x' + BigInt(signResult.nullifier).toString(16).padStart(64, '0')
+      const nullifier = formatNullifier(signResult.nullifier)
       setDerivedNullifier(nullifier)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to sign claim')

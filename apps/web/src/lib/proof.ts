@@ -3,6 +3,7 @@ import { recoverPublicKey, hashTypedData, keccak256, hexToBytes, isAddressEqual 
 import type { Eip712Domain, ClaimEip712Message } from '@repo/circuit-utils'
 import { EIP712_CLAIM_TYPES, buildEip712Domain, extractPublicKeyComponents, uint8ArrayToHex } from '@repo/circuit-utils'
 import { api } from '@/lib/api/client'
+import { formatNullifier } from '@/utils/format.utils'
 
 export interface Eip712ClaimFields {
   claimId: Address
@@ -149,7 +150,7 @@ export function assembleCircuitInputs(
         signature: signatureResult.fullSignature,
       },
     },
-    nullifier: '0x' + BigInt(signatureResult.nullifier).toString(16).padStart(64, '0'),
+    nullifier: formatNullifier(signatureResult.nullifier),
     proverTransferCount: circuitData.proverTransferCount,
   }
 }

@@ -3,7 +3,8 @@ import { getClaimById } from '@/db/queries/claims'
 import { getChainName } from '@/utils/explorer.utils'
 import { CHAIN_HEX_COLORS } from '@/constants'
 import { EnsService } from '@/services/ens/ens.service'
-import { ClaimDataGrid, formatOgAmount, formatOgCounterparty, formatOgPeriod, formatOgDateTime, formatOgTransferCount } from '@/lib/og'
+import { truncateAddress } from '@/utils/format.utils'
+import { ClaimDataGrid, formatOgAmount, formatOgPeriod, formatOgDateTime, formatOgTransferCount } from '@/lib/og'
 
 export const alt = 'Claim details'
 export const size = { width: 1200, height: 630 }
@@ -36,7 +37,7 @@ export default async function Image({
   const chainName = getChainName(claim.chainId)
   const chainColor = CHAIN_HEX_COLORS[claim.chainId] ?? '#666'
   const ensName = await EnsService.getCachedEnsName(claim.counterpartyAddress)
-  const counterparty = ensName || formatOgCounterparty(claim.counterpartyAddress)
+  const counterparty = ensName || truncateAddress(claim.counterpartyAddress)
   const tokenName = claim.token?.name
   const tokenSymbol = claim.token?.symbol
   const tokenTypeLabel = claim.tokenType.toUpperCase()
