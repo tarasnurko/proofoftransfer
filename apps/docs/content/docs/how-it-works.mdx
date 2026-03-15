@@ -89,12 +89,13 @@ Two phases, both running on the client.
 
 ### Phase 1 — Signing and input assembly
 
-1. Server fetches all transfers for the claim, builds the full merkle tree, and computes merkle inclusion proofs for each transfer
-2. Client receives all transfers and merkle proofs, then filters to the prover's transfers locally by matching wallet address against sender/recipient. The wallet address is never sent to the server
+1. Server fetches all transfers for the claim and computes the merkle root (for EIP-712 signing). Transfer data is sent to the client, but no merkle proofs
+2. Client filters transfers locally by matching wallet address against sender/recipient. The wallet address is never sent to the server
 3. Client validates constraints locally (amount sum, transfer count, time range)
 4. Wallet signs the EIP-712 claim message
 5. Nullifier is derived client-side via Barretenberg (Poseidon2). The signature never leaves the browser
-6. Client assembles circuit inputs: claim fields, prover's padded transfers, merkle proofs, signature components, and public key
+6. Client builds the full merkle tree locally (Barretenberg WASM) and computes inclusion proofs only for the prover's transfers
+7. Client assembles circuit inputs: claim fields, prover's padded transfers, merkle proofs, signature components, and public key
 
 ### Phase 2 — ZK proof generation
 
