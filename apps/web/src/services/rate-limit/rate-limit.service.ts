@@ -94,7 +94,6 @@ export const RATE_LIMITS = {
   LOAD_TRANSFERS: { maxRequests: 3, windowMs: MS_PER_MINUTE },
   PROVER_SIGNING_DATA: { maxRequests: 5, windowMs: MS_PER_MINUTE },
   VERIFIER_SIGNING_DATA: { maxRequests: 10, windowMs: MS_PER_MINUTE },
-  PROCESS_SIGNATURE: { maxRequests: 5, windowMs: MS_PER_MINUTE },
   GET_TOKEN: { maxRequests: 10, windowMs: MS_PER_MINUTE },
   RESOLVE_ENS: { maxRequests: 10, windowMs: MS_PER_MINUTE },
 } as const satisfies Record<string, RateLimitConfig>

@@ -151,28 +151,6 @@ describe('rate limiting on real Hono app routes', () => {
     expect(body.error).toBe('Too many requests')
   })
 
-  it('returns 429 on POST /signature/process after exceeding limit', async () => {
-    const app = await getApp()
-
-    // RATE_LIMITS.processSignature = 5/min — send 6 requests
-    const responses = []
-    for (let i = 0; i < 6; i++) {
-      responses.push(
-        await app.request('/api/signature/process', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-forwarded-for': '12.12.12.12',
-          },
-          body: JSON.stringify({ signature: '0xaabb' }),
-        }),
-      )
-    }
-
-    const lastResponse = responses[5]!
-    expect(lastResponse.status).toBe(429)
-  })
-
   it('returns 429 on POST /claims/load-transfers after exceeding limit', async () => {
     const app = await getApp()
 
