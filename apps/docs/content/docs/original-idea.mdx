@@ -1,0 +1,81 @@
+---
+title: Original Idea
+description: The original concept and motivation behind Proof of Transfer
+---
+
+## Core Concept
+
+Prove you transferred tokens to a user without revealing your address.
+
+## Single Source of Truth
+
+Etherscan API — shows transfers for recipient in specified token in specified date range.
+
+## Claims
+
+User creates a "claim" — a group with constraints that everybody sees. With these constraints user did transfer(s). Claim message specifies what the claim is.
+
+### Examples
+
+1. **Birthday Gift**: "Transfers to X.Y. friend 10$ on birthday"
+   - None of friends know each other's wallets
+   - They can see that all transferred to friend as birthday present
+
+2. **Raffle Donation**: "Donate at least 5$ to X to participate in raffle Y"
+   - Collect money via donations
+   - Encourage donations by rewarding random participant with prize
+   - No one sees who donated how much or when
+   - But you see person donated because they proved it
+
+## Claim Creation Flow
+
+1. Claim created with specified constraints
+2. Transfers matching constraints fetched via Etherscan API
+3. Merkle tree created and saved (avoid recreating every time)
+4. Transfers saved to DB (avoid refetching for details view)
+
+## Proof Generation
+
+User can make "proof" they have transfer for claim conditions:
+
+1. Connect wallet
+2. Press "generate proof"
+3. Proof stored to DB
+
+## Nullifier System
+
+User can create proof for claim only once. When user creates signed message for proof:
+
+- Hash message to retrieve nullifier
+- Nullifier unique per user per claim, and per claim per user
+
+### Duplicate Proof Detection
+
+When user creates second proof:
+
+- Either: don't save to DB (nullifier already exists)
+- Or: mark that nullifier created X proofs
+
+**Why needed**: User can create unlimited proofs for a claim. If only 1 transfer exists:
+
+- User who did transfer creates second proof
+- Gives proof to another person
+- That person shows proof to "participate in raffle"
+- But second person never transferred — should not have proof
+
+## Visibility
+
+Any user can:
+
+- See all claims
+- See all proofs
+- See how many proofs each nullifier created in claim
+
+### User's Own Proofs
+
+To see their proofs in claim:
+
+1. Go to claim page
+2. "Sign message" to receive their nullifier
+3. Filter by nullifier field
+4. Shows only user's proof(s)

@@ -1,0 +1,31 @@
+---
+title: Introduction
+description: Proof of Transfer — a ZK proof system for ERC-20 token transfers
+---
+
+Proof of Transfer is a web application that lets users create verifiable claims about ERC-20 token transfers and prove them using zero-knowledge proofs. Anyone can independently verify these proofs without trusting the application.
+
+## What Can You Do?
+
+- **Create a claim** — define constraints for token transfers (token, recipient, chain, amount/time range)
+- **Generate a proof** — prove you made transfers matching the claim, without revealing your wallet address
+- **Verify a proof** — independently verify someone else's proof using your own transfer data
+
+## Key Properties
+
+- **Privacy** — no wallet addresses are stored, identity is represented by nullifiers
+- **Trustless verification** — verifiers bring their own transfer data instead of trusting the app's database
+- **Non-interactive** — once a proof is generated, anyone can verify it independently
+- **Sybil-resistant** — each wallet produces a deterministic nullifier per claim, preventing duplicate proofs
+
+## Documentation
+
+**[User Guide](/docs/user-guide)** — Step-by-step instructions for using the application — creating claims, generating proofs, verifying proofs, uploading CSV transfer data.
+
+**[How It Works](/docs/how-it-works)** — Deep dive into the system — identity model (nullifiers), merkle trees, ZK proof generation and verification, EIP-712 signing, security properties.
+
+**[App Flow](/docs/app-flow)** — Detailed flow diagrams for every operation — claim creation, proof generation, proof viewing, verification.
+
+**[Verification](/docs/verification)** — Third-party verification architecture — merkle root comparison, counting rules, UI states.
+
+**[Original Idea](/docs/original-idea)** — The original concept and motivation behind Proof of Transfer.

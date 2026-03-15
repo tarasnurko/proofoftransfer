@@ -1,0 +1,20 @@
+{
+  "extends": "@repo/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "fumadocs-mdx:collections/server": ["./.source/server.ts"],
+      "fumadocs-mdx:collections/browser": ["./.source/browser.ts"],
+      "fumadocs-mdx:collections/dynamic": ["./.source/dynamic.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    ".source/**/*.ts",
+    "mdx-components.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
