@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { LAUNCH_OPTIONS } from './e2e/config'
+import { BASE_URL, LAUNCH_OPTIONS } from './e2e/config'
 
 export default defineConfig({
   testDir: './e2e',
@@ -13,7 +13,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3005',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
@@ -42,7 +42,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    port: 3005,
+    port: Number(process.env.NEXT_PUBLIC_PORT || 3000),
     reuseExistingServer: !process.env.CI,
     env: { DISABLE_RATE_LIMIT: 'true' },
   },

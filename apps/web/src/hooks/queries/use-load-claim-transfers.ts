@@ -15,10 +15,10 @@ interface LoadClaimTransfersInput {
 }
 
 interface UseLoadClaimTransfersParams {
-  onSuccess: (data: TransferEntity[]) => void
+  onSuccess?: (data: TransferEntity[]) => void
 }
 
-export function useLoadClaimTransfers({ onSuccess }: UseLoadClaimTransfersParams) {
+export function useLoadClaimTransfers({ onSuccess }: UseLoadClaimTransfersParams = {}) {
   return useMutation({
     mutationFn: async (input: LoadClaimTransfersInput) => {
       const res = await api.api.claims['load-transfers'].$post({

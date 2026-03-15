@@ -1,7 +1,6 @@
 import { test, expect } from './fixtures'
 import { loadFixtures } from './helpers/fixtures'
-
-const BASE_URL = 'http://localhost:3005'
+import { BASE_URL } from './config'
 
 // HD index 1 from seed "test test test test test test test test test test test junk"
 // dappwright.createAccount is broken on MetaMask 13.x (missing add-multichain-account-button),

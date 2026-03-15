@@ -1,6 +1,5 @@
 import { test, expect } from './fixtures'
-
-const BASE_URL = 'http://localhost:3005'
+import { BASE_URL } from './config'
 
 test.describe('Wallet flow', () => {
   test('connects MetaMask wallet', async ({ page, wallet }) => {

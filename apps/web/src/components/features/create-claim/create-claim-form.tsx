@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useConnection } from 'wagmi'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
 import { isAddressEqual, isAddress, type Address } from 'viem'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -18,7 +19,6 @@ import { createClaimAction } from '@/actions/claims.actions'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useGetTokenData, useLoadClaimTransfers, useResolveEns } from '@/hooks/queries'
 import { createClaimClientSchema, type CreateClaimClientInput } from '@/validations/claim'
-import type { TransferEntity } from '@/db/index.types'
 import { ChainId, TokenType } from '@repo/types'
 
 const DEBOUNCE_MS = 500
@@ -27,7 +27,6 @@ const FETCH_RELEVANT_FIELDS = new Set(['chainId', 'tokenAddress', 'counterpartyA
 export function CreateClaimForm() {
   const router = useRouter()
   const { address: walletAddress, isConnected } = useConnection()
-  const [loading, setLoading] = useState(false)
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
 
   const {
@@ -66,7 +65,6 @@ export function CreateClaimForm() {
 
   const debouncedTokenAddress = useDebounce(watchedTokenAddress, DEBOUNCE_MS)
   const debouncedRecipient = useDebounce(watchedCounterpartyAddress, DEBOUNCE_MS)
-  const [fetchedTransfers, setFetchedTransfers] = useState<TransferEntity[] | null>(null)
 
   const {
     data: ensResolution = null,
@@ -96,14 +94,18 @@ export function CreateClaimForm() {
     ? (tokenQueryError instanceof Error ? tokenQueryError.message : 'Token not found — check the address and chain')
     : null
 
+  const loadTransfersMutation = useLoadClaimTransfers()
+
+  const fetchedTransfers = loadTransfersMutation.data ?? null
+
   useEffect(() => {
     const subscription = watch((_, { name }) => {
       if (name && FETCH_RELEVANT_FIELDS.has(name)) {
-        setFetchedTransfers(null)
+        loadTransfersMutation.reset()
       }
     })
     return () => subscription.unsubscribe()
-  }, [watch])
+  }, [watch, loadTransfersMutation])
 
   const filteredTransfers = useMemo(() => {
     if (!fetchedTransfers) return null
@@ -139,10 +141,6 @@ export function CreateClaimForm() {
   const displayedTransfers = showOnlyMyTransfers ? userTransfers : (filteredTransfers ?? [])
   const userTransferCount = userTransfers.length
 
-  const loadTransfersMutation = useLoadClaimTransfers({
-    onSuccess: (data) => setFetchedTransfers(data),
-  })
-
   const handleFetchTransfers = useCallback(async () => {
     const valid = await trigger(['tokenAddress', 'counterpartyAddress', 'claimMessage', 'fromDate', 'toDate', 'minTransfersSum', 'maxTransfersSum', 'minTransfersCount', 'maxTransfersCount'])
     if (!valid) {
@@ -165,14 +163,11 @@ export function CreateClaimForm() {
     })
   }, [trigger, loadTransfersMutation, watch, resolvedRecipientAddress])
 
-  const onSubmit = useCallback(async (data: CreateClaimClientInput) => {
-    if (!resolvedRecipientAddress) {
-      toast.error('Please enter a valid counterparty address or ENS name')
-      return
-    }
-    setLoading(true)
+  // ── Create Claim ─────────────────────────────────────────────
+  const createClaimMutation = useMutation({
+    mutationFn: async (data: CreateClaimClientInput) => {
+      if (!resolvedRecipientAddress) throw new Error('Please enter a valid counterparty address or ENS name')
 
-    try {
       const result = await createClaimAction({
         ...data,
         counterpartyAddress: resolvedRecipientAddress,
@@ -180,23 +175,19 @@ export function CreateClaimForm() {
         toDate: data.toDate,
       })
 
-      if (result?.serverError) {
-        throw new Error(result.serverError)
-      }
-
-      if (result?.validationErrors) {
-        toast.error('Please fix validation errors')
-        return
-      }
-
+      if (result?.serverError) throw new Error(result.serverError)
+      if (result?.validationErrors) throw new Error('Please fix validation errors')
+    },
+    onSuccess: () => {
       toast.success('Claim created successfully!')
       router.push('/')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create claim')
-    } finally {
-      setLoading(false)
-    }
-  }, [router, resolvedRecipientAddress])
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to create claim'),
+  })
+
+  const onSubmit = useCallback((data: CreateClaimClientInput) => {
+    createClaimMutation.mutate(data)
+  }, [createClaimMutation])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-3xl space-y-6">
@@ -249,7 +240,7 @@ export function CreateClaimForm() {
       ) : null}
 
       <div className="flex gap-4">
-        <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading || loadTransfersMutation.isPending}>
+        <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={createClaimMutation.isPending || loadTransfersMutation.isPending}>
           Cancel
         </Button>
         {fetchedTransfers === null ? (
@@ -258,8 +249,8 @@ export function CreateClaimForm() {
             Fetch Transfers
           </Button>
         ) : (
-          <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button type="submit" disabled={createClaimMutation.isPending} className="flex-1">
+            {createClaimMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Create Claim
           </Button>
         )}

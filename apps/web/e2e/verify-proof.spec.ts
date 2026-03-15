@@ -1,7 +1,6 @@
 import { test, expect } from './fixtures'
 import { loadFixtures } from './helpers/fixtures'
-
-const BASE_URL = 'http://localhost:3005'
+import { BASE_URL } from './config'
 
 test.describe('Verify proof flows', () => {
   test('shows error banner on failed verification (root mismatch)', async ({ page, wallet }) => {

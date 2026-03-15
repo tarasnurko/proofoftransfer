@@ -31,11 +31,11 @@ const NFT2 = { name: 'Game Items', symbol: 'ITEM', decimals: 0, chainId: 8453 } 
 const NFT1_ADDRESS = '0xaaaa000000000000000000000000000000000001'
 const NFT2_ADDRESS = '0xbbbb000000000000000000000000000000000002'
 
-// Timestamps for date constraints
-const TS_2024_Q1_START = 1704067200  // 2024-01-01
-const TS_2024_Q2_START = 1711929600  // 2024-04-01
-const TS_2025_Q1_START = 1735689600  // 2025-01-01
-const TS_2025_Q2_START = 1743465600  // 2025-04-01
+// Timestamp offsets — applied relative to Anvil's block time (computed at runtime)
+// so date-filtered claims always match the seeded transfers regardless of when tests run
+const ONE_HOUR = 3600
+const ONE_DAY = 86400
+const ONE_QUARTER = 90 * ONE_DAY
 
 let anvilProcess: ChildProcess | null = null
 
@@ -127,6 +127,15 @@ export default async function globalSetup() {
   const tstTransfers = await readTransferEvents(client, tstAddress, recipient.address)
   const usdcTransfers = await readTransferEvents(client, usdcAddress, recipient.address)
 
+  // Derive date ranges from Anvil's actual block time so claims with date
+  // constraints always include the seeded transfers
+  const latestBlock = await client.getBlock({ blockTag: 'latest' })
+  const anvilNow = Number(latestBlock.timestamp)
+  const TS_RANGE_START = anvilNow - ONE_QUARTER  // ~90 days before transfers
+  const TS_RANGE_END = anvilNow + ONE_HOUR       // just after transfers
+  const TS_RANGE_START_2 = anvilNow - 2 * ONE_QUARTER
+  const TS_RANGE_END_2 = anvilNow + ONE_DAY
+
   // Seed DB
   await truncateAll()
 
@@ -160,14 +169,15 @@ export default async function globalSetup() {
   // ── Ethereum claims (chain 1) ──
 
   // 1. TST ERC20, recipient has ENS, all constraints filled, prover=sender
+  //    proofs[0..2] reference this claim — date range must include Anvil transfer timestamps
   claims.push(await seedClaim(buildClaimSeed({
     message: 'Prove I donated 100 TST to the public goods fund',
     tokenAddress: tstAddress.toLowerCase(),
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: true,
-    fromBlockTimestamp: TS_2024_Q1_START,
-    toBlockTimestamp: TS_2024_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
     minTransfersSum: '50000000000000000000',
     maxTransfersSum: '500000000000000000000',
     minTransfersCount: 2,
@@ -181,7 +191,7 @@ export default async function globalSetup() {
     counterpartyAddress: uniqueCounterparty1.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: true,
-    toBlockTimestamp: TS_2024_Q2_START,
+    toBlockTimestamp: TS_RANGE_END,
   })))
 
   // 3. TST ERC20, recipient, prover=recipient (received), minTransfersCount
@@ -232,8 +242,8 @@ export default async function globalSetup() {
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: false,
-    fromBlockTimestamp: TS_2025_Q1_START,
-    toBlockTimestamp: TS_2025_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
   })))
 
   // 8. TST ERC20, recipient, very long message, maxTransfersCount
@@ -265,8 +275,8 @@ export default async function globalSetup() {
     chainId: USDC.chainId,
     isProverSender: false,
     minTransfersCount: 1,
-    fromBlockTimestamp: TS_2025_Q1_START,
-    toBlockTimestamp: TS_2025_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
   })))
 
   // 11. USDC ERC20, recipient, from+to date range
@@ -276,8 +286,8 @@ export default async function globalSetup() {
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: USDC.chainId,
     isProverSender: true,
-    fromBlockTimestamp: TS_2024_Q1_START,
-    toBlockTimestamp: TS_2024_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
   })))
 
   // 12. ERC1155, recipient, prover=recipient
@@ -317,7 +327,7 @@ export default async function globalSetup() {
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: USDC.chainId,
     isProverSender: true,
-    toBlockTimestamp: TS_2025_Q1_START,
+    toBlockTimestamp: TS_RANGE_END,
   })))
 
   // 16. TST ERC20, all constraints, huge numbers
@@ -327,8 +337,8 @@ export default async function globalSetup() {
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: true,
-    fromBlockTimestamp: TS_2024_Q1_START,
-    toBlockTimestamp: TS_2025_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START_2,
+    toBlockTimestamp: TS_RANGE_END_2,
     minTransfersSum: '999999000000000000000000',
     maxTransfersSum: '50000000000000000000000000',
     minTransfersCount: 100,
@@ -342,8 +352,8 @@ export default async function globalSetup() {
     counterpartyAddress: uniqueCounterparty2.address.toLowerCase(),
     chainId: TST.chainId,
     isProverSender: true,
-    fromBlockTimestamp: TS_2025_Q1_START,
-    toBlockTimestamp: TS_2025_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
     minTransfersSum: '1000000000000000000000',
     maxTransfersCount: 5,
   })))
@@ -355,8 +365,8 @@ export default async function globalSetup() {
     counterpartyAddress: recipient.address.toLowerCase(),
     chainId: USDC.chainId,
     isProverSender: false,
-    fromBlockTimestamp: TS_2024_Q1_START,
-    toBlockTimestamp: TS_2024_Q2_START,
+    fromBlockTimestamp: TS_RANGE_START,
+    toBlockTimestamp: TS_RANGE_END,
     maxTransfersSum: '50000000000',
     minTransfersCount: 3,
   })))

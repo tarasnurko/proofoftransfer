@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { useConnection, useWalletClient } from 'wagmi'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMounted } from '@/hooks/use-mounted'
 import { useAppKit } from '@reown/appkit/react'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
@@ -31,7 +31,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
   const claimId = claim.id
   const proofId = initialProof.id
 
-  const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
+  const { isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
   const { open } = useAppKit()
   const queryClient = useQueryClient()
@@ -39,47 +39,42 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
   const isConnected = mounted && rawIsConnected
 
   const [proof, setProof] = useState(initialProof)
-  const [signingClaim, setSigningClaim] = useState(false)
-  const [derivedNullifier, setDerivedNullifier] = useState<string | null>(null)
-  const [verifying, setVerifying] = useState(false)
-  const [verificationError, setVerificationError] = useState<string | null>(null)
-  const [transfers, setTransfers] = useState<EtherscanTransfer[]>([])
-  const [fetchingTransfers, setFetchingTransfers] = useState(false)
   const [csvFiles, setCsvFiles] = useState<Array<{ name: string; transfers: EtherscanTransfer[] }>>([])
 
-  const { data: verifierStatus } = useGetVerifierStatus({ claimId, proofId, nullifier: derivedNullifier })
-
-  const allTransfers = [
-    ...transfers,
-    ...csvFiles.flatMap((f) => f.transfers),
-  ]
-
-  const isSelfVerify = derivedNullifier ? derivedNullifier === proof.nullifier : false
-
-  const handleSignClaim = useCallback(async () => {
-    if (!walletClient) return
-    setSigningClaim(true)
-    try {
+  // ── Sign Claim ──────────────────────────────────────────────
+  const signMutation = useMutation({
+    mutationFn: async () => {
+      if (!walletClient) throw new Error('Wallet not connected')
       const prepRes = await api.api.claims[':id']['verifier-signing-data'].$get({
         param: { id: claimId },
       })
       if (!prepRes.ok) throw new Error('Failed to prepare signing data')
       const { eip712, chainId } = await prepRes.json()
       const signResult = await signClaimAndDeriveNullifier(walletClient, eip712, chainId)
-      const nullifier = formatNullifier(signResult.nullifier)
-      setDerivedNullifier(nullifier)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to sign claim')
-    } finally {
-      setSigningClaim(false)
-    }
-  }, [walletClient, claimId])
+      return formatNullifier(signResult.nullifier)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to sign claim'),
+  })
 
-  const handleVerify = useCallback(async () => {
-    if (!derivedNullifier || !allTransfers.length) return
+  const derivedNullifier = signMutation.data ?? null
 
-    setVerifying(true)
-    try {
+  // ── Fetch Transfers ─────────────────────────────────────────
+  const fetchTransfersMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.api.claims[':id'].transfers.$get({
+        param: { id: claimId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch transfers')
+      return await res.json() as EtherscanTransfer[]
+    },
+    onError: () => toast.error('Failed to fetch transfers'),
+  })
+
+  const transfers = fetchTransfersMutation.data ?? []
+
+  // ── Verify Proof ────────────────────────────────────────────
+  const verifyMutation = useMutation({
+    mutationFn: async ({ nullifier, allTransfers }: { nullifier: string; allTransfers: EtherscanTransfer[] }) => {
       const verifyTransfers = allTransfers.map((t) => ({
         from: t.from,
         to: t.to,
@@ -93,58 +88,58 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
 
       const result = await verifyProofAction({
         id: proofId,
-        nullifier: derivedNullifier,
+        nullifier,
         merkleRoot,
       })
 
-      if (result?.serverError) {
-        throw new Error(result.serverError)
-      }
-
-      if (result?.data?.isValid) {
+      if (result?.serverError) throw new Error(result.serverError)
+      return result?.data
+    },
+    onSuccess: async (data) => {
+      if (data?.isValid) {
         toast.success('Proof verified successfully!')
-        setVerificationError(null)
       } else {
-        const errorMsg = result?.data?.error || 'Proof verification failed'
-        toast.error(errorMsg)
-        setVerificationError(errorMsg)
+        toast.error(data?.error || 'Proof verification failed')
       }
 
-      if (result?.data?.stats) {
+      if (data?.stats) {
         setProof(prev => ({
           ...prev,
           verificationStats: {
-            successful: result.data!.stats.successful,
-            failed: result.data!.stats.failed,
+            successful: data.stats.successful,
+            failed: data.stats.failed,
           },
         }))
         await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.VERIFIER_STATUS, proofId] })
       }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to verify proof'
-      toast.error(errorMsg)
-      setVerificationError(errorMsg)
-    } finally {
-      setVerifying(false)
-    }
-  }, [derivedNullifier, proofId, allTransfers])
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to verify proof'),
+  })
 
-  const fetchTransfersForVerification = useCallback(async () => {
-    setFetchingTransfers(true)
-    try {
-      const res = await api.api.claims[':id'].transfers.$get({
-        param: { id: claimId },
-      })
-      if (!res.ok) throw new Error('Failed to fetch transfers')
-      const data = await res.json()
-      setTransfers(data as EtherscanTransfer[])
-    } catch (error) {
-      console.error('fetchTransfersForVerification:', error)
-      toast.error('Failed to fetch transfers')
-    } finally {
-      setFetchingTransfers(false)
+  const { data: verifierStatus } = useGetVerifierStatus({ claimId, proofId, nullifier: derivedNullifier })
+
+  const allTransfers = [
+    ...transfers,
+    ...csvFiles.flatMap((f) => f.transfers),
+  ]
+
+  const isSelfVerify = derivedNullifier ? derivedNullifier === proof.nullifier : false
+
+  const verificationError = (() => {
+    if (verifyMutation.isPending) return null
+    if (verifyMutation.isError) {
+      return verifyMutation.error instanceof Error ? verifyMutation.error.message : 'Failed to verify proof'
     }
-  }, [claimId])
+    if (verifyMutation.data && !verifyMutation.data.isValid) {
+      return verifyMutation.data.error || 'Proof verification failed'
+    }
+    return null
+  })()
+
+  const handleVerify = useCallback(() => {
+    if (!derivedNullifier || !allTransfers.length) return
+    verifyMutation.mutate({ nullifier: derivedNullifier, allTransfers })
+  }, [derivedNullifier, allTransfers, verifyMutation])
 
   const handleCsvUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -170,7 +165,7 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
     } finally {
       e.target.value = ''
     }
-  }, [csvFiles.length, claim.tokenAddress, claim.token?.decimals])
+  }, [csvFiles.length, claim.tokenAddress, claim.token?.decimals, claim.tokenType])
 
   const handleRemoveCsv = useCallback((index: number) => {
     setCsvFiles(prev => prev.filter((_, i) => i !== index))
@@ -196,20 +191,20 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
           claim={claim}
           transfers={transfers}
           csvFiles={csvFiles}
-          verifying={verifying}
+          verifying={verifyMutation.isPending}
           verificationError={verificationError}
-          fetchingTransfers={fetchingTransfers}
+          fetchingTransfers={fetchTransfersMutation.isPending}
           isConnected={isConnected}
           alreadyVerified={alreadyVerified}
           isSelfVerify={isSelfVerify}
           derivedNullifier={derivedNullifier}
-          signingClaim={signingClaim}
+          signingClaim={signMutation.isPending}
           hasTransfers={!!allTransfers.length}
           previousAttempt={previousAttempt}
           onVerify={handleVerify}
           onConnectWallet={() => open()}
-          onSignClaim={handleSignClaim}
-          onFetchTransfers={fetchTransfersForVerification}
+          onSignClaim={() => signMutation.mutate()}
+          onFetchTransfers={() => fetchTransfersMutation.mutate()}
           onCsvUpload={handleCsvUpload}
           onRemoveCsv={handleRemoveCsv}
         />

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useConnection, useWalletClient } from 'wagmi'
 import { useMounted } from '@/hooks/use-mounted'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { QUERY_KEYS } from '@/constants'
 import { CopyLinkButton } from '@/components/shared/copy-link-button'
@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 import type { ClaimEntity } from '@/types'
 import type { Nullable } from '@/types/common.types'
 import { assembleCircuitInputs, generateProofFromPrepared, signClaimAndDeriveNullifier, recoverAndVerifyPublicKey } from '@/lib/proof'
-import type { PreparedProofData, ServerSigningData } from '@/lib/proof'
+import type { ServerSigningData } from '@/lib/proof'
 import { submitProofAction } from '@/actions/proofs.actions'
 import { api } from '@/lib/api/client'
 import { useGetTransfersByClaimId } from '@/hooks/queries'
@@ -39,9 +39,6 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
   const { data: transfers = [], isLoading: transfersLoading } = useGetTransfersByClaimId(claimId)
 
   const [showOnlyMyTransfers, setShowOnlyMyTransfers] = useState(false)
-  const [preparedProof, setPreparedProof] = useState<PreparedProofData | null>(null)
-  const [signingClaim, setSigningClaim] = useState(false)
-  const [generatingProof, setGeneratingProof] = useState(false)
 
   const userTransfers = useMemo(() => {
     if (!walletAddress) return []
@@ -54,11 +51,11 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
   const displayedTransfers = showOnlyMyTransfers ? userTransfers : transfers
   const userTransferCount = userTransfers.length
 
-  const handleSignClaim = useCallback(async () => {
-    if (!walletAddress || !walletClient || !claim) return
+  // ── Sign Claim ──────────────────────────────────────────────
+  const signMutation = useMutation({
+    mutationFn: async () => {
+      if (!walletAddress || !walletClient) throw new Error('Wallet not connected')
 
-    setSigningClaim(true)
-    try {
       const res = await api.api.claims[':id']['prover-signing-data'].$post({
         param: { id: claimId },
         json: { proverAddress: walletAddress },
@@ -77,26 +74,23 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
         walletAddress,
       )
 
-      const prepared = assembleCircuitInputs(
+      return assembleCircuitInputs(
         serverData,
         { nullifier: signResult.nullifier, fullSignature: signResult.fullSignature },
         pubKeyComponents,
       )
+    },
+    onSuccess: () => toast.success('Claim signed successfully!'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to sign claim'),
+  })
 
-      setPreparedProof(prepared)
-      toast.success('Claim signed successfully!')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to sign claim')
-    } finally {
-      setSigningClaim(false)
-    }
-  }, [walletAddress, walletClient, claim, claimId])
+  const preparedProof = signMutation.data ?? null
 
-  const handleGenerateProof = useCallback(async (message?: string) => {
-    if (!preparedProof) return
+  // ── Generate Proof ──────────────────────────────────────────
+  const generateProofMutation = useMutation({
+    mutationFn: async (message?: string) => {
+      if (!preparedProof) throw new Error('Claim not signed')
 
-    setGeneratingProof(true)
-    try {
       const generated = await generateProofFromPrepared(preparedProof)
 
       const submitResult = await submitProofAction({
@@ -118,15 +112,13 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
           : undefined
         throw new Error(firstError || 'Validation failed')
       }
-
+    },
+    onSuccess: async () => {
       toast.success('Proof generated and submitted!')
       await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROOFS, claimId] })
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to generate proof')
-    } finally {
-      setGeneratingProof(false)
-    }
-  }, [preparedProof, claimId, queryClient])
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to generate proof'),
+  })
 
   return (
     <>
@@ -168,10 +160,10 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
           preparedProof={preparedProof}
           userTransferCount={userTransferCount}
           transfersLoading={transfersLoading}
-          signingClaim={signingClaim}
-          generatingProof={generatingProof}
-          onSignClaim={handleSignClaim}
-          onGenerateProof={handleGenerateProof}
+          signingClaim={signMutation.isPending}
+          generatingProof={generateProofMutation.isPending}
+          onSignClaim={() => signMutation.mutate()}
+          onGenerateProof={(message) => generateProofMutation.mutate(message)}
         />
 
         <ProofsSection
