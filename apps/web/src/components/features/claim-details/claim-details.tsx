@@ -56,9 +56,8 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
     mutationFn: async () => {
       if (!walletAddress || !walletClient) throw new Error('Wallet not connected')
 
-      const res = await api.api.claims[':id']['prover-signing-data'].$post({
+      const res = await api.api.claims[':id']['prover-signing-data'].$get({
         param: { id: claimId },
-        json: { proverAddress: walletAddress },
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Failed to prepare signing data' }))
@@ -78,6 +77,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
         serverData,
         { nullifier: signResult.nullifier, fullSignature: signResult.fullSignature },
         pubKeyComponents,
+        walletAddress as Address,
       )
     },
     onSuccess: () => toast.success('Claim signed successfully!'),
