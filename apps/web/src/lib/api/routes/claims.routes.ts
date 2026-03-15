@@ -2,10 +2,6 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import type { Address } from 'viem'
-import {
-  MAX_TRANSFERS,
-  MERKLE_TREE_HEIGHT,
-} from '@repo/circuit-utils'
 import { TokenType } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
 import { getVerificationByNullifier } from '@/db/queries/verifications'
@@ -163,7 +159,7 @@ export const claimsRoutes = new Hono()
     async (c) => {
       const { id } = c.req.valid('param')
 
-      const { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId } =
+      const { claim, claimTransfers, merkleRoot, eip712, chainId } =
         await prepareSigningBase(id)
 
       const allTransferData = claimTransfers.map((transfer) => {
@@ -177,12 +173,6 @@ export const claimsRoutes = new Hono()
           hash: transfer.txHash,
         }
       })
-
-      const allMerkleProofs = claimTransfers.map((_, index) => merkleTree.proof(index))
-      const allProofElements = allMerkleProofs.map((mp) => mp.pathElements)
-      const allLeavesEven = allMerkleProofs.map((mp) =>
-        mp.pathIndices.map((idx) => idx === 0),
-      )
 
       return c.json({
         eip712,
@@ -199,8 +189,6 @@ export const claimsRoutes = new Hono()
         circuitData: {
           merkleRoot,
           allTransfers: allTransferData,
-          paddedMerkleProofElements: allProofElements,
-          areTransferLeavesEven: allLeavesEven,
         },
       })
     },
