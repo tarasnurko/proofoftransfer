@@ -1,4 +1,4 @@
 {
   "title": "Docs",
-  "pages": ["---Guide---", "user-guide", "how-it-works", "---Technical---", "app-flow", "verification", "original-idea"]
+  "pages": ["index", "getting-started", "creating-claims", "generating-proofs", "verifying-proofs", "---", "how-it-works", "faq"]
 }
