@@ -73,7 +73,7 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
         walletAddress,
       )
 
-      return assembleCircuitInputs(
+      return await assembleCircuitInputs(
         serverData,
         { nullifier: signResult.nullifier, fullSignature: signResult.fullSignature },
         pubKeyComponents,

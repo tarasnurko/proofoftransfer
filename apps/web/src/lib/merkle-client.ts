@@ -8,9 +8,9 @@ import {
   ZERO_VALUES,
 } from '@repo/circuit-utils'
 
-export async function buildMerkleRootClient(
+export async function buildMerkleTreeClient(
   transfers: TransferHashInput[],
-): Promise<string> {
+): Promise<{ tree: MerkleTree; root: string }> {
   const { Barretenberg } = await import('@aztec/bb.js')
   const bb = await Barretenberg.new({ threads: 1 })
 
@@ -29,8 +29,15 @@ export async function buildMerkleRootClient(
       (left, right) => poseidon2HashStringsLeftRight(bb, left, right),
     )
     await tree.init(hashStrings)
-    return tree.root()
+    return { tree, root: tree.root() }
   } finally {
     await bb.destroy()
   }
+}
+
+export async function buildMerkleRootClient(
+  transfers: TransferHashInput[],
+): Promise<string> {
+  const { root } = await buildMerkleTreeClient(transfers)
+  return root
 }

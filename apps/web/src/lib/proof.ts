@@ -15,6 +15,7 @@ import {
 } from '@repo/circuit-utils'
 import { Barretenberg } from '@aztec/bb.js'
 import { formatNullifier } from '@/utils/format.utils'
+import { buildMerkleTreeClient } from '@/lib/merkle-client'
 
 export interface Eip712ClaimFields {
   claimId: Address
@@ -56,8 +57,6 @@ export interface ServerSigningData {
   circuitData: {
     merkleRoot: string
     allTransfers: TransferData[]
-    paddedMerkleProofElements: string[][]
-    areTransferLeavesEven: boolean[][]
   }
 }
 
@@ -137,12 +136,12 @@ export async function recoverAndVerifyPublicKey(
   return extractPublicKeyComponents(publicKey)
 }
 
-function filterProverTransfers(
+async function filterProverTransfers(
   serverData: ServerSigningData,
   walletAddress: Address,
 ) {
   const { isProverSender, circuitData, claim } = serverData
-  const { allTransfers, paddedMerkleProofElements, areTransferLeavesEven } = circuitData
+  const { allTransfers } = circuitData
 
   const proverIndices: number[] = []
   const proverTransfers: TransferData[] = []
@@ -179,14 +178,20 @@ function filterProverTransfers(
   if (minCount && proverTransfers.length < minCount) throw new Error(`Count ${proverTransfers.length} below minimum ${minCount}`)
   if (maxCount && proverTransfers.length > maxCount) throw new Error(`Count ${proverTransfers.length} above maximum ${maxCount}`)
 
+  // Build merkle tree client-side and compute proofs only for prover's transfers
+  const { tree } = await buildMerkleTreeClient(allTransfers)
+
+  const proverProofs = proverIndices.map((i) => tree.proof(i))
+  const proverProofElements = proverProofs.map((p) => p.pathElements)
+  const proverLeavesEven = proverProofs.map((p) =>
+    p.pathIndices.map((idx) => idx === 0),
+  )
+
   // Build padded circuit inputs from prover's subset
   const circuitTransfers = mapToCircuitTransfers(
     proverTransfers as Parameters<typeof mapToCircuitTransfers>[0],
   )
   const paddedTransfers = padTransfersArray(circuitTransfers, MAX_TRANSFERS)
-
-  const proverProofElements = proverIndices.map((i) => paddedMerkleProofElements[i]!)
-  const proverLeavesEven = proverIndices.map((i) => areTransferLeavesEven[i]!)
 
   const emptyProof = createEmptyMerkleProof(MERKLE_TREE_HEIGHT)
   const paddedProofElements = [
@@ -208,14 +213,14 @@ function filterProverTransfers(
   }
 }
 
-export function assembleCircuitInputs(
+export async function assembleCircuitInputs(
   serverData: ServerSigningData,
   signatureResult: { nullifier: string; fullSignature: number[] },
   publicKeyComponents: { pubKeyX: number[]; pubKeyY: number[] },
   walletAddress: Address,
-): PreparedProofData {
+): Promise<PreparedProofData> {
   const { eip712, circuitData } = serverData
-  const proverData = filterProverTransfers(serverData, walletAddress)
+  const proverData = await filterProverTransfers(serverData, walletAddress)
 
   return {
     circuitInputs: {

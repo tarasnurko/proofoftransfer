@@ -150,14 +150,14 @@ export async function prepareSigningBase(claimId: string) {
 
   const bb = await BarretenbergImpl.new({ threads: 1 })
 
-  const { merkleTree, merkleRoot } = await buildTransfersMerkleTree(
+  const { merkleRoot } = await buildTransfersMerkleTree(
     bb,
     claimTransfers.map(mapDbTransferToHashInput),
   )
 
   const eip712 = await buildEip712ClaimFields(bb, claim, claimId, merkleRoot)
 
-  return { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId: claim.chainId }
+  return { claim, claimTransfers, merkleRoot, eip712, chainId: claim.chainId }
 }
 
 // ─── Helpers ────────────────────────────────────────────────
