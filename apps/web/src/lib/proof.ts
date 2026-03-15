@@ -1,8 +1,19 @@
 import type { Address, WalletClient } from 'viem'
 import { recoverPublicKey, hashTypedData, keccak256, hexToBytes, isAddressEqual } from 'viem'
 import type { Eip712Domain, ClaimEip712Message } from '@repo/circuit-utils'
-import { EIP712_CLAIM_TYPES, buildEip712Domain, extractPublicKeyComponents, uint8ArrayToHex } from '@repo/circuit-utils'
-import { api } from '@/lib/api/client'
+import {
+  EIP712_CLAIM_TYPES,
+  buildEip712Domain,
+  extractPublicKeyComponents,
+  uint8ArrayToHex,
+  processSignature,
+  MAX_TRANSFERS,
+  MERKLE_TREE_HEIGHT,
+  mapToCircuitTransfers,
+  padTransfersArray,
+  createEmptyMerkleProof,
+} from '@repo/circuit-utils'
+import { Barretenberg } from '@aztec/bb.js'
 import { formatNullifier } from '@/utils/format.utils'
 
 export interface Eip712ClaimFields {
@@ -21,15 +32,32 @@ export interface Eip712ClaimFields {
   transfersRootHash: Address
 }
 
+export interface TransferData {
+  from: string
+  to: string
+  contractAddress: string
+  value: string
+  timeStamp: string
+  hash: string
+}
+
 export interface ServerSigningData {
   eip712: Eip712ClaimFields
   chainId: number
+  isProverSender: boolean
+  claim: {
+    minTransfersSum: string | null
+    maxTransfersSum: string | null
+    minTransfersCount: number | null
+    maxTransfersCount: number | null
+    fromBlockTimestamp: number | null
+    toBlockTimestamp: number | null
+  }
   circuitData: {
     merkleRoot: string
-    paddedTransfers: unknown[]
-    paddedMerkleProofElements: unknown[]
+    allTransfers: TransferData[]
+    paddedMerkleProofElements: string[][]
     areTransferLeavesEven: boolean[][]
-    proverTransferCount: number
   }
 }
 
@@ -79,11 +107,8 @@ export async function signClaimAndDeriveNullifier(
     ...typedData,
   })
 
-  const signatureResponse = await api.api.signature.process.$post({
-    json: { signature },
-  })
-  if (!signatureResponse.ok) throw new Error('Failed to process signature')
-  const signatureData = await signatureResponse.json()
+  const bb = await Barretenberg.new({ threads: 1 })
+  const signatureData = await processSignature(signature as Address, bb)
 
   return {
     signature,
@@ -112,12 +137,85 @@ export async function recoverAndVerifyPublicKey(
   return extractPublicKeyComponents(publicKey)
 }
 
+function filterProverTransfers(
+  serverData: ServerSigningData,
+  walletAddress: Address,
+) {
+  const { isProverSender, circuitData, claim } = serverData
+  const { allTransfers, paddedMerkleProofElements, areTransferLeavesEven } = circuitData
+
+  const proverIndices: number[] = []
+  const proverTransfers: TransferData[] = []
+
+  allTransfers.forEach((transfer, index) => {
+    const matchField = isProverSender ? transfer.from : transfer.to
+    if (isAddressEqual(matchField as Address, walletAddress)) {
+      proverIndices.push(index)
+      proverTransfers.push(transfer)
+    }
+  })
+
+  if (!proverIndices.length) throw new Error('No transfers found for prover address')
+  if (proverIndices.length > MAX_TRANSFERS) {
+    throw new Error(`Too many transfers. Maximum ${MAX_TRANSFERS} allowed.`)
+  }
+
+  // Validate constraints client-side
+  const totalSum = proverTransfers.reduce((sum, t) => sum + BigInt(t.value), 0n)
+  const minSum = BigInt(claim.minTransfersSum || '0')
+  const maxSum = BigInt(claim.maxTransfersSum || '0')
+  const fromTs = BigInt(claim.fromBlockTimestamp || 0)
+  const toTs = BigInt(claim.toBlockTimestamp || 0)
+  const minCount = claim.minTransfersCount || 0
+  const maxCount = claim.maxTransfersCount || 0
+
+  for (const transfer of proverTransfers) {
+    const timestamp = BigInt(transfer.timeStamp)
+    if (fromTs && timestamp < fromTs) throw new Error('Transfer timestamp before fromBlockTimestamp')
+    if (toTs && timestamp > toTs) throw new Error('Transfer timestamp after toBlockTimestamp')
+  }
+  if (minSum && totalSum < minSum) throw new Error(`Sum ${totalSum} below minimum ${minSum}`)
+  if (maxSum && totalSum > maxSum) throw new Error(`Sum ${totalSum} above maximum ${maxSum}`)
+  if (minCount && proverTransfers.length < minCount) throw new Error(`Count ${proverTransfers.length} below minimum ${minCount}`)
+  if (maxCount && proverTransfers.length > maxCount) throw new Error(`Count ${proverTransfers.length} above maximum ${maxCount}`)
+
+  // Build padded circuit inputs from prover's subset
+  const circuitTransfers = mapToCircuitTransfers(
+    proverTransfers as Parameters<typeof mapToCircuitTransfers>[0],
+  )
+  const paddedTransfers = padTransfersArray(circuitTransfers, MAX_TRANSFERS)
+
+  const proverProofElements = proverIndices.map((i) => paddedMerkleProofElements[i]!)
+  const proverLeavesEven = proverIndices.map((i) => areTransferLeavesEven[i]!)
+
+  const emptyProof = createEmptyMerkleProof(MERKLE_TREE_HEIGHT)
+  const paddedProofElements = [
+    ...proverProofElements,
+    ...Array(MAX_TRANSFERS - proverProofElements.length).fill(emptyProof.pathElements),
+  ]
+  const paddedLeavesEven = [
+    ...proverLeavesEven,
+    ...Array(MAX_TRANSFERS - proverLeavesEven.length).fill(
+      emptyProof.pathIndices.map((idx) => idx === 0),
+    ),
+  ]
+
+  return {
+    paddedTransfers,
+    paddedMerkleProofElements: paddedProofElements,
+    areTransferLeavesEven: paddedLeavesEven,
+    proverTransferCount: proverTransfers.length,
+  }
+}
+
 export function assembleCircuitInputs(
   serverData: ServerSigningData,
   signatureResult: { nullifier: string; fullSignature: number[] },
   publicKeyComponents: { pubKeyX: number[]; pubKeyY: number[] },
+  walletAddress: Address,
 ): PreparedProofData {
   const { eip712, circuitData } = serverData
+  const proverData = filterProverTransfers(serverData, walletAddress)
 
   return {
     circuitInputs: {
@@ -140,10 +238,10 @@ export function assembleCircuitInputs(
         from_block_timestamp: eip712.fromBlockTimestamp,
         to_block_timestamp: eip712.toBlockTimestamp,
       },
-      transfers: circuitData.paddedTransfers,
-      transfers_proofs: circuitData.paddedMerkleProofElements,
-      are_transfer_leaves_even: circuitData.areTransferLeavesEven,
-      transfers_amount: circuitData.proverTransferCount.toString(),
+      transfers: proverData.paddedTransfers,
+      transfers_proofs: proverData.paddedMerkleProofElements,
+      are_transfer_leaves_even: proverData.areTransferLeavesEven,
+      transfers_amount: proverData.proverTransferCount.toString(),
       prover: {
         pub_key_x: publicKeyComponents.pubKeyX,
         pub_key_y: publicKeyComponents.pubKeyY,
@@ -151,7 +249,7 @@ export function assembleCircuitInputs(
       },
     },
     nullifier: formatNullifier(signatureResult.nullifier),
-    proverTransferCount: circuitData.proverTransferCount,
+    proverTransferCount: proverData.proverTransferCount,
   }
 }
 

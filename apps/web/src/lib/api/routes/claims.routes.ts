@@ -1,13 +1,10 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { isAddressEqual, type Address } from 'viem'
+import type { Address } from 'viem'
 import {
   MAX_TRANSFERS,
   MERKLE_TREE_HEIGHT,
-  mapToCircuitTransfers,
-  padTransfersArray,
-  padMerkleProofsArray,
 } from '@repo/circuit-utils'
 import { TokenType } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
@@ -16,7 +13,6 @@ import { TRANSFER_QUERY_FN, upsertErc20Transfers, upsertErc721Transfers, upsertE
 import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import { etherscanService } from '@/services/etherscan'
-import { ethereumAddressSchema } from '@/validations/address'
 import { MAX_CLAIM_TRANSFERS, tokenTypeSchema } from '@/validations/claim'
 import {
   prepareSigningBase,
@@ -49,9 +45,6 @@ const verifierStatusParam = z.object({
   proofId: z.string().uuid(),
 })
 
-const proverSigningBody = z.object({
-  proverAddress: ethereumAddressSchema,
-})
 
 const loadTransfersBody = z.object({
   chainId: z.number(),
@@ -163,88 +156,51 @@ export const claimsRoutes = new Hono()
       return c.json({ transfers })
     },
   )
-  .post(
+  .get(
     '/:id/prover-signing-data',
     createRateLimitMiddleware('proverSigningData', RATE_LIMITS.PROVER_SIGNING_DATA),
     zValidator('param', claimIdParam),
-    zValidator('json', proverSigningBody),
     async (c) => {
       const { id } = c.req.valid('param')
-      const { proverAddress } = c.req.valid('json')
 
       const { claim, claimTransfers, merkleTree, merkleRoot, eip712, chainId } =
         await prepareSigningBase(id)
 
-      const isProverSender = claim.isProverSender
-
-      const proverIndices: number[] = []
-      const proverTransferData: Array<{
-        from: string
-        to: string
-        contractAddress: string
-        value: string
-        timeStamp: string
-        hash: string
-      }> = []
-
-      claimTransfers.forEach((transfer, index) => {
-        const matchField = isProverSender ? transfer.senderAddress : transfer.recipientAddress
-        if (isAddressEqual(matchField as Address, proverAddress as Address)) {
-          proverIndices.push(index)
-          const amount = 'amount' in transfer ? transfer.amount : '1'
-          proverTransferData.push({
-            from: transfer.senderAddress,
-            to: transfer.recipientAddress,
-            contractAddress: transfer.tokenAddress,
-            value: amount,
-            timeStamp: transfer.blockTimestamp.toString(),
-            hash: transfer.txHash,
-          })
+      const allTransferData = claimTransfers.map((transfer) => {
+        const amount = 'amount' in transfer ? transfer.amount : '1'
+        return {
+          from: transfer.senderAddress,
+          to: transfer.recipientAddress,
+          contractAddress: transfer.tokenAddress,
+          value: amount,
+          timeStamp: transfer.blockTimestamp.toString(),
+          hash: transfer.txHash,
         }
       })
 
-      if (!proverIndices.length) throw new Error('No transfers found for prover address')
-      if (proverIndices.length > MAX_TRANSFERS) {
-        throw new Error(`Too many transfers. Maximum ${MAX_TRANSFERS} allowed.`)
-      }
-
-      const merkleProofs = proverIndices.map((index) => merkleTree.proof(index))
-      const circuitTransfers = mapToCircuitTransfers(
-        proverTransferData as Parameters<typeof mapToCircuitTransfers>[0],
+      const allMerkleProofs = claimTransfers.map((_, index) => merkleTree.proof(index))
+      const allProofElements = allMerkleProofs.map((mp) => mp.pathElements)
+      const allLeavesEven = allMerkleProofs.map((mp) =>
+        mp.pathIndices.map((idx) => idx === 0),
       )
-      const paddedTransfers = padTransfersArray(circuitTransfers, MAX_TRANSFERS)
-      const paddedMerkleProofs = padMerkleProofsArray(merkleProofs, MAX_TRANSFERS, MERKLE_TREE_HEIGHT)
-      const areTransferLeavesEven = paddedMerkleProofs.map((merkleProof) =>
-        merkleProof.pathIndices.map((idx) => idx === 0),
-      )
-
-      const totalSum = proverTransferData.reduce((sum, transfer) => sum + BigInt(transfer.value), 0n)
-      const minSum = BigInt(claim.minTransfersSum || '0')
-      const maxSum = BigInt(claim.maxTransfersSum || '0')
-      const fromTs = BigInt(claim.fromBlockTimestamp || 0)
-      const toTs = BigInt(claim.toBlockTimestamp || 0)
-      const minCount = claim.minTransfersCount || 0
-      const maxCount = claim.maxTransfersCount || 0
-
-      for (const transfer of proverTransferData) {
-        const timestamp = BigInt(transfer.timeStamp)
-        if (fromTs && timestamp < fromTs) throw new Error('Transfer timestamp before fromBlockTimestamp')
-        if (toTs && timestamp > toTs) throw new Error('Transfer timestamp after toBlockTimestamp')
-      }
-      if (minSum && totalSum < minSum) throw new Error(`Sum ${totalSum} below minimum ${minSum}`)
-      if (maxSum && totalSum > maxSum) throw new Error(`Sum ${totalSum} above maximum ${maxSum}`)
-      if (minCount && proverTransferData.length < minCount) throw new Error(`Count ${proverTransferData.length} below minimum ${minCount}`)
-      if (maxCount && proverTransferData.length > maxCount) throw new Error(`Count ${proverTransferData.length} above maximum ${maxCount}`)
 
       return c.json({
         eip712,
         chainId,
+        isProverSender: claim.isProverSender,
+        claim: {
+          minTransfersSum: claim.minTransfersSum,
+          maxTransfersSum: claim.maxTransfersSum,
+          minTransfersCount: claim.minTransfersCount,
+          maxTransfersCount: claim.maxTransfersCount,
+          fromBlockTimestamp: claim.fromBlockTimestamp,
+          toBlockTimestamp: claim.toBlockTimestamp,
+        },
         circuitData: {
           merkleRoot,
-          paddedTransfers,
-          paddedMerkleProofElements: paddedMerkleProofs.map((mp) => mp.pathElements),
-          areTransferLeavesEven,
-          proverTransferCount: proverTransferData.length,
+          allTransfers: allTransferData,
+          paddedMerkleProofElements: allProofElements,
+          areTransferLeavesEven: allLeavesEven,
         },
       })
     },

@@ -18,14 +18,14 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
-  apps/circuts:
+  apps/circuits:
     dependencies:
       '@aztec/bb.js':
         specifier: ^3.0.1
         version: 3.0.1
       '@noir-lang/noir_js':
         specifier: ^1.0.0-beta.17
-        version: 1.0.0-beta.18
+        version: 1.0.0-beta.17
       '@repo/circuit-utils':
         specifier: workspace:*
         version: link:../../packages/circuit-utils
@@ -37,7 +37,7 @@ importers:
         version: link:../../packages/types
       viem:
         specifier: ^2.44.1
-        version: 2.44.1(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
+        version: 2.46.3(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: ^22.10.5
@@ -1381,26 +1381,14 @@ packages:
   '@noir-lang/acvm_js@1.0.0-beta.17':
     resolution: {integrity: sha512-kA1HYgBtDJnOEZUfClXcnHItrIbLnnW/UJYu3fC4g8yIy4fWMJPHVhbjLRRkZSUFQc8zsWCuWcp8M2rOJQzL8g==}
 
-  '@noir-lang/acvm_js@1.0.0-beta.18':
-    resolution: {integrity: sha512-QQXAaowxSzGKk+Ua7ofc2jcpvUTYSxmDuF5SzwwOFMue9+ccp9QcqOkjyyIZWjtapcenV7YCXrzcBjvEt7N8Nw==}
-
   '@noir-lang/noir_js@1.0.0-beta.17':
     resolution: {integrity: sha512-erS6NbHYI9l06mwPngr/P+8iSxqOt7PsfOC9TXD1WjkewF/Red5MVKHClKGkMF6AB87kRoaEhLbvLUv9768N7Q==}
-
-  '@noir-lang/noir_js@1.0.0-beta.18':
-    resolution: {integrity: sha512-J0VSw13U9SQpejh1sWNEjuKxjl/uJblOmWJMdlpYqCetth9oBAnKv8+IMk0bZlkrjDp22Yf8vMDkf+Qb8KBZ2Q==}
 
   '@noir-lang/noirc_abi@1.0.0-beta.17':
     resolution: {integrity: sha512-7P6+29QrFkQZH0i2+F5GkqCq4KdiOGiQXe+OSBIjuxAQPgGOU+l2dGwIzZuOhbUYfjz5DYTKRWsT9Pu7Tr1a9g==}
 
-  '@noir-lang/noirc_abi@1.0.0-beta.18':
-    resolution: {integrity: sha512-ZLobgQwGbxBpR4iMQpCpYQS4EaM25Fl31rVkrcteQIwcz5kAknH1Yc5FJYICCxzO1HEFj6coAzF3FXO/Ic4p4Q==}
-
   '@noir-lang/types@1.0.0-beta.17':
     resolution: {integrity: sha512-zCAXeNEx2xksQe0+Sn4m82M5HuM3NvZx3YV2tuSUSbqv63BFFUQ3QbzW3lYtP+OY3CNcaWSRdRIHjUqlcsTGUw==}
-
-  '@noir-lang/types@1.0.0-beta.18':
-    resolution: {integrity: sha512-/1nsk8qFd27P6bW4W5ayUjMQpN6PustwTJEqZPNP//DZ6TrolnWxT/Y+7v9d2/a4OZal61sx177VjQY3U2GZvw==}
 
   '@open-draft/deferred-promise@2.2.0':
     resolution: {integrity: sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==}
@@ -7068,8 +7056,6 @@ snapshots:
 
   '@noir-lang/acvm_js@1.0.0-beta.17': {}
 
-  '@noir-lang/acvm_js@1.0.0-beta.18': {}
-
   '@noir-lang/noir_js@1.0.0-beta.17':
     dependencies:
       '@noir-lang/acvm_js': 1.0.0-beta.17
@@ -7077,24 +7063,11 @@ snapshots:
       '@noir-lang/types': 1.0.0-beta.17
       pako: 2.1.0
 
-  '@noir-lang/noir_js@1.0.0-beta.18':
-    dependencies:
-      '@noir-lang/acvm_js': 1.0.0-beta.18
-      '@noir-lang/noirc_abi': 1.0.0-beta.18
-      '@noir-lang/types': 1.0.0-beta.18
-      pako: 2.1.0
-
   '@noir-lang/noirc_abi@1.0.0-beta.17':
     dependencies:
       '@noir-lang/types': 1.0.0-beta.17
 
-  '@noir-lang/noirc_abi@1.0.0-beta.18':
-    dependencies:
-      '@noir-lang/types': 1.0.0-beta.18
-
   '@noir-lang/types@1.0.0-beta.17': {}
-
-  '@noir-lang/types@1.0.0-beta.18': {}
 
   '@open-draft/deferred-promise@2.2.0': {}
 
@@ -8979,7 +8952,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
@@ -12682,23 +12655,6 @@ snapshots:
       ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     optionalDependencies:
       typescript: 5.6.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
-  viem@2.44.1(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.2)(zod@3.25.76)
-      isows: 1.0.7(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10))
-      ox: 0.11.3(typescript@5.9.2)(zod@3.25.76)
-      ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-    optionalDependencies:
-      typescript: 5.9.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
