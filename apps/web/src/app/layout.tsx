@@ -7,6 +7,7 @@ import { Agentation } from "agentation";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Web3Provider } from "@/components/providers/web3-provider";
 import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
@@ -56,7 +57,8 @@ export default async function RootLayout({
           >
             <TooltipProvider>
               <Header />
-              {children}
+              <main className="min-h-[calc(100vh-8rem)]">{children}</main>
+              <Footer />
             </TooltipProvider>
             <Toaster position="bottom-right" />
             {process.env.NODE_ENV === "development" && (
