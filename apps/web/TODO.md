@@ -13,5 +13,6 @@
 - [?] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
 - [] (superclaim) multichain/multitoken claims - allow to fetch same recipitn transfers from multiple chains
 - [] add some button so user can toggle showing personal data (YOUR TRANSFERS: 2 | highlight transfers in all transfers tab)
-- [] DOCS page
+- [x] DOCS page
 - [] terms and conditions
+- [] migrate from reown to Rainbow Kit or other wallet connectors hat doesnt require project api keys

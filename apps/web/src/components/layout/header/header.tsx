@@ -2,7 +2,14 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { WalletButton } from '@/components/shared/wallet-button'
-import { List, Plus } from 'lucide-react'
+import { List, Plus, BookOpen, Github } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL
 
 export function Header() {
   return (
@@ -25,6 +32,28 @@ export function Header() {
               Create Claim
             </Link>
           </Button>
+          {docsUrl && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="outline" size="icon" className="h-9 w-9">
+                  <a href={docsUrl} target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Documentation</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="outline" size="icon" className="h-9 w-9">
+                <a href="https://github.com/tarasnurko/transferproover" target="_blank" rel="noopener noreferrer">
+                  <Github className="h-4 w-4" />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>GitHub</TooltipContent>
+          </Tooltip>
           <WalletButton />
           <ThemeToggle />
         </div>
