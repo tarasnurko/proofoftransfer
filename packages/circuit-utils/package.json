@@ -10,12 +10,12 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "main": "./dist/index.js",
   "dependencies": {
     "@aztec/bb.js": "^3.0.1",
