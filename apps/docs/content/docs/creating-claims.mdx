@@ -1,0 +1,49 @@
+---
+title: Creating Claims
+description: How to define transfer constraints and create a claim
+---
+
+Navigate to `/create` or click **"Create Claim"** in the header.
+
+![Create claim form](/images/02-create-claim.png)
+
+## Step 1: Fill the form
+
+### Claim message
+
+A description of what this claim is about (e.g., "Donated to community pool Q1 2024"). Must be 10–1000 characters.
+
+### Token information
+
+| Field | Description |
+|-------|-------------|
+| **Chain** | Ethereum, Optimism, BNB Chain, Polygon, Base, Arbitrum, or Scroll |
+| **Token Type** | ERC-20, ERC-721, or ERC-1155 |
+| **Prover Role** | **Sender** — the prover sent the tokens. **Recipient** — the prover received the tokens |
+| **Token Address** | The token contract address. Validated automatically — shows token name and symbol if found |
+| **Counterparty Address** | The other party's address or ENS name (e.g., `vitalik.eth`). If the prover is sender, this is the recipient. If the prover is recipient, this is the sender |
+
+### Constraints (optional)
+
+| Field | Description |
+|-------|-------------|
+| **Min / Max Amount** | Range for total transfer amount. 0 = no constraint |
+| **Min / Max Count** | Range for number of transfers. E.g., "at least 3" ensures multiple transactions |
+| **Start Date** | Only include transfers after this date |
+| **End Date** | Only include transfers before this date (required) |
+
+## Step 2: Fetch transfers
+
+Click **"Fetch Transfers"**. The app queries the blockchain for token transfers matching your constraints and displays them in a scrollable preview.
+
+A claim can include up to **5,000 transfers**. A single proof can cover up to **50 transfers** from one wallet.
+
+- Toggle **"My Transfers"** (when wallet connected) to filter to your address
+- Changing token, chain, counterparty, or date fields resets the preview
+- If no transfers found, you cannot proceed
+
+## Step 3: Create the claim
+
+Click **"Create Claim"**. The app sorts transfers by timestamp, hashes them, builds a merkle tree, stores the claim with the merkle root, and redirects to the home page.
+
+The claim is now public — anyone can view its transfers and generate proofs against it.

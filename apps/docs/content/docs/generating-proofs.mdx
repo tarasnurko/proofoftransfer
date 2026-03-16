@@ -1,0 +1,47 @@
+---
+title: Generating Proofs
+description: How to generate a zero-knowledge proof for a claim
+---
+
+Open a claim and scroll to the **"Generate Proof"** card.
+
+![Claim details page](/images/03-claim-details.png)
+
+## Step 1: Sign the claim
+
+1. Connect your wallet
+2. Click **"Sign Claim"**
+3. Your wallet prompts you to sign an EIP-712 structured message
+4. The signature derives your **nullifier** — a unique anonymous identifier for your wallet + this claim
+
+If your wallet has no matching transfers, you'll see a warning and cannot proceed.
+
+## Step 2: Generate the proof
+
+1. Click **"Generate Proof"** — takes **30+ seconds**
+2. The proof is generated in your browser using WebAssembly
+3. You can optionally attach a **message** to your proof
+4. Once generated, the proof is automatically submitted
+
+The proof appears in the **"Submitted Proofs"** section. Your proof shows a "Yours" badge when your wallet is connected.
+
+## What the proof proves
+
+The ZK circuit proves:
+
+- You control a wallet that made transfers matching the claim's constraints
+- Your transfers exist in the claim's merkle tree
+- The total amount is within the claim's min/max range
+- The transfer count satisfies the count constraints
+- All transfers fall within the time range
+- Your nullifier is correctly derived from your signature
+
+Without revealing which transfers are yours or which wallet you used.
+
+## Why it runs in your browser
+
+If proof generation ran on the server, the server would see which transfers belong to you — linking your wallet to the proof. By running locally, the server only receives the final proof and nullifier.
+
+## One proof per wallet per claim
+
+Each wallet produces one deterministic nullifier per claim. Submitting a second proof with the same nullifier is rejected. This prevents creating multiple proofs to fake participation.

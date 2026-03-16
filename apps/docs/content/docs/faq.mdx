@@ -1,0 +1,96 @@
+---
+title: FAQ
+description: Common questions and troubleshooting
+---
+
+## General
+
+### What token types are supported?
+
+- **ERC-20** — fungible tokens (USDC, USDT, WETH, etc.)
+- **ERC-721** — NFTs
+- **ERC-1155** — multi-token standard (fungible + non-fungible)
+
+### Is native token (ETH, BNB, MATIC) supported?
+
+No. Only token contracts (ERC-20, ERC-721, ERC-1155) are supported.
+
+### What chains are supported?
+
+Ethereum, Optimism, BNB Chain, Polygon, Base, Arbitrum, Scroll.
+
+### Is my wallet address stored?
+
+No. Your wallet address and signature never leave your browser. When you sign a message, a **nullifier** is derived from the signature entirely client-side — a one-way anonymous identifier that cannot be reversed back to your address. The nullifier is the only identity stored in the database.
+
+### Can I prove I received tokens?
+
+Yes. The **Prover Role** field in claims can be set to "Recipient" instead of "Sender".
+
+### Can I use ENS names?
+
+Yes. The counterparty address field resolves ENS names automatically.
+
+---
+
+## Claims
+
+### What is the counterparty address?
+
+- Prover is sender → counterparty is the recipient
+- Prover is recipient → counterparty is the sender
+
+### What are transfer count constraints?
+
+In addition to amount constraints, you can require a min/max number of individual transfers. "At least 3 transfers" ensures the prover made multiple transactions.
+
+---
+
+## Proofs
+
+### How long does proof generation take?
+
+Usually 20+ seconds. The proof is generated in-browser using WebAssembly, so performance depends on your device.
+
+### Can I generate multiple proofs for the same claim?
+
+No. When you sign the claim message, a nullifier is derived from your signature. Because ECDSA signatures are deterministic, the same wallet always produces the same nullifier for the same claim. The server enforces a unique constraint on (claimId, nullifier) — if a proof with your nullifier already exists, the submission is rejected.
+
+This prevents a single person from generating multiple proofs and sharing them with others to fake participation.
+
+---
+
+## Verification
+
+### Why do I need to provide my own transfers?
+
+By independently fetching transfers, you verify the claim's data hasn't been tampered with. If your data produces the same merkle root, the data is authentic.
+
+### Can I verify my own proof?
+
+No. Verification exists so that a third party can independently confirm the proof is valid. Verifying your own proof would be meaningless — you already know whether your transfers are real. The app detects self-verification by comparing the verifier's nullifier with the proof's nullifier (they'll match for the same wallet and the same claim) and rejects it.
+
+### "Root mismatch" — what does that mean?
+
+Your transfer data doesn't produce the same merkle root as the claim. Try fetching transfers again or using the CSV upload method.
+
+### Can I verify a proof more than once?
+
+After a successful verification, no. Failed attempts can be retried.
+
+---
+
+## Security
+
+### What if the app is compromised?
+
+The app never has access to your private keys, never requests token allowances, never initiates transactions, and never receives your wallet address or signature. All sensitive operations (signing, nullifier derivation, transfer filtering, proof generation) happen entirely in your browser. The server only receives the final proof, nullifier, and merkle root — none of which can be traced back to your wallet.
+
+If you suspect the app is compromised — stop using it. Your wallet and funds are not at risk.
+
+### What cryptography is used?
+
+- **ZK Circuit**: Noir (Aztec), compiled to UltraHonk
+- **Hash function**: Poseidon2
+- **Signature**: ECDSA via EIP-712
+- **Prover runtime**: Barretenberg (WASM)
