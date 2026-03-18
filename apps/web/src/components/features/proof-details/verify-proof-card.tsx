@@ -168,9 +168,9 @@ export function VerifyProofCard({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="blockchain">Fetch from Blockchain</TabsTrigger>
-            <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="blockchain" className="flex-1 text-xs sm:flex-initial sm:text-sm">Fetch from Blockchain</TabsTrigger>
+            <TabsTrigger value="csv" className="flex-1 text-xs sm:flex-initial sm:text-sm">Upload CSV</TabsTrigger>
           </TabsList>
 
           <TabsContent value="blockchain" className="space-y-4">

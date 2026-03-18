@@ -38,7 +38,7 @@ export function ClaimInfoCard({
             </div>
             <div>
               <div className="text-sm font-bold text-muted-foreground">Token</div>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex flex-wrap items-center gap-2">
                 {claim.token ? `${claim.token.name} (${claim.token.symbol})` : 'Unknown'}
                 <span className="border-2 px-1.5 py-0.5 text-xs font-bold uppercase">{claim.tokenType}</span>
                 <Address address={claim.tokenAddress} chainId={claim.chainId} chars={6} />
@@ -101,7 +101,7 @@ export function ClaimInfoCard({
                 <span className="font-bold">From:</span>
                 <span>
                   {claim.fromBlockTimestamp ? (
-                    <>{formatDateTime(claim.fromBlockTimestamp * 1000)} <span className="text-muted-foreground">({claim.fromBlockTimestamp})</span></>
+                    <>{formatDateTime(claim.fromBlockTimestamp * 1000)} <span className="hidden text-muted-foreground sm:inline">({claim.fromBlockTimestamp})</span></>
                   ) : (
                     <span className="text-muted-foreground">Not specified</span>
                   )}
@@ -109,9 +109,9 @@ export function ClaimInfoCard({
                 <span className="font-bold">To:</span>
                 <span>
                   {claim.toBlockTimestamp ? (
-                    <>{formatDateTime(claim.toBlockTimestamp * 1000)} <span className="text-muted-foreground">({claim.toBlockTimestamp})</span></>
+                    <>{formatDateTime(claim.toBlockTimestamp * 1000)} <span className="hidden text-muted-foreground sm:inline">({claim.toBlockTimestamp})</span></>
                   ) : (
-                    <>{formatDateTime(claim.createdAt)} <span className="text-muted-foreground">({Math.floor(new Date(claim.createdAt).getTime() / 1000)})</span></>
+                    <>{formatDateTime(claim.createdAt)} <span className="hidden text-muted-foreground sm:inline">({Math.floor(new Date(claim.createdAt).getTime() / 1000)})</span></>
                   )}
                 </span>
               </div>

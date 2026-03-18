@@ -120,22 +120,22 @@ export function VirtualTransferList({
               key={virtualItem.index}
               data-index={virtualItem.index}
               ref={virtualizer.measureElement}
-              className="absolute left-0 top-0 flex w-full items-center justify-between border-2 border-border p-3"
+              className="absolute left-0 top-0 flex w-full items-center justify-between gap-2 border-2 border-border p-2 sm:p-3"
               style={{ transform: `translateY(${virtualItem.start}px)` }}
             >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="text-sm text-muted-foreground">From</span>
-                  <Address address={transfer.from} chainId={chainId} />
+                  <Address address={transfer.from} chainId={chainId} chars={4} />
                   {isUser && (
                     <Badge className="bg-accent text-accent-foreground">You</Badge>
                   )}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-2 sm:text-sm">
                   <span>{formatDateTime(transfer.timestamp * 1000)}</span>
                   {transfer.txHash && chainId && getExplorerTxUrl(chainId, transfer.txHash) ? (
                     <>
-                      <span>·</span>
+                      <span className="hidden sm:inline">·</span>
                       <a
                         href={getExplorerTxUrl(chainId, transfer.txHash)!}
                         target="_blank"
@@ -149,7 +149,7 @@ export function VirtualTransferList({
                   ) : null}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="shrink-0 flex items-center gap-3">
                 {transfer.tokenId != null && (tokenType === TokenType.ERC721 || tokenType === TokenType.ERC1155) ? (
                   <span className="font-mono text-sm text-muted-foreground">#{transfer.tokenId}</span>
                 ) : null}

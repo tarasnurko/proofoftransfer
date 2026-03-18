@@ -15,7 +15,7 @@ export function ProofInfoCard({ proof }: ProofInfoCardProps) {
   return (
     <Card className="border-4">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-2xl font-bold">Proof Information</CardTitle>
           <div className="flex items-center gap-3">
             <VerificationStats stats={proof.verificationStats ?? { successful: 0, failed: 0 }} />

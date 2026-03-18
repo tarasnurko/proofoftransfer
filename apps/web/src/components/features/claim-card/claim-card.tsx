@@ -67,26 +67,28 @@ export function ClaimCard({ claim, ensName }: ClaimCardProps) {
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col justify-end space-y-3">
-        <div className="grid gap-2 rounded border-2 border-border bg-secondary/30 p-3 text-sm">
-          <div className="grid grid-cols-[110px_1fr] items-center gap-2">
-            <span className="font-bold">Chain:</span>
+        <div className="grid gap-3 rounded border-2 border-border bg-secondary/30 p-3 text-sm sm:gap-2">
+          <div className="grid grid-cols-[90px_1fr] items-center gap-2 sm:grid-cols-[110px_1fr]">
+            <span className="text-muted-foreground sm:font-bold sm:text-foreground">Chain:</span>
             <ChainBadge chainId={claim.chainId} />
           </div>
-          <div className="grid grid-cols-[110px_1fr] items-center gap-2">
-            <span className="font-bold">Token:</span>
-            <div className="flex items-center gap-2">
+          <div className="grid grid-cols-[90px_1fr] items-center gap-2 sm:grid-cols-[110px_1fr]">
+            <span className="text-muted-foreground sm:font-bold sm:text-foreground">Token:</span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="text-sm">{tokenDisplay}</span>
               <span className="border px-1 text-[10px] font-bold uppercase">{claim.tokenType}</span>
               <CopyHash hash={claim.tokenAddress} chars={0} />
             </div>
           </div>
-          <div className="grid grid-cols-[110px_1fr] items-start gap-2">
-            <span className="font-bold">Counterparty:</span>
-            <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
+          <div className="grid grid-cols-[90px_1fr] items-start gap-2 sm:grid-cols-[110px_1fr]">
+            <span className="text-muted-foreground sm:font-bold sm:text-foreground">Counterparty:</span>
+            <div className="min-w-0">
+              <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-2 text-sm">
+        <div className="grid gap-3 text-sm sm:gap-2">
           <div className="grid grid-cols-[20px_70px_1fr] items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="font-bold">Prover:</span>

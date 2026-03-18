@@ -116,10 +116,9 @@ export function GenerateProofCard({
           <div className="space-y-4">
             {walletAddress && <ConnectedAddress address={walletAddress} chainId={chainId} />}
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Check className="h-4 w-4 text-accent" />
               <span className="font-bold">Claim Signed</span>
-              <span className="text-muted-foreground">—</span>
               <span className="text-sm text-muted-foreground">Nullifier:</span>
               <CopyHash hash={preparedProof.nullifier} chars={10} />
             </div>
