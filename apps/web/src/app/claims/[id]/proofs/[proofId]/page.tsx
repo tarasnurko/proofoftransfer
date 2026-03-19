@@ -24,6 +24,7 @@ export async function generateMetadata({
   ])
 
   if (!claim || !proofResult) return { title: 'Proof Not Found' }
+  if (proofResult.claimId !== claimId) return { title: 'Proof Not Found' }
 
   const chainName = getChainName(claim.chainId)
   const description = `ZK proof for "${claim.message}" on ${chainName}`
@@ -50,6 +51,7 @@ export default async function ProofDetailsPage({
   ])
 
   if (!claim || !proofResult) notFound()
+  if (proofResult.claimId !== claimId) notFound()
 
   const stats = await getVerificationStats(proofId)
 

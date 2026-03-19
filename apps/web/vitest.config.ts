@@ -9,6 +9,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: 'postgresql://pot:pot_dev_password@localhost:5432/proofoftransfer',
       ETHERSCAN_API_KEY: 'test-key',
+      DISABLE_RATE_LIMIT: 'true',
     },
     projects: [
       {

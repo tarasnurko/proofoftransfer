@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { checkRateLimit, getIpFromHeaders, _resetRateLimitStore } from '@/services/rate-limit'
 
 beforeEach(() => {
+  vi.stubEnv('DISABLE_RATE_LIMIT', 'false')
   _resetRateLimitStore()
 })
 
@@ -111,32 +112,22 @@ describe('checkRateLimit', () => {
 })
 
 describe('getIpFromHeaders', () => {
-  it('extracts IP from x-forwarded-for', () => {
-    const headers = new Headers({ 'x-forwarded-for': '1.2.3.4' })
-    expect(getIpFromHeaders(headers)).toBe('1.2.3.4')
-  })
-
-  it('takes first IP from x-forwarded-for chain', () => {
-    const headers = new Headers({ 'x-forwarded-for': '1.2.3.4, 5.6.7.8, 9.10.11.12' })
-    expect(getIpFromHeaders(headers)).toBe('1.2.3.4')
-  })
-
-  it('trims whitespace from x-forwarded-for', () => {
-    const headers = new Headers({ 'x-forwarded-for': '  1.2.3.4  , 5.6.7.8' })
-    expect(getIpFromHeaders(headers)).toBe('1.2.3.4')
-  })
-
-  it('falls back to x-real-ip', () => {
+  it('extracts IP from x-real-ip', () => {
     const headers = new Headers({ 'x-real-ip': '10.0.0.1' })
     expect(getIpFromHeaders(headers)).toBe('10.0.0.1')
   })
 
-  it('prefers x-forwarded-for over x-real-ip', () => {
+  it('ignores x-forwarded-for (spoofable)', () => {
+    const headers = new Headers({ 'x-forwarded-for': '1.2.3.4' })
+    expect(getIpFromHeaders(headers)).toBe('unknown')
+  })
+
+  it('uses x-real-ip even when x-forwarded-for is present', () => {
     const headers = new Headers({
       'x-forwarded-for': '1.2.3.4',
       'x-real-ip': '10.0.0.1',
     })
-    expect(getIpFromHeaders(headers)).toBe('1.2.3.4')
+    expect(getIpFromHeaders(headers)).toBe('10.0.0.1')
   })
 
   it('returns unknown when no IP headers present', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { upsertErc20Transfers } from '@/db/queries/transfers'
 import { createClaim } from '@/db/queries/claims'
 import {
@@ -13,6 +13,10 @@ import { ChainId } from '@repo/types'
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
+
+beforeEach(() => {
+  vi.stubEnv('DISABLE_RATE_LIMIT', 'false')
+})
 
 describe('createClaimAction rate limit', () => {
   it('blocks second createClaim call within window (1/min)', async () => {
@@ -50,9 +54,17 @@ describe('createClaimAction rate limit', () => {
 })
 
 describe('submitProofAction rate limit', () => {
+  function buildPublicInputsWithRoot(merkleRoot: string): string[] {
+    const inputs = Array(15).fill('0x00')
+    inputs[7] = merkleRoot
+    return inputs
+  }
+
   it('blocks second submitProof call within window (1/min)', async () => {
-    const claim1 = await createClaim(buildClaimSeed())
-    const claim2 = await createClaim(buildClaimSeed())
+    const merkleRoot1 = '0x' + '0'.repeat(64)
+    const merkleRoot2 = '0x' + '1'.repeat(64)
+    const claim1 = await createClaim(buildClaimSeed({ merkleRoot: merkleRoot1 }))
+    const claim2 = await createClaim(buildClaimSeed({ merkleRoot: merkleRoot2 }))
 
     const { submitProofAction } = await import('@/actions/proofs.actions')
 
@@ -61,7 +73,7 @@ describe('submitProofAction rate limit', () => {
       claimId: claim1.id,
       nullifier: seed1.nullifier,
       proofData: seed1.proofData,
-      publicInputs: seed1.publicInputs as string[],
+      publicInputs: buildPublicInputsWithRoot(merkleRoot1),
     })
     expect(r1?.data?.proofId).toBeDefined()
 
@@ -71,7 +83,7 @@ describe('submitProofAction rate limit', () => {
       claimId: claim2.id,
       nullifier: seed2.nullifier,
       proofData: seed2.proofData,
-      publicInputs: seed2.publicInputs as string[],
+      publicInputs: buildPublicInputsWithRoot(merkleRoot2),
     })
     expect(r2?.serverError).toContain('Too many requests')
   })

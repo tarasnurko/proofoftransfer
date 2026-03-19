@@ -9,6 +9,7 @@ vi.mock('next/cache', () => ({
 }))
 
 beforeEach(() => {
+  vi.stubEnv('DISABLE_RATE_LIMIT', 'false')
   _resetRateLimitStore()
 })
 
@@ -23,7 +24,7 @@ function createTestApp(maxRequests: number) {
 
 function requestWithIp(app: Hono, ip: string) {
   return app.request('/test', {
-    headers: { 'x-forwarded-for': ip },
+    headers: { 'x-real-ip': ip },
   })
 }
 
@@ -141,7 +142,7 @@ describe('rate limiting on real Hono app routes', () => {
     // RATE_LIMITS.getProofs = 30/min — send 31 requests
     const responses = []
     for (let i = 0; i < 31; i++) {
-      responses.push(await app.request(url, { headers: { 'x-forwarded-for': '11.11.11.11' } }))
+      responses.push(await app.request(url, { headers: { 'x-real-ip': '11.11.11.11' } }))
     }
 
     const lastResponse = responses[30]!
@@ -162,7 +163,7 @@ describe('rate limiting on real Hono app routes', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-forwarded-for': '13.13.13.13',
+            'x-real-ip': '13.13.13.13',
           },
           body: JSON.stringify({
             chainId: 1,

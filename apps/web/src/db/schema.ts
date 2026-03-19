@@ -78,7 +78,7 @@ export const proofVerificationsTable = pgTable(
     proofId: uuid()
       .notNull()
       .references(() => proofsTable.id, { onDelete: 'cascade' }),
-    verifierNullifier: varchar({ length: 78 }),
+    verifierNullifier: varchar({ length: 78 }).notNull(),
     isValid: boolean().notNull(),
     verifiedAt: timestamp().notNull().defaultNow(),
     errorMessage: text(),
@@ -86,7 +86,7 @@ export const proofVerificationsTable = pgTable(
   (table) => [
     index('proof_id_idx').on(table.proofId),
     index('is_valid_idx').on(table.isValid),
-    index('proof_verifier_nullifier_idx').on(table.proofId, table.verifierNullifier),
+    unique('proof_verifier_nullifier_unique').on(table.proofId, table.verifierNullifier),
   ]
 )
 

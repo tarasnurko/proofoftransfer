@@ -35,8 +35,8 @@ describe('submitProofSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('accepts nullifier without 0x prefix', () => {
+  it('rejects nullifier without 0x prefix', () => {
     const result = submitProofSchema.safeParse({ ...validInput, nullifier: 'ab'.repeat(32) })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 })

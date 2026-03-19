@@ -41,10 +41,8 @@ const ensureCleanup = (): void => {
 
 // --- Core ---
 
-const skipRateLimit = process.env.DISABLE_RATE_LIMIT === 'true'
-
 export const checkRateLimit = (key: string, config: RateLimitConfig): RateLimitResult => {
-  if (skipRateLimit) {
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return { limited: false, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs }
   }
 
@@ -68,11 +66,7 @@ export const checkRateLimit = (key: string, config: RateLimitConfig): RateLimitR
 // --- IP extraction ---
 
 export const getIpFromHeaders = (headers: Headers): string => {
-  return (
-    headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    headers.get('x-real-ip') ||
-    'unknown'
-  )
+  return headers.get('x-real-ip') || 'unknown'
 }
 
 // --- Rate limit configs ---

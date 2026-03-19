@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import type { Address } from 'viem'
-import { TokenType } from '@repo/types'
+import { TokenType, ChainId } from '@repo/types'
 import { getProofsByClaimId, checkNullifierExists } from '@/db/queries/proofs'
 import { getVerificationByNullifier } from '@/db/queries/verifications'
 import { TRANSFER_QUERY_FN, upsertErc20Transfers, upsertErc721Transfers, upsertErc1155Transfers } from '@/db/queries/transfers'
@@ -10,6 +10,7 @@ import { getClaimById } from '@/db/queries/claims'
 import { mapDbToEtherscanTransfer } from '@/utils/transfer.utils'
 import { etherscanService } from '@/services/etherscan'
 import { MAX_CLAIM_TRANSFERS, tokenTypeSchema } from '@/validations/claim'
+import { ethereumAddressLowercaseSchema } from '@/validations/address'
 import {
   prepareSigningBase,
   mapDbTransferToHashInput,
@@ -43,9 +44,9 @@ const verifierStatusParam = z.object({
 
 
 const loadTransfersBody = z.object({
-  chainId: z.number(),
-  tokenAddress: z.string(),
-  counterpartyAddress: z.string(),
+  chainId: z.nativeEnum(ChainId),
+  tokenAddress: ethereumAddressLowercaseSchema,
+  counterpartyAddress: ethereumAddressLowercaseSchema,
   isProverSender: z.boolean().default(true),
   tokenType: tokenTypeSchema.default(TokenType.ERC20),
   fromDate: z.string().optional(),

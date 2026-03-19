@@ -23,6 +23,7 @@ vi.mock('viem/ens', () => ({
 }))
 
 beforeEach(() => {
+  vi.stubEnv('DISABLE_RATE_LIMIT', 'false')
   _resetRateLimitStore()
 })
 
@@ -89,7 +90,7 @@ describe('ENS routes (Hono)', () => {
       for (let i = 0; i < 11; i++) {
         responses.push(
           await app.request('/api/ens/resolve?input=test.eth', {
-            headers: { 'x-forwarded-for': '20.20.20.20' },
+            headers: { 'x-real-ip': '20.20.20.20' },
           })
         )
       }

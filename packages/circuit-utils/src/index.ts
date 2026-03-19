@@ -44,7 +44,7 @@ export {
 } from "./hash.js";
 
 // Constants
-export { ZERO_VALUES, MERKLE_TREE_HEIGHT, MAX_TRANSFERS } from "./constants.js";
+export { ZERO_VALUES, MERKLE_TREE_HEIGHT, MAX_TRANSFERS, PUBLIC_INPUT_INDEX } from "./constants.js";
 
 // Circuit utilities
 export { proveAndVerify } from "./circuit.js";

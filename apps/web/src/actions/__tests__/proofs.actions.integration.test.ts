@@ -12,9 +12,18 @@ vi.mock('@/lib/proof.server', () => ({
   verifyProofServer: vi.fn(),
 }))
 
+const TRANSFERS_ROOT_HASH_INDEX = 7
+
+function buildPublicInputsWithRoot(merkleRoot: string): string[] {
+  const inputs = Array(15).fill('0x00')
+  inputs[TRANSFERS_ROOT_HASH_INDEX] = merkleRoot
+  return inputs
+}
+
 describe('submitProofAction', () => {
   it('creates a proof for valid claim', async () => {
-    const claim = await createClaim(buildClaimSeed())
+    const merkleRoot = '0x' + '0'.repeat(64)
+    const claim = await createClaim(buildClaimSeed({ merkleRoot }))
     const seed = buildProofSeed(claim.id)
     const { submitProofAction } = await import('@/actions/proofs.actions')
 
@@ -22,14 +31,15 @@ describe('submitProofAction', () => {
       claimId: claim.id,
       nullifier: seed.nullifier,
       proofData: seed.proofData,
-      publicInputs: seed.publicInputs as string[],
+      publicInputs: buildPublicInputsWithRoot(merkleRoot),
     })
 
     expect(result?.data?.proofId).toBeDefined()
   })
 
   it('rejects duplicate nullifier for same claim', async () => {
-    const claim = await createClaim(buildClaimSeed())
+    const merkleRoot = '0x' + '0'.repeat(64)
+    const claim = await createClaim(buildClaimSeed({ merkleRoot }))
     const seed = buildProofSeed(claim.id)
 
     await createProof(seed)
@@ -39,7 +49,7 @@ describe('submitProofAction', () => {
       claimId: claim.id,
       nullifier: seed.nullifier,
       proofData: seed.proofData,
-      publicInputs: seed.publicInputs as string[],
+      publicInputs: buildPublicInputsWithRoot(merkleRoot),
     })
 
     expect(result?.validationErrors?.fieldErrors?.nullifier).toBeDefined()
@@ -88,6 +98,116 @@ describe('verifyProofAction', () => {
     })
 
     expect(result?.serverError).toContain('Proof not found')
+  })
+})
+
+describe('cross-claim proof replay (publicInputs validation)', () => {
+  it('multiple users submit valid proofs to same claim — all accepted', async () => {
+    const merkleRoot = '0x' + 'ab'.repeat(32)
+    const claim = await createClaim(buildClaimSeed({ merkleRoot }))
+    const { submitProofAction } = await import('@/actions/proofs.actions')
+
+    const user1 = await submitProofAction({
+      claimId: claim.id,
+      nullifier: '0x' + '11'.repeat(32),
+      proofData: '0x' + 'a1'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot(merkleRoot),
+    })
+    expect(user1?.data?.proofId).toBeDefined()
+
+    const user2 = await submitProofAction({
+      claimId: claim.id,
+      nullifier: '0x' + '22'.repeat(32),
+      proofData: '0x' + 'a2'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot(merkleRoot),
+    })
+    expect(user2?.data?.proofId).toBeDefined()
+
+    const user3 = await submitProofAction({
+      claimId: claim.id,
+      nullifier: '0x' + '33'.repeat(32),
+      proofData: '0x' + 'a3'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot(merkleRoot),
+    })
+    expect(user3?.data?.proofId).toBeDefined()
+  })
+
+  it('rejects proof when publicInputs merkle root does not match claim merkle root', async () => {
+    const claim = await createClaim(buildClaimSeed({
+      merkleRoot: '0x' + 'bb'.repeat(32),
+    }))
+    const { submitProofAction } = await import('@/actions/proofs.actions')
+
+    // Attacker submits proof with a different merkle root in publicInputs
+    const result = await submitProofAction({
+      claimId: claim.id,
+      nullifier: '0x' + 'dd'.repeat(32),
+      proofData: '0x' + 'ab'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'aa'.repeat(32)), // wrong root
+    })
+
+    expect(result?.validationErrors?.fieldErrors?.publicInputs).toBeDefined()
+  })
+
+  it('cross-claim replay: proof from claim A rejected when submitted to claim B', async () => {
+    const claimA = await createClaim(buildClaimSeed({
+      merkleRoot: '0x' + 'aa'.repeat(32),
+      tokenAddress: '0x' + 'a1'.repeat(20),
+    }))
+    const claimB = await createClaim(buildClaimSeed({
+      merkleRoot: '0x' + 'bb'.repeat(32),
+      tokenAddress: '0x' + 'b1'.repeat(20),
+    }))
+    const { submitProofAction } = await import('@/actions/proofs.actions')
+
+    // User legitimately submits to claim A — accepted
+    const resultA = await submitProofAction({
+      claimId: claimA.id,
+      nullifier: '0x' + '11'.repeat(32),
+      proofData: '0x' + 'ab'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'aa'.repeat(32)),
+    })
+    expect(resultA?.data?.proofId).toBeDefined()
+
+    // Attacker replays same proof to claim B — rejected (different root)
+    const resultB = await submitProofAction({
+      claimId: claimB.id,
+      nullifier: '0x' + '22'.repeat(32),
+      proofData: '0x' + 'ab'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'aa'.repeat(32)), // claim A's root
+    })
+
+    expect(resultB?.validationErrors?.fieldErrors?.publicInputs).toBeDefined()
+  })
+
+  it('multiple users submit to different claims with correct roots — all accepted', async () => {
+    const claimA = await createClaim(buildClaimSeed({ merkleRoot: '0x' + 'aa'.repeat(32) }))
+    const claimB = await createClaim(buildClaimSeed({ merkleRoot: '0x' + 'bb'.repeat(32) }))
+    const { submitProofAction } = await import('@/actions/proofs.actions')
+
+    const user1ClaimA = await submitProofAction({
+      claimId: claimA.id,
+      nullifier: '0x' + '11'.repeat(32),
+      proofData: '0x' + 'a1'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'aa'.repeat(32)),
+    })
+    expect(user1ClaimA?.data?.proofId).toBeDefined()
+
+    const user2ClaimB = await submitProofAction({
+      claimId: claimB.id,
+      nullifier: '0x' + '22'.repeat(32),
+      proofData: '0x' + 'b1'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'bb'.repeat(32)),
+    })
+    expect(user2ClaimB?.data?.proofId).toBeDefined()
+
+    const user3ClaimA = await submitProofAction({
+      claimId: claimA.id,
+      nullifier: '0x' + '33'.repeat(32),
+      proofData: '0x' + 'a2'.repeat(32),
+      publicInputs: buildPublicInputsWithRoot('0x' + 'aa'.repeat(32)),
+    })
+    expect(user3ClaimA?.data?.proofId).toBeDefined()
   })
 })
 

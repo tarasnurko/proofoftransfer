@@ -38,8 +38,11 @@ export async function buildTransfersMerkleTree(
   bb: Barretenberg,
   transfers: TransferHashInput[],
 ) {
+  const sorted = [...transfers].sort(
+    (a, b) => Number(a.timeStamp) - Number(b.timeStamp) || a.hash.localeCompare(b.hash),
+  )
   const transferHashesBytes = await Promise.all(
-    transfers.map((transfer) => hashTransfer(bb, transfer)),
+    sorted.map((transfer) => hashTransfer(bb, transfer)),
   )
   const transferHashes = transferHashesBytes.map((hashBytes) =>
     fieldToBigint(hashBytes).toString(),
@@ -123,10 +126,7 @@ export async function verifyProofServer(params: VerifyProofServerParams): Promis
     }
 
     const bb = await BarretenbergImpl.new({ threads: 1 })
-    const circuitRaw = await readFile(
-      path.join(process.cwd(), 'public', 'circuit.json'), 'utf-8',
-    )
-    const circuit = JSON.parse(circuitRaw)
+    const circuit = await getCircuit()
     const backend = new UltraHonkBackend(circuit.bytecode, bb)
 
     const verified = await backend.verifyProof({
@@ -150,14 +150,32 @@ export async function prepareSigningBase(claimId: string) {
 
   const bb = await BarretenbergImpl.new({ threads: 1 })
 
-  const { merkleRoot } = await buildTransfersMerkleTree(
-    bb,
-    claimTransfers.map(mapDbTransferToHashInput),
+  const hashInputs = claimTransfers.map(mapDbTransferToHashInput)
+  const sortedHashInputs = [...hashInputs].sort(
+    (a, b) => Number(a.timeStamp) - Number(b.timeStamp) || a.hash.localeCompare(b.hash),
   )
+
+  const { merkleRoot } = await buildTransfersMerkleTree(bb, sortedHashInputs)
 
   const eip712 = await buildEip712ClaimFields(bb, claim, claimId, merkleRoot)
 
-  return { claim, claimTransfers, merkleRoot, eip712, chainId: claim.chainId }
+  // Sort claimTransfers to match merkle tree order
+  const sortedTransfers = [...claimTransfers].sort(
+    (a, b) => Number(a.blockTimestamp) - Number(b.blockTimestamp) || a.txHash.localeCompare(b.txHash),
+  )
+
+  return { claim, claimTransfers: sortedTransfers, merkleRoot, eip712, chainId: claim.chainId }
+}
+
+// ─── Circuit cache ──────────────────────────────────────────
+
+let cachedCircuit: { bytecode: string } | null = null
+async function getCircuit() {
+  if (!cachedCircuit) {
+    const raw = await readFile(path.join(process.cwd(), 'public', 'circuit.json'), 'utf-8')
+    cachedCircuit = JSON.parse(raw)
+  }
+  return cachedCircuit!
 }
 
 // ─── Helpers ────────────────────────────────────────────────

@@ -16,7 +16,7 @@ export async function buildMerkleTreeClient(
 
   try {
     const sorted = [...transfers].sort(
-      (a, b) => Number(a.timeStamp) - Number(b.timeStamp),
+      (a, b) => Number(a.timeStamp) - Number(b.timeStamp) || a.hash.localeCompare(b.hash),
     )
     const transferHashes = await Promise.all(
       sorted.map((t) => hashTransfer(bb, t)),

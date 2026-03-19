@@ -37,7 +37,8 @@ export async function getClaims(options?: GetClaimsParams) {
   }
 
   if (options?.search) {
-    const pattern = `%${options.search}%`
+    const escapeLike = (s: string) => s.replace(/[%_]/g, '\\$&')
+    const pattern = `%${escapeLike(options.search)}%`
     const searchCondition = or(
       ilike(claimsTable.message, pattern),
       ilike(claimsTable.counterpartyAddress, pattern),

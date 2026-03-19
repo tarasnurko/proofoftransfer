@@ -19,11 +19,13 @@ import {
   getVerificationStats,
 } from "@/db/queries/verifications";
 import type { InsertProofEntity } from "@/db/index.types";
+import { db } from "@/db/client";
 import { verifyProofServer } from "@/lib/proof.server";
+import { PUBLIC_INPUT_INDEX } from "@repo/circuit-utils";
 
 const verifyProofSchema = z.object({
   id: z.string().uuid("Invalid ID format"),
-  nullifier: z.string().regex(/^0x[a-fA-F0-9]+$/, "Invalid nullifier format"),
+  nullifier: z.string().regex(/^0x[a-fA-F0-9]{1,64}$/, "Invalid nullifier format").transform(v => v.toLowerCase()),
   merkleRoot: z.string().min(1, "Merkle root is required"),
 });
 
@@ -34,6 +36,13 @@ export const submitProofAction = createRateLimitedActionClient('submitProof', RA
     if (!claim) {
       return returnValidationErrors(submitProofSchema, {
         claimId: { _errors: ["Claim not found"] },
+      });
+    }
+
+    const proofMerkleRoot = parsedInput.publicInputs[PUBLIC_INPUT_INDEX.TRANSFERS_ROOT_HASH];
+    if (!proofMerkleRoot || BigInt(proofMerkleRoot) !== BigInt(claim.merkleRoot)) {
+      return returnValidationErrors(submitProofSchema, {
+        publicInputs: { _errors: ["Proof does not match this claim"] },
       });
     }
 
@@ -93,7 +102,7 @@ export const verifyProofAction = createRateLimitedActionClient('verifyProof', RA
       throw new Error("Claim merkle root not found");
     }
 
-    if (proof.nullifier === nullifier) {
+    if (proof.nullifier.toLowerCase() === nullifier.toLowerCase()) {
       throw new Error("Cannot verify your own proof");
     }
 
@@ -115,12 +124,14 @@ export const verifyProofAction = createRateLimitedActionClient('verifyProof', RA
     const isValid = verification.isValid;
     const errorMessage = verification.error;
 
-    await deleteFailedVerificationsByNullifier({ proofId, nullifier });
-    await createVerification({
-      proofId,
-      verifierNullifier: nullifier,
-      isValid,
-      errorMessage: errorMessage || null,
+    await db.transaction(async (tx) => {
+      await deleteFailedVerificationsByNullifier({ proofId, nullifier }, tx);
+      await createVerification({
+        proofId,
+        verifierNullifier: nullifier,
+        isValid,
+        errorMessage: errorMessage || null,
+      }, tx);
     });
 
     const stats = await getVerificationStats(proofId);

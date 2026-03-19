@@ -16,7 +16,8 @@ export class EtherscanService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = process.env.ETHERSCAN_API_KEY || "demo";
+    if (!process.env.ETHERSCAN_API_KEY) throw new Error('ETHERSCAN_API_KEY is not set')
+    this.apiKey = process.env.ETHERSCAN_API_KEY;
   }
 
   /*****************************************************/

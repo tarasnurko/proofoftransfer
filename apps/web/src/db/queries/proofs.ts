@@ -31,7 +31,8 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
   const conditions: SQL[] = [eq(proofsTable.claimId, claimId)]
 
   if (options?.search) {
-    const pattern = `%${options.search}%`
+    const escapeLike = (s: string) => s.replace(/[%_]/g, '\\$&')
+    const pattern = `%${escapeLike(options.search)}%`
     const searchCondition = or(
       ilike(proofsTable.nullifier, pattern),
       ilike(proofsTable.message, pattern),
@@ -53,7 +54,13 @@ export async function getProofsByClaimId(claimId: string, options?: GetProofsByC
 
   const result = await db
     .select({
-      proof: proofsTable,
+      proof: {
+        id: proofsTable.id,
+        claimId: proofsTable.claimId,
+        nullifier: proofsTable.nullifier,
+        message: proofsTable.message,
+        createdAt: proofsTable.createdAt,
+      },
       successfulCount,
       failedCount,
     })
