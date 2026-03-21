@@ -1,1 +1,0 @@
-ALTER TABLE "proofs" ADD COLUMN "message" text;

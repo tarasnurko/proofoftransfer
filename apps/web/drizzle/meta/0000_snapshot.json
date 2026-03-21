@@ -1,5 +1,5 @@
 {
-  "id": "ea3b8272-4a90-4403-841b-b0d83b127926",
+  "id": "6ab6a1f2-2897-4977-918d-c00523f3a721",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -47,7 +47,8 @@
         },
         "tokenType": {
           "name": "tokenType",
-          "type": "varchar(10)",
+          "type": "token_type_enum",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -90,8 +91,7 @@
           "name": "toBlockTimestamp",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": true
         },
         "chainId": {
           "name": "chainId",
@@ -647,7 +647,7 @@
           "name": "verifierNullifier",
           "type": "varchar(78)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "isValid": {
           "name": "isValid",
@@ -699,27 +699,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "proof_verifier_nullifier_idx": {
-          "name": "proof_verifier_nullifier_idx",
-          "columns": [
-            {
-              "expression": "proofId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "verifierNullifier",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -738,7 +717,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "proof_verifier_nullifier_unique": {
+          "name": "proof_verifier_nullifier_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "proofId",
+            "verifierNullifier"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -777,6 +765,12 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -915,7 +909,17 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.token_type_enum": {
+      "name": "token_type_enum",
+      "schema": "public",
+      "values": [
+        "erc20",
+        "erc721",
+        "erc1155"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

@@ -1,3 +1,4 @@
+CREATE TYPE "public"."token_type_enum" AS ENUM('erc20', 'erc721', 'erc1155');--> statement-breakpoint
 CREATE TABLE "claims" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"message" text NOT NULL,
@@ -5,13 +6,13 @@ CREATE TABLE "claims" (
 	"tokenAddress" varchar(42) NOT NULL,
 	"counterpartyAddress" varchar(42) NOT NULL,
 	"isProverSender" boolean NOT NULL,
-	"tokenType" varchar(10) NOT NULL,
+	"tokenType" "token_type_enum" NOT NULL,
 	"minTransfersSum" varchar(78) DEFAULT '0' NOT NULL,
 	"maxTransfersSum" varchar(78) DEFAULT '0' NOT NULL,
 	"minTransfersCount" integer DEFAULT 0 NOT NULL,
 	"maxTransfersCount" integer DEFAULT 0 NOT NULL,
 	"fromBlockTimestamp" bigint DEFAULT 0 NOT NULL,
-	"toBlockTimestamp" bigint DEFAULT 0 NOT NULL,
+	"toBlockTimestamp" bigint NOT NULL,
 	"chainId" integer NOT NULL,
 	"merkleRoot" varchar(78) NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL
@@ -73,10 +74,11 @@ CREATE TABLE "erc721_transfers" (
 CREATE TABLE "proof_verifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"proofId" uuid NOT NULL,
-	"verifierNullifier" varchar(78),
+	"verifierNullifier" varchar(78) NOT NULL,
 	"isValid" boolean NOT NULL,
 	"verifiedAt" timestamp DEFAULT now() NOT NULL,
-	"errorMessage" text
+	"errorMessage" text,
+	CONSTRAINT "proof_verifier_nullifier_unique" UNIQUE("proofId","verifierNullifier")
 );
 --> statement-breakpoint
 CREATE TABLE "proofs" (
@@ -85,6 +87,7 @@ CREATE TABLE "proofs" (
 	"nullifier" varchar(78) NOT NULL,
 	"proofData" text NOT NULL,
 	"publicInputs" jsonb NOT NULL,
+	"message" text,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "claim_nullifier_unique" UNIQUE("claimId","nullifier")
 );
@@ -113,6 +116,5 @@ CREATE INDEX "erc721_transfers_recipient_token_idx" ON "erc721_transfers" USING 
 CREATE INDEX "erc721_transfers_timestamp_idx" ON "erc721_transfers" USING btree ("blockTimestamp");--> statement-breakpoint
 CREATE INDEX "proof_id_idx" ON "proof_verifications" USING btree ("proofId");--> statement-breakpoint
 CREATE INDEX "is_valid_idx" ON "proof_verifications" USING btree ("isValid");--> statement-breakpoint
-CREATE INDEX "proof_verifier_nullifier_idx" ON "proof_verifications" USING btree ("proofId","verifierNullifier");--> statement-breakpoint
 CREATE INDEX "claim_id_idx" ON "proofs" USING btree ("claimId");--> statement-breakpoint
 CREATE INDEX "nullifier_idx" ON "proofs" USING btree ("nullifier");

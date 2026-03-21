@@ -1,2 +1,0 @@
-CREATE TYPE "public"."token_type_enum" AS ENUM('erc20', 'erc721', 'erc1155');--> statement-breakpoint
-ALTER TABLE "claims" ALTER COLUMN "tokenType" SET DATA TYPE "public"."token_type_enum" USING "tokenType"::"public"."token_type_enum";
