@@ -1,0 +1,55 @@
+---
+title: Verifying Proofs
+description: How to independently verify someone else's ZK proof
+---
+
+Open a claim, then click on a proof card to go to its details page.
+
+![Proof details page](/images/04-proof-details.png)
+
+## Why you provide your own transfers
+
+You independently fetch transfer data from the blockchain rather than trusting what the app has stored. If your transfers produce the same merkle root as the claim, the data is authentic. Then the ZK proof is verified against that confirmed root.
+
+If the app had fabricated or modified transfers, your data would produce a different root and verification would fail.
+
+## Step 1: Get transfer data
+
+Two options (can be combined):
+
+### Fetch from blockchain
+
+Click **"Fetch Transfers"**. The app queries the Etherscan API for transfers matching the claim's constraints.
+
+### Upload CSV from blockchain explorer
+
+A pre-filled download link for the relevant blockchain explorer (Etherscan, BaseScan, etc.) is shown on the page.
+
+1. Click the link to open the explorer
+2. Set the date range to match the claim's time constraints (Start Date / End Date)
+3. Download the CSV
+4. Upload via drag-and-drop or "Choose File" (up to 3 files)
+
+**Expected CSV columns:** Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
+
+## Step 2: Sign and verify
+
+1. Click **"Sign & Verify Proof"** (enabled after loading transfers)
+2. Sign the EIP-712 claim message with your wallet
+3. Your nullifier is derived — if it matches the proof's nullifier, you're blocked (cannot verify your own proof)
+4. Transfers are sorted, hashed, and built into a merkle tree client-side
+5. The computed root is compared with the claim's stored root
+6. If roots match, the ZK proof is verified cryptographically
+
+## Results
+
+- **Success** — proof is valid, verification count increments, verify form is replaced with a success message
+- **Root mismatch** — your transfer data doesn't match the claim's data
+- **ZK proof invalid** — the proof doesn't verify mathematically
+
+## Rules
+
+- You cannot verify your own proof
+- One successful verification per verifier per proof
+- Failed attempts can be retried — the old failed record is replaced
+- Verification stats update in real-time

@@ -1,0 +1,4 @@
+{
+  "title": "Docs",
+  "pages": ["index", "getting-started", "creating-claims", "generating-proofs", "verifying-proofs", "---", "how-it-works", "faq", "---", "acknowledgments"]
+}

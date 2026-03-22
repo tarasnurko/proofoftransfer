@@ -1,0 +1,124 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Address } from '@/components/shared/address'
+import { EnsAddress } from '@/components/shared/ens-address'
+import { CopyHash } from '@/components/shared/copy-hash'
+import { ChainBadge } from '@/components/shared/chain-badge'
+import { formatDateTime, formatCountConstraint, formatTokenAmount } from '@/utils/format.utils'
+import type { ClaimEntity } from '@/types'
+import type { Nullable } from '@/types/common.types'
+
+interface ClaimInfoCardProps {
+  claim: ClaimEntity
+  ensName?: Nullable<string>
+  title?: string
+}
+
+export function ClaimInfoCard({
+  claim,
+  ensName,
+  title = 'Information',
+}: ClaimInfoCardProps) {
+  return (
+    <Card className="border-4">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div>
+          <div className="text-sm font-bold text-muted-foreground">Message</div>
+          <p className="mt-1">{claim.message}</p>
+        </div>
+
+        <div className="mt-4 grid gap-6 sm:grid-cols-2">
+          {/* Left column — claim details */}
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Chain</div>
+              <div className="mt-1"><ChainBadge chainId={claim.chainId} /></div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Token</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {claim.token ? `${claim.token.name} (${claim.token.symbol})` : 'Unknown'}
+                <span className="border-2 px-1.5 py-0.5 text-xs font-bold uppercase">{claim.tokenType}</span>
+                <Address address={claim.tokenAddress} chainId={claim.chainId} chars={6} />
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Counterparty</div>
+              <div className="mt-1">
+                <EnsAddress address={claim.counterpartyAddress} ensName={ensName} chainId={claim.chainId} />
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Prover Role</div>
+              <div className="mt-1 font-bold">{claim.isProverSender ? 'Sender' : 'Recipient'}</div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Created</div>
+              <div className="mt-1">{formatDateTime(claim.createdAt)}</div>
+            </div>
+            {claim.merkleRoot && (
+              <div>
+                <div className="text-sm font-bold text-muted-foreground">Merkle Root</div>
+                <div className="mt-1">
+                  <CopyHash hash={claim.merkleRoot} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right column — constraints */}
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Amount</div>
+              <div className="mt-1">
+                {(() => {
+                  const min = claim.minTransfersSum && claim.minTransfersSum !== '0'
+                    ? (claim.token ? formatTokenAmount(claim.minTransfersSum, claim.token.decimals, claim.token.symbol) : `${BigInt(claim.minTransfersSum)}`)
+                    : null
+                  const max = claim.maxTransfersSum && claim.maxTransfersSum !== '0'
+                    ? (claim.token ? formatTokenAmount(claim.maxTransfersSum, claim.token.decimals, claim.token.symbol) : `${BigInt(claim.maxTransfersSum)}`)
+                    : null
+                  if (min && max) return `${min} — ${max}`
+                  if (min) return `Min: ${min}`
+                  if (max) return `Max: ${max}`
+                  return <span className="text-muted-foreground">No constraints</span>
+                })()}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Transfer Count</div>
+              <div className="mt-1">
+                {claim.minTransfersCount > 0 || claim.maxTransfersCount > 0
+                  ? formatCountConstraint(claim.minTransfersCount, claim.maxTransfersCount)
+                  : <span className="text-muted-foreground">No constraints</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-muted-foreground">Period</div>
+              <div className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1">
+                <span className="font-bold">From:</span>
+                <span>
+                  {claim.fromBlockTimestamp ? (
+                    <>{formatDateTime(claim.fromBlockTimestamp * 1000)} <span className="hidden text-muted-foreground sm:inline">({claim.fromBlockTimestamp})</span></>
+                  ) : (
+                    <span className="text-muted-foreground">Not specified</span>
+                  )}
+                </span>
+                <span className="font-bold">To:</span>
+                <span>
+                  {claim.toBlockTimestamp ? (
+                    <>{formatDateTime(claim.toBlockTimestamp * 1000)} <span className="hidden text-muted-foreground sm:inline">({claim.toBlockTimestamp})</span></>
+                  ) : (
+                    <>{formatDateTime(claim.createdAt)} <span className="hidden text-muted-foreground sm:inline">({Math.floor(new Date(claim.createdAt).getTime() / 1000)})</span></>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

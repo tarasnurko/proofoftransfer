@@ -1,0 +1,240 @@
+# User Guide
+
+## Overview
+
+Proof of Transfer lets you:
+
+1. **Create a claim** — define what token transfers you want to prove (token, recipient, chain, amount/time constraints)
+2. **Generate a proof** — prove that you made transfers matching the claim, without revealing your wallet address
+3. **Verify a proof** — independently verify someone else's proof using your own transfer data
+
+All identity in the app is based on **nullifiers** (anonymous identifiers derived from your wallet signature), not wallet addresses. Your address is never stored or revealed to someone else.
+
+---
+
+## Prerequisites
+
+- A browser wallet (MetaMask, Rabby, etc.)
+
+---
+
+## Connecting Your Wallet
+
+Click the **wallet button** in the top-right corner of the header.
+
+- If disconnected: shows "Connect Wallet"
+- If connected: shows your truncated address (e.g., `0x1234...abcd`)
+
+Clicking it opens the wallet connection modal where you can choose your wallet provider.
+
+The header contains navigation buttons (All Claims, Create Claim), the wallet button, and a theme toggle:
+
+![Home page header](./images/01-home-page.png)
+
+---
+
+## Browsing Claims
+
+The home page shows all existing claims.
+
+![Home page with claims list](./images/01-home-page.png)
+
+### Filtering and Sorting
+
+- **Search** — filter by message text, address, or hash
+- **Chain filter** — show claims for a specific chain (Base, Ethereum, BSC, etc.)
+- **Sort** — Newest First, Oldest First, Most Proofs, Least Proofs
+
+### Claim Cards
+
+Each card shows:
+
+- Claim message
+- Chain badge (e.g., "Base")
+- Token name and symbol
+- Recipient address
+- Amount constraints (if set)
+- Time period (if set)
+- Number of proofs submitted
+- Creation date
+
+Click **"View Details"** to open a claim.
+
+---
+
+## Creating a Claim
+
+Navigate to `/create` or click **"Create Claim"** in the header.
+
+![Create claim form](./images/02-create-claim.png)
+
+### Step 1: Fill the Form
+
+#### Claim Details
+
+- **Claim Message** — a human-readable description of what you're claiming (e.g., "Donated 100 USDC to the community pool in Q1 2024"). Must be 10-1000 characters.
+
+#### Token Information
+
+- **Chain** — select the blockchain (Base, Ethereum, BSC, Polygon, Arbitrum, Optimism, Scroll)
+- **Token Address** — the ERC-20 token contract address. The app validates it automatically and shows the token name/symbol if found.
+- **Recipient Address** — the address that received the transfers
+
+#### Amount Constraints (optional)
+
+- **Minimum Amount** — minimum total transfer amount (leave 0 for no constraint)
+- **Maximum Amount** — maximum total transfer amount (leave 0 for no constraint)
+
+#### Time Range (optional)
+
+- **Start Date** — only count transfers after this date
+- **End Date** — only count transfers before this date
+
+### Step 2: Fetch Transfers
+
+Click **"Fetch Transfers"** at the bottom of the page. The app queries the blockchain (via Etherscan) for ERC-20 transfers matching your constraints.
+
+<!-- IMAGE: Transfers preview card showing transfer count with a scrollable list below, each showing sender address, amount, and timestamp. Screenshot requires filling and submitting the form. -->
+
+If you have your wallet connected, you can toggle **"My Transfers"** to see only transfers you sent.
+
+### Step 3: Create the Claim
+
+Review the transfer count and click **"Create Claim"**. The app:
+
+1. Hashes all transfers and builds a merkle tree
+2. Stores the claim with the merkle root
+3. Redirects you to the home page
+
+You'll see a success notification. The claim now appears in the claims list.
+
+---
+
+## Generating a Proof
+
+Open a claim and scroll to the **"Generate Proof"** card. Proof generation has two phases.
+
+### Phase 1: Sign the Claim
+
+The claim details page shows the Information card, Transfers list, Generate Proof card, and Submitted Proofs:
+
+![Claim details page](./images/03-claim-details.png)
+
+1. Connect your wallet
+2. Click **"Sign Claim"**
+3. Your wallet prompts you to sign an EIP-712 message — this is NOT a transaction, it costs no gas
+4. The signature derives your **nullifier** — a unique anonymous identifier for you + this claim
+
+If you have no matching transfers (you never sent tokens to the recipient), you'll see a warning and cannot proceed.
+
+### Phase 2: Generate the ZK Proof
+
+<!-- IMAGE: Generate Proof card in signed state — green checkmarks for "Connected" and "Claim Signed — Nullifier: 0xabc...", with "Generate Proof" button. Screenshot requires wallet connection + signing. -->
+
+1. After signing, click **"Generate Proof"**
+2. The ZK proof generates **in your browser** (takes 10-30 seconds)
+3. Once complete, the proof is submitted to the server
+
+The proof appears in the **"Submitted Proofs"** section below. Your proof card will show a "Yours" badge.
+
+<!-- IMAGE: Submitted Proofs section with proof cards showing "Yours" badge, nullifier, date, verification stats. Screenshot requires wallet connection. -->
+
+### What the Proof Proves
+
+The ZK proof proves that:
+
+- You control a wallet that sent transfers to the recipient
+- Your transfers satisfy the claim's constraints (amount range, time range)
+- Your transfers are included in the claim's merkle tree
+
+Without revealing which wallet address is yours.
+
+---
+
+## Verifying a Proof
+
+Open a claim, then click on a proof card to go to the proof details page.
+
+![Proof details page](./images/04-proof-details.png)
+
+### Why You Provide Your Own Transfers
+
+The whole point of verification is **not trusting the app**. Instead of relying on transfers stored in the database, you independently fetch the same transfer data from the blockchain. If your data produces the same merkle root as the proof, the data is confirmed authentic — then the ZK proof is verified.
+
+### Step 1: Get Transfer Data
+
+You have two options:
+
+#### Option A: Fetch from Blockchain
+
+<!-- IMAGE: Verify Proof card with "Fetch from Blockchain" tab and "Fetch Transfers" button. Screenshot requires wallet connection. -->
+
+Click **"Fetch Transfers"**. The app queries the blockchain API for transfers matching the claim's constraints. After fetching, you'll see the transfer count and can expand to view them.
+
+#### Option B: Upload CSV from Block Explorer
+
+<!-- IMAGE: Verify Proof card with "Upload CSV" tab, Etherscan CSV download link, and upload area. Screenshot requires wallet connection. -->
+
+1. Click the link to download transfers from the block explorer (Etherscan, BaseScan, etc.) — the link is pre-filled with the correct token and recipient
+2. Download the CSV file from the explorer
+3. Upload it using the upload area (drag-and-drop or click "Choose File")
+4. You can upload up to 3 CSV files
+5. The app parses the CSV and shows the transfer count
+
+**Expected CSV format:** Transaction Hash, Blockno, UnixTimestamp, From, To, Quantity
+
+You can combine both methods — fetch some from blockchain and upload additional CSVs.
+
+### Step 2: Sign and Verify
+
+<!-- IMAGE: Verify Proof card with transfers loaded and "Sign & Verify Proof" button enabled. Screenshot requires wallet connection + transfer fetch. -->
+
+1. Click **"Sign & Verify Proof"** (only enabled after loading transfers)
+2. Your wallet prompts you to sign the same EIP-712 claim message
+3. The signature derives your nullifier
+4. If your nullifier matches the proof's nullifier, you get an error — **you cannot verify your own proof**
+5. Your transfers are sent to the server, which:
+   - Sorts them by timestamp
+   - Hashes them and builds a merkle tree
+   - Compares the computed root with the claim's merkle root
+   - If roots match, verifies the ZK proof
+6. The result appears as a notification
+
+### Verification Results
+
+- **Success** — the proof is valid. The verification count increments.
+- **Root mismatch** — your transfer data doesn't match the claim's data. This could mean different transfers, wrong date range, or tampered data.
+- **ZK proof invalid** — the mathematical proof doesn't verify. The prover's claim is not valid.
+
+### Verification Rules
+
+- **Anyone except the prover** can verify a proof
+- Each person (nullifier) can have **one successful verification** per proof
+- If verification fails, you can retry — the failed record is replaced
+- Verification stats (success/fail counts) are shown on the proof card
+
+---
+
+## Troubleshooting
+
+### "No transfers found for prover address"
+
+Your wallet address has no matching transfers for this claim. You must have sent tokens to the recipient within the claim's constraints.
+
+### "Cannot verify your own proof"
+
+You generated this proof. Only other people can verify it.
+
+### "You have already verified this proof"
+
+You already successfully verified this proof. Each person can only verify once.
+
+### "Root mismatch"
+
+The transfers you provided don't produce the same merkle tree as the claim. Make sure you're using the correct transfer data (right token, recipient, date range).
+
+### CSV upload errors
+
+- "Invalid CSV format" — the file doesn't have the expected columns. Download directly from the block explorer.
+- "No valid transfers found" — the CSV has headers but no data rows.
+- "Maximum 3 CSV files" — remove a file before uploading another.

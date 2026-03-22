@@ -1,0 +1,33 @@
+{
+  "name": "@repo/circuit-utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "dependencies": {
+    "@aztec/bb.js": "^3.0.1",
+    "@noir-lang/noir_js": "1.0.0-beta.17",
+    "@repo/types": "workspace:*",
+    "viem": "^2.44.1"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "22.8.2",
+    "eslint": "9.13.0",
+    "typescript": "5.6.3"
+  }
+}

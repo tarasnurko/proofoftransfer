@@ -1,0 +1,40 @@
+---
+title: Introduction
+description: Prove token transfers using zero-knowledge proofs without revealing your wallet address
+---
+
+## The problem
+
+On-chain transfers are fully public. If you prove you sent tokens to someone, you reveal your wallet address — and with it, your entire transaction history, balances, and every other interaction tied to that address.
+
+There's no way to say "I transferred tokens to this address" without exposing who you are.
+
+## What Proof of Transfer does
+
+Proof of Transfer lets you prove you made a token transfer without revealing which wallet is yours.
+
+You generate a **zero-knowledge proof** that cryptographically proves your transfer exists and satisfies certain constraints — without disclosing your wallet address to anyone, including the app itself.
+
+Third parties can independently **verify** these proofs by fetching their own transfer data from the blockchain, so they don't need to trust the app either.
+
+## Use cases
+
+- **Anonymous donations** — Prove you donated to a cause without revealing your wallet address or exact amount to other donors.
+- **Raffle participation** — Donate to enter a raffle. Prove you participated without revealing who you are or how much you sent.
+- **Gift verification** — Friends send tokens to a recipient for a birthday. Each can prove they contributed without revealing their wallet to the group.
+- **Compliance attestations** — Prove a transfer happened between two parties without exposing the sender's full on-chain identity.
+
+## How it works
+
+1. Someone creates a **claim** — a set of constraints describing transfers (token, counterparty, chain, time range, amount, count)
+2. The app fetches matching transfers from the blockchain and builds a cryptographic merkle tree
+3. Anyone who made a matching transfer can **generate a ZK proof** that they participated — without revealing their address
+4. Third parties can **verify proofs** by independently fetching transfer data, without trusting the app
+
+No wallet addresses are stored. Identity is based on **nullifiers** — anonymous identifiers derived from your wallet signature. Different claims produce different nullifiers, so your activity can't be linked across claims.
+
+## Supported tokens and chains
+
+**Token types:** ERC-20, ERC-721, ERC-1155
+
+**Chains:** Ethereum, Optimism, BNB Chain, Polygon, Base, Arbitrum, Scroll

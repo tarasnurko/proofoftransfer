@@ -1,0 +1,158 @@
+---
+title: How It Works
+description: Nullifiers, merkle trees, ZK circuits, EIP-712 signing, and verification
+---
+
+Three roles interact with the system:
+
+- **Claim creator** — defines constraints and publishes a claim
+- **Prover** — generates a ZK proof that they made matching transfers
+- **Verifier** — independently verifies the proof using their own transfer data
+
+---
+
+## Nullifiers
+
+The system never stores wallet addresses. Identity is based on nullifiers — deterministic anonymous identifiers.
+
+```
+Wallet + Claim Data → EIP-712 Signature → poseidon2(r, s) → Nullifier
+```
+
+1. The wallet signs an EIP-712 message containing all claim parameters
+2. ECDSA signatures are deterministic (RFC 6979) — same wallet + same claim = same signature
+3. The signature's (r, s) components are hashed with Poseidon2 via Barretenberg client-side to produce a nullifier. The signature never leaves the browser
+
+| Property | Explanation |
+|----------|-------------|
+| Deterministic | Same wallet + same claim = same nullifier |
+| Unlinkable | Different claims produce different nullifiers for the same wallet |
+| Anonymous | Reveals nothing about the wallet address |
+| Collision-resistant | Different wallets cannot produce the same nullifier |
+
+Nullifiers are used to:
+- Prevent duplicate proofs per claim (prover nullifier)
+- Prevent re-verification and detect self-verification (verifier nullifier)
+
+---
+
+## Merkle Trees
+
+When a claim is created:
+
+1. Transfers are fetched from Etherscan, filtered by token address, counterparty address, chain, and block range (derived from the time constraints). Amount and count constraints are not applied at fetch time — they are enforced later by the ZK circuit during proof generation.
+2. Each transfer is hashed: `poseidon2(from, to, contractAddress, value, timeStamp, txHash)`
+3. Transfers are sorted by `blockTimestamp` ascending
+4. A Poseidon2 merkle tree (height 20) is built from the hashes
+5. The merkle root is stored in the claim
+
+Because ordering is deterministic (sorted by timestamp), anyone can rebuild the same tree from the same transfers.
+
+---
+
+## EIP-712 Signing
+
+Both provers and verifiers sign the same typed data structure. The message includes all claim fields — constraints, token info, prover role, and the merkle root:
+
+```
+domain: {
+  name: "ProofOfTransfer"
+  version: "1"
+  chainId: <claim's chain ID>
+  verifyingContract: 0x0000...0000
+}
+
+Claim: [
+  claimId (bytes32)
+  claimMessageHash (bytes32)
+  tokenAddress (address)
+  counterpartyAddress (address)
+  isProverSender (bool)
+  tokenType (uint8)
+  minTransfersSum (uint128)
+  maxTransfersSum (uint128)
+  minTransfersCount (uint32)
+  maxTransfersCount (uint32)
+  fromBlockTimestamp (uint64)
+  toBlockTimestamp (uint64)
+  transfersRootHash (bytes32)
+]
+```
+
+Because every claim field is included in the signed message, the nullifier is bound to the exact claim — changing any field would produce a different signature and a different nullifier.
+
+---
+
+## Proof Generation
+
+Two phases, both running on the client.
+
+### Phase 1 — Signing and input assembly
+
+1. Server fetches all transfers for the claim and computes the merkle root (for EIP-712 signing). Transfer data is sent to the client, but no merkle proofs
+2. Client filters transfers locally by matching wallet address against sender/recipient. The wallet address is never sent to the server
+3. Client validates constraints locally (amount sum, transfer count, time range)
+4. Wallet signs the EIP-712 claim message
+5. Nullifier is derived client-side via Barretenberg (Poseidon2). The signature never leaves the browser
+6. Client builds the full merkle tree locally (Barretenberg WASM) and computes inclusion proofs only for the prover's transfers
+7. Client assembles circuit inputs: claim fields, prover's padded transfers, merkle proofs, signature components, and public key
+
+### Phase 2 — ZK proof generation
+
+1. Noir circuit runs locally via UltraHonk prover (Barretenberg WASM), ~20+ seconds
+2. Produces proof bytes + public inputs
+3. Client submits proof data + nullifier to server. Server checks nullifier uniqueness per claim and stores the proof
+4. The server does **not** verify the proof on submission — verification happens when a third party verifies
+
+Proof generation runs in the browser so the server never learns which transfers belong to the prover.
+
+### What the circuit proves
+
+1. **Transfer inclusion** — prover's transfers exist in the merkle tree
+2. **Amount satisfaction** — sum of amounts is within `[min, max]`
+3. **Count satisfaction** — number of transfers is within `[minCount, maxCount]`
+4. **Time range** — all transfers are within the claim's boundaries
+5. **Signature validity** — prover owns the signing key
+6. **Nullifier correctness** — nullifier is correctly derived from the signature
+
+---
+
+## Verification
+
+Verification lets a third party independently confirm a proof is valid without trusting the app's database.
+
+### Process
+
+1. Verifier independently sources transfer data — via blockchain API or CSV from a block explorer (Etherscan, BaseScan, etc.)
+2. Wallet signs the same EIP-712 claim message, nullifier is derived client-side
+3. **Self-verification check** — client compares verifier's nullifier with proof's nullifier. If they match, verification is rejected before anything is sent to the server
+4. Client sorts transfers by timestamp, hashes each with Poseidon2, and builds a merkle tree using Barretenberg WASM
+5. Nullifier + computed merkle root are sent to the server
+6. **Already-verified check** — server rejects if this nullifier already has a successful verification for this proof
+7. **Root comparison** — server compares verifier's merkle root with the claim's stored root. Mismatch = the verifier's transfer data doesn't match the claim's
+8. **ZK verification** — if roots match, server verifies the ZK proof using UltraHonk backend
+9. Server deletes any previous failed verification for this nullifier, stores the new result (pass or fail)
+10. Updated verification stats are returned to the client
+
+### Why verifiers provide their own transfers
+
+The app stores transfers in its database, but a compromised app could tamper with them. By having verifiers independently fetch transfers from the blockchain, the merkle root comparison acts as a data integrity check. If the roots match, the transfers are authentic.
+
+### Transfer sources
+
+- **Blockchain API** — app queries Etherscan for the verifier
+- **CSV upload** — verifier downloads directly from block explorer website. Up to 3 CSV files
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js (App Router), React, Tailwind CSS |
+| Wallet | wagmi + @reown/appkit |
+| ZK Circuit | Noir (Aztec), compiled to UltraHonk |
+| ZK Runtime | @aztec/bb.js (Barretenberg WASM) |
+| Database | PostgreSQL + Drizzle ORM |
+| Server Actions | next-safe-action + Zod |
+| Blockchain Data | Etherscan API (multi-chain) |
