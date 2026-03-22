@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   // Exclude these packages from server bundling
   serverExternalPackages: ['@aztec/bb.js', '@noir-lang/noir_js'],
   turbopack: {},
