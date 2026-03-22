@@ -1,135 +1,93 @@
-# Turborepo starter
+# Proof of Transfer
 
-This Turborepo starter is maintained by the Turborepo core team.
+Prove token transfers using zero-knowledge proofs without revealing your wallet address.
 
-## Using this example
+## The Problem
 
-Run the following command:
+On-chain transfers are fully public. Proving you sent tokens to someone reveals your wallet address — and with it, your entire transaction history, balances, and every interaction tied to that address.
 
-```sh
-npx create-turbo@latest
-```
+## What This Does
 
-## What's inside?
+Proof of Transfer lets you prove you made a token transfer without revealing which wallet is yours. You generate a **zero-knowledge proof** that cryptographically proves your transfer exists and satisfies certain constraints — without disclosing your wallet address to anyone, including the app itself.
 
-This Turborepo includes the following packages/apps:
+Third parties can independently **verify** these proofs by fetching their own transfer data from the blockchain, so they don't need to trust the app either.
 
-### Apps and Packages
+## Use Cases
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- **Anonymous donations** — prove you donated without revealing your wallet or exact amount
+- **Raffle participation** — prove you participated without revealing who you are
+- **Gift verification** — prove you contributed without revealing your wallet to the group
+- **Compliance attestations** — prove a transfer happened without exposing the sender's on-chain identity
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## How It Works
 
-### Utilities
+1. Someone creates a **claim** — constraints describing transfers (token, counterparty, chain, time range, amount, count)
+2. The app fetches matching transfers from the blockchain and builds a Poseidon2 merkle tree
+3. Anyone with a matching transfer can **generate a ZK proof** in-browser — without revealing their address
+4. Third parties **verify proofs** by independently fetching transfer data
 
-This Turborepo has some additional tools already setup for you:
+No wallet addresses are stored. Identity is based on **nullifiers** — anonymous identifiers derived from your wallet's EIP-712 signature. Different claims produce different nullifiers, so activity can't be linked across claims.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## Supported Tokens and Chains
 
-### Build
+**Token types:** ERC-20, ERC-721, ERC-1155
 
-To build all apps and packages, run the following command:
+**Chains:** Ethereum, Optimism, BNB Chain, Polygon, Base, Arbitrum, Scroll
 
-```
-cd my-turborepo
+## Tech Stack
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js (App Router), React, Tailwind CSS |
+| Wallet | wagmi + @reown/appkit |
+| ZK Circuit | Noir (Aztec), compiled to UltraHonk |
+| ZK Runtime | @aztec/bb.js (Barretenberg WASM) |
+| Database | PostgreSQL + Drizzle ORM |
+| Server Actions | next-safe-action + Zod |
+| Blockchain Data | Etherscan API (multi-chain) |
+| Monorepo | Turborepo + pnpm |
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
-
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
+## Project Structure
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+apps/
+  web/          # Main Next.js application
+  docs/         # Documentation site (Fumadocs)
+  circuits/     # Noir ZK circuit
+packages/
+  types/        # Shared TypeScript types
+  circuit-utils/ # Circuit utility functions
+  circuit-noir/ # Shared Noir library
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## Getting Started
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+### Prerequisites
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+- Node.js >= 18
+- pnpm 9
+- PostgreSQL
 
-### Remote Caching
+### Setup
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+```bash
+pnpm install
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+# Start PostgreSQL (or use your own)
+docker compose -f apps/web/docker-compose.yml up -d
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+# Set environment variables
+cp apps/web/.env.example apps/web/.env.local
 
-```
-cd my-turborepo
+# Run database migrations
+pnpm --filter web db:migrate
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+# Start development
+pnpm dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+The web app runs on `http://localhost:3000`, docs on `http://localhost:3001`.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## Acknowledgments
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+Born at **ETHKyiv Impulse: ZK Edition** — a hackathon organized by [Ethereum Ukraine](https://kyivethereum.com/) on December 13, 2025 in Kyiv, Ukraine.
