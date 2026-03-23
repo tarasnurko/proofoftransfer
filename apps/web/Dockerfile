@@ -34,13 +34,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
-# Drizzle migrations
+# Drizzle migrations (uses drizzle-orm migrator, not drizzle-kit)
 COPY --from=builder /app/apps/web/drizzle ./apps/web/drizzle
-COPY --from=builder /app/apps/web/drizzle.config.ts ./apps/web/drizzle.config.ts
-COPY --from=builder /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=builder /app/node_modules/.pnpm/drizzle-orm@0.45.1_@types+pg@8.16.0_postgres@3.4.8/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder /app/node_modules/.pnpm/postgres@3.4.8/node_modules/postgres ./node_modules/postgres
+COPY --chown=nextjs:nodejs apps/web/migrate.mjs ./migrate.mjs
 
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "apps/web/server.js"]
+CMD ["sh", "-c", "node migrate.mjs && node apps/web/server.js"]

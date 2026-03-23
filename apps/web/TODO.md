@@ -7,12 +7,13 @@
 - [?] add more parameters to claim + add ability to select whether prover is sender or recipient
 - [?] when generating proof - add some text input
 - [?] when creating claim allow user to select hours and minutes, also show block numbers under inputs
+- [?] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
+- [x] DOCS page
+- [x] terms and conditions
 - [] when creating claim - show how much users are with specified constraints, show users and their transfers
 - [] add sorting for transfers when generating proof, filter transfers by amount. Check how much who transfered (token amount and count)
 - [] export all proofs for claim in csv/json
-- [?] fetch erc20 data from blockchain when creating claim, and save to db. retrieve from db if there is and dont fetch
 - [] (superclaim) multichain/multitoken claims - allow to fetch same recipitn transfers from multiple chains
 - [] add some button so user can toggle showing personal data (YOUR TRANSFERS: 2 | highlight transfers in all transfers tab)
-- [x] DOCS page
-- [] terms and conditions
 - [] migrate from reown to Rainbow Kit or other wallet connectors hat doesnt require project api keys
+- [] add ability to prove all proofs with one click (user upload csv once, and automatically prove profs without manually going to each proof page)
