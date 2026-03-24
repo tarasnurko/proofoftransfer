@@ -60,14 +60,11 @@ function UserTransferRow({
   chainId?: number
   tokenType?: string
 }) {
-  const amount = 'amount' in transfer ? transfer.amount : '1'
-  const tokenId = 'tokenId' in transfer ? transfer.tokenId : undefined
-
   return (
     <div className="flex items-center justify-between gap-2 border border-border bg-muted/30 p-2">
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-2 sm:text-sm">
-          <span>{formatDateTime(transfer.blockTimestamp * 1000)}</span>
+          <span>{formatDateTime(transfer.timestamp * 1000)}</span>
           {transfer.txHash && chainId && getExplorerTxUrl(chainId, transfer.txHash) ? (
             <>
               <span className="hidden sm:inline">&middot;</span>
@@ -85,12 +82,12 @@ function UserTransferRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        {tokenId != null && (tokenType === TokenType.ERC721 || tokenType === TokenType.ERC1155) ? (
-          <span className="font-mono text-sm text-muted-foreground">#{tokenId}</span>
+        {transfer.tokenId != null && (tokenType === TokenType.ERC721 || tokenType === TokenType.ERC1155) ? (
+          <span className="font-mono text-sm text-muted-foreground">#{transfer.tokenId}</span>
         ) : null}
         {tokenType !== TokenType.ERC721 && token ? (
           <span className="text-right font-mono">
-            {formatTokenAmount(amount, token.decimals, token.symbol)}
+            {formatTokenAmount(transfer.amount, token.decimals, token.symbol)}
           </span>
         ) : null}
       </div>
@@ -169,7 +166,8 @@ export function VirtualUserList({
                 className="flex w-full cursor-pointer items-start justify-between gap-2 p-2 text-left hover:bg-muted/50 sm:p-3"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Desktop: address + badges on one row */}
+                  <div className="hidden sm:flex sm:items-center sm:gap-2">
                     {isExpanded
                       ? <ChevronDown className="h-4 w-4 shrink-0" />
                       : <ChevronRight className="h-4 w-4 shrink-0" />}
@@ -184,7 +182,27 @@ export function VirtualUserList({
                       <Badge className="bg-accent text-accent-foreground">You</Badge>
                     )}
                   </div>
-                  <div className="ml-5.5 mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground sm:text-sm">
+                  {/* Mobile: badges first, then address */}
+                  <div className="sm:hidden">
+                    <div className="flex items-center gap-1.5">
+                      {isExpanded
+                        ? <ChevronDown className="h-4 w-4 shrink-0" />
+                        : <ChevronRight className="h-4 w-4 shrink-0" />}
+                      <Badge variant="outline" className="border-2 text-xs font-bold">
+                        {group.transferCount} tx{group.transferCount !== 1 ? 's' : ''}
+                      </Badge>
+                      {isMint && (
+                        <Badge className="bg-purple-500 text-xs text-white">Mint</Badge>
+                      )}
+                      {isUser && (
+                        <Badge className="bg-accent text-xs text-accent-foreground">You</Badge>
+                      )}
+                    </div>
+                    <div className="mt-1 pl-6">
+                      <Address address={group.address} chainId={chainId} chars={4} />
+                    </div>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 pl-6 text-xs text-muted-foreground sm:text-sm">
                     <span>
                       {group.firstTransferDate === group.lastTransferDate
                         ? formatDateTime(group.firstTransferDate * 1000)
@@ -195,7 +213,7 @@ export function VirtualUserList({
                     ) : null}
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                <div className="flex shrink-0 flex-col items-end gap-0.5 self-center sm:self-start">
                   {tokenType !== TokenType.ERC721 && token ? (
                     <>
                       <span className="font-mono text-sm font-bold">

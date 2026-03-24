@@ -1,12 +1,11 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
-import { VirtualUserList } from '@/components/shared/virtual-user-list'
-import { groupTransfersByUser } from '@/utils/transfer.utils'
+import { TransferListWithTabs } from '@/components/shared/transfer-list-with-tabs'
+import { groupDisplayTransfersByUser } from '@/utils/transfer.utils'
 import type { TransferEntity, TokenEntity } from '@/db/index.types'
 
 interface TransfersPreviewCardProps {
@@ -30,8 +29,15 @@ export function TransfersPreviewCard({
   userTransferCount,
   showOnlyMyTransfers,
   onToggleMyTransfers,
-  isProverSender,
 }: TransfersPreviewCardProps) {
+  const sortSlotRef = useRef<HTMLDivElement>(null)
+  const [sortSlotReady, setSortSlotReady] = useState(false)
+
+  const sortSlotCallback = useCallback((node: HTMLDivElement | null) => {
+    (sortSlotRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+    setSortSlotReady(!!node)
+  }, [])
+
   const mappedTransfers = useMemo(
     () => transfers.map((t) => ({
       from: t.senderAddress,
@@ -47,65 +53,49 @@ export function TransfersPreviewCard({
     [tokenData?.decimals, tokenData?.symbol],
   )
 
-  const userGroups = useMemo(
-    () => groupTransfersByUser(transfers, isProverSender),
-    [transfers, isProverSender],
+  const userCount = useMemo(
+    () => groupDisplayTransfersByUser(mappedTransfers).length,
+    [mappedTransfers],
   )
 
   return (
     <Card className="border-4">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <CardTitle className="text-2xl font-bold">Transfers Preview</CardTitle>
-            <CardDescription>{transfers.length} transfers from {userGroups.length} users</CardDescription>
+            <CardDescription>{transfers.length} transfers from {userCount} users</CardDescription>
           </div>
-          {isConnected ? (
-            <Button
-              type="button"
-              variant={showOnlyMyTransfers ? 'default' : 'outline'}
-              size="sm"
-              onClick={onToggleMyTransfers}
-              className="border-2 font-bold"
-            >
-              {showOnlyMyTransfers ? 'Show All' : `My Transfers (${userTransferCount})`}
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            <div ref={sortSlotCallback} />
+            {isConnected ? (
+              <Button
+                type="button"
+                variant={showOnlyMyTransfers ? 'default' : 'outline'}
+                size="sm"
+                onClick={onToggleMyTransfers}
+                className="border-2 font-bold"
+              >
+                {showOnlyMyTransfers ? 'Show All' : `My Transfers (${userTransferCount})`}
+              </Button>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="transfers">
-          <TabsList>
-            <TabsTrigger value="transfers">Transfers</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="transfers">
-            {showOnlyMyTransfers && !mappedTransfers.length ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                You don&apos;t have any transfers in this list
-              </p>
-            ) : (
-              <VirtualTransferList
-                transfers={mappedTransfers}
-                token={token}
-                walletAddress={walletAddress}
-                chainId={chainId}
-                maxHeight={300}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="users">
-            <VirtualUserList
-              groups={userGroups}
-              token={token}
-              walletAddress={walletAddress}
-              chainId={chainId}
-              maxHeight={300}
-            />
-          </TabsContent>
-        </Tabs>
+        <TransferListWithTabs
+          transfers={mappedTransfers}
+          token={token}
+          walletAddress={walletAddress}
+          chainId={chainId}
+          maxHeight={300}
+          emptyMessage={showOnlyMyTransfers ? "You don't have any transfers in this list" : undefined}
+          renderSortSelect={(node) =>
+            sortSlotReady && sortSlotRef.current && node
+              ? createPortal(node, sortSlotRef.current)
+              : null
+          }
+        />
       </CardContent>
     </Card>
   )

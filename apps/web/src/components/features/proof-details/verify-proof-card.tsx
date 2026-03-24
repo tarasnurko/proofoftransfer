@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
+import { TransferListWithTabs } from '@/components/shared/transfer-list-with-tabs'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/types'
 import { mapTransferToDisplayItem } from '@/utils/transfer.utils'
 import { getExplorerBaseUrl, getExplorerName } from '@/utils/explorer.utils'
@@ -201,7 +201,7 @@ export function VerifyProofCard({
                     {fetchingTransfers ? 'Loading transfers...' : 'View transfers'}
                   </summary>
                   <div className="mt-2">
-                    <VirtualTransferList
+                    <TransferListWithTabs
                       transfers={mappedBlockchainTransfers}
                       token={claim.token}
                       chainId={claim.chainId}
@@ -289,7 +289,7 @@ export function VerifyProofCard({
                     View all transfers ({totalCsvTransfers})
                   </summary>
                   <div className="mt-2">
-                    <VirtualTransferList
+                    <TransferListWithTabs
                       transfers={mappedCsvTransfers}
                       token={claim.token}
                       chainId={claim.chainId}

@@ -39,7 +39,7 @@ export function mapTransferToDisplayItem(transfer: EtherscanTransfer): TransferD
 
 export interface UserTransferGroup {
   address: string
-  transfers: TransferEntity[]
+  transfers: TransferDisplayItem[]
   transferCount: number
   totalAmount: bigint
   firstTransferDate: number
@@ -48,14 +48,13 @@ export interface UserTransferGroup {
   uniqueTokenIds?: string[]
 }
 
-export function groupTransfersByUser(
-  transfers: TransferEntity[],
-  isProverSender: boolean,
+export function groupDisplayTransfersByUser(
+  transfers: TransferDisplayItem[],
 ): UserTransferGroup[] {
-  const map = new Map<string, TransferEntity[]>()
+  const map = new Map<string, TransferDisplayItem[]>()
 
   for (const t of transfers) {
-    const key = (isProverSender ? t.senderAddress : t.recipientAddress).toLowerCase()
+    const key = t.from.toLowerCase()
     const arr = map.get(key)
     if (arr) arr.push(t)
     else map.set(key, [t])
@@ -70,11 +69,10 @@ export function groupTransfersByUser(
     const tokenIdSet = new Set<string>()
 
     for (const t of userTransfers) {
-      const amount = 'amount' in t ? BigInt(t.amount) : 1n
-      totalAmount += amount
-      if (t.blockTimestamp < first) first = t.blockTimestamp
-      if (t.blockTimestamp > last) last = t.blockTimestamp
-      if ('tokenId' in t && t.tokenId) tokenIdSet.add(t.tokenId)
+      totalAmount += BigInt(t.amount)
+      if (t.timestamp < first) first = t.timestamp
+      if (t.timestamp > last) last = t.timestamp
+      if (t.tokenId) tokenIdSet.add(t.tokenId)
     }
 
     const count = userTransfers.length
