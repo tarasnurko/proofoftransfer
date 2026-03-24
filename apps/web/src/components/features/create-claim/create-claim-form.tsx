@@ -38,7 +38,8 @@ export function CreateClaimForm() {
     setValue,
     formState: { errors },
   } = useForm<CreateClaimClientInput>({
-    resolver: zodResolver(createClaimClientSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @hookform/resolvers types lag behind zod v4
+    resolver: zodResolver(createClaimClientSchema as any),
     defaultValues: {
       claimMessage: '',
       chainId: ChainId.ETHEREUM,
@@ -236,6 +237,7 @@ export function CreateClaimForm() {
           userTransferCount={userTransferCount}
           showOnlyMyTransfers={showOnlyMyTransfers}
           onToggleMyTransfers={() => setShowOnlyMyTransfers(prev => !prev)}
+          isProverSender={watchedIsProverSender}
         />
       ) : null}
 

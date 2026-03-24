@@ -19,13 +19,38 @@ export function formatTokenValue(amount: string, decimals: number): string {
   return value.toFixed()
 }
 
+export function formatSmartNumber(value: string | number): string {
+  const num = typeof value === 'string' ? Number(value) : value
+  if (num === 0) return '0'
+
+  const abs = Math.abs(num)
+  const sign = num < 0 ? '-' : ''
+
+  if (abs >= 1) {
+    const fixed = abs.toFixed(2).replace(/\.00$/, '')
+    const [intPart, decPart] = fixed.split('.')
+    const withCommas = intPart!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return sign + (decPart ? `${withCommas}.${decPart}` : withCommas)
+  }
+
+  // For values < 1: show 2 significant digits after leading zeros
+  const str = abs.toPrecision(2)
+  // toPrecision may produce scientific notation for very small numbers
+  if (str.includes('e')) {
+    const match = abs.toFixed(20).match(/^0\.(0*?)(\d{2})/)
+    if (match) return `${sign}0.${match[1]}${match[2]}`
+  }
+  return sign + str
+}
+
 export function formatTokenAmount(
   amount: string,
   decimals: number,
   symbol?: string
 ): string {
   const value = formatTokenValue(amount, decimals)
-  return symbol ? `${value} ${symbol}` : value
+  const formatted = formatSmartNumber(value)
+  return symbol ? `${formatted} ${symbol}` : formatted
 }
 
 export function formatDate(date: Date | string | number): string {

@@ -7,7 +7,7 @@ import { Address } from '@/components/shared/address'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { isAddressEqual, type Address as ViemAddress } from 'viem'
+import { isAddressEqual, zeroAddress, type Address as ViemAddress } from 'viem'
 import { formatTokenAmount, formatTokenValue } from '@/utils/format.utils'
 import { formatDateTime } from '@/utils/format.utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
@@ -114,6 +114,7 @@ export function VirtualTransferList({
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const transfer = transfers[virtualItem.index]!
           const isUser = !!walletAddress && isAddressEqual(transfer.from as ViemAddress, walletAddress as ViemAddress)
+          const isMint = isAddressEqual(transfer.from as ViemAddress, zeroAddress)
 
           return (
             <div
@@ -127,6 +128,9 @@ export function VirtualTransferList({
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="text-sm text-muted-foreground">From</span>
                   <Address address={transfer.from} chainId={chainId} chars={4} />
+                  {isMint && (
+                    <Badge className="bg-purple-500 text-white">Mint</Badge>
+                  )}
                   {isUser && (
                     <Badge className="bg-accent text-accent-foreground">You</Badge>
                   )}
