@@ -32,7 +32,11 @@ export async function generateMetadata({
   return {
     title: `Proof #${proofId.slice(0, 8)}`,
     description,
-    openGraph: { title: `Proof #${proofId.slice(0, 8)}`, description },
+    openGraph: {
+      title: `Proof #${proofId.slice(0, 8)}`,
+      description,
+      images: [{ url: `/claims/${claimId}/proofs/${proofId}/opengraph-image`, width: 1200, height: 630, type: 'image/png' }],
+    },
   }
 }
 

@@ -24,9 +24,11 @@ export default async function MainLayout({
         disableTransitionOnChange
       >
         <TooltipProvider>
-          <Header />
-          <main className="min-h-[calc(100vh-8rem)]">{children}</main>
-          <Footer />
+          <div className="flex min-h-dvh flex-col">
+            <Header />
+            <main className="flex flex-1 flex-col">{children}</main>
+            <Footer />
+          </div>
         </TooltipProvider>
         <Toaster position="bottom-right" />
         {process.env.NODE_ENV === "development" && (

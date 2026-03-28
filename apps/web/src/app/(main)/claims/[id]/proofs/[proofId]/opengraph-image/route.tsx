@@ -17,16 +17,14 @@ import {
   formatOgTransferCount,
 } from '@/lib/og'
 
-export const alt = 'Proof details'
-export const size = { width: 1200, height: 630 }
-export const contentType = 'image/png'
 export const revalidate = 3600
 
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ id: string; proofId: string }>
-}) {
+const size = { width: 1200, height: 630 }
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string; proofId: string }> },
+) {
   const { id: claimId, proofId } = await params
 
   const claim = await getClaimById(claimId)

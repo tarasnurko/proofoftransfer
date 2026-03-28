@@ -6,16 +6,14 @@ import { EnsService } from '@/services/ens/ens.service'
 import { truncateAddress } from '@/utils/format.utils'
 import { ClaimDataGrid, formatOgAmount, formatOgPeriod, formatOgDateTime, formatOgTransferCount } from '@/lib/og'
 
-export const alt = 'Claim details'
-export const size = { width: 1200, height: 630 }
-export const contentType = 'image/png'
 export const revalidate = 3600
 
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+const size = { width: 1200, height: 630 }
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params
   const claim = await getClaimById(id)
 

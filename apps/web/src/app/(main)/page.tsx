@@ -12,6 +12,9 @@ import { parseClaimsSearchParams } from "@/utils/claims.utils";
 export const metadata: Metadata = {
   title: "Transfer Claims",
   description: "Browse verifiable on-chain transfer claims across EVM chains",
+  openGraph: {
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, type: 'image/png' }],
+  },
 };
 
 export default async function HomePage({

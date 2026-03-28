@@ -27,7 +27,11 @@ export async function generateMetadata({
   return {
     title: `Claim: ${truncateText(claim.message, 50)}`,
     description,
-    openGraph: { title: `Claim: ${claim.message}`, description },
+    openGraph: {
+      title: `Claim: ${claim.message}`,
+      description,
+      images: [{ url: `/claims/${id}/opengraph-image`, width: 1200, height: 630, type: 'image/png' }],
+    },
   }
 }
 

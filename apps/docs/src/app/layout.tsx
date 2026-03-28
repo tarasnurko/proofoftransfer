@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:3001'),
   title: {
     template: '%s | Proof of Transfer Docs',
     default: 'Proof of Transfer Docs',
@@ -12,6 +13,13 @@ export const metadata = {
   icons: {
     icon: '/favicons/android-chrome-192x192.png',
     apple: '/favicons/apple-touch-icon.png',
+  },
+  openGraph: {
+    siteName: 'Proof of Transfer Docs',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, type: 'image/png' }],
+  },
+  twitter: {
+    card: 'summary_large_image' as const,
   },
 };
 
