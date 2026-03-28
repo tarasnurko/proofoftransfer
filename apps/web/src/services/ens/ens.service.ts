@@ -66,7 +66,8 @@ export class EnsService {
     try {
       const address = await client.getEnsAddress({ name: normalize(ensName) })
       return address ?? null
-    } catch {
+    } catch (error) {
+      console.error('ENS resolveAddress failed:', { ensName, error })
       return null
     }
   }
@@ -77,7 +78,8 @@ export class EnsService {
     try {
       const name = await client.getEnsName({ address })
       return name ?? null
-    } catch {
+    } catch (error) {
+      console.error('ENS resolveName failed:', { address, error })
       return null
     }
   }
@@ -100,7 +102,8 @@ export class EnsService {
       if (!expiryTimestamp) return null
 
       return new Date(Number(expiryTimestamp) * MS_PER_SECOND)
-    } catch {
+    } catch (error) {
+      console.error('ENS getNameExpiry failed:', { ensName, error })
       return null
     }
   }

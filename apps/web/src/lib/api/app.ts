@@ -16,7 +16,7 @@ export const honoApp = new Hono()
   .route('/blocks', blocksRoutes)
 
 honoApp.onError((err, c) => {
-  console.error('API error:', err.message)
+  console.error('API error:', err.message, err.stack)
   return c.json({ error: err.message }, 500)
 })
 
