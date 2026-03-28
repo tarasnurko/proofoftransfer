@@ -212,6 +212,7 @@ export class EtherscanService {
     });
 
     if (response.data.status !== "1" || !response.data.result) {
+      console.error("Etherscan getBlockByTimestamp failed:", { chainId, timestamp, closest, response: response.data });
       throw new Error(
         `Failed to get block number for timestamp ${timestamp} on chain ${chainId}`,
       );
@@ -264,6 +265,7 @@ export class EtherscanService {
               "Invalid or missing Etherscan API key. Please add ETHERSCAN_API_KEY to your .env.local file. Get your key from https://etherscan.io/apis",
             );
           }
+          console.error("Etherscan fetchBatch failed:", { chainId, action, page, startBlock, endBlock, response: data });
           throw new Error(`Etherscan API error: ${data.message}`);
         }
 
@@ -272,6 +274,8 @@ export class EtherscanService {
 
         return transfers;
       } catch (error) {
+        console.error("Etherscan fetchBatch error:", { chainId, action, page, startBlock, endBlock, retries, error: axios.isAxiosError(error) ? { status: error.response?.status, data: error.response?.data } : error });
+
         if (axios.isAxiosError(error) && error.response?.status === 429) {
           const waitTime = Math.pow(2, retries) * 1000;
           await sleep(waitTime);

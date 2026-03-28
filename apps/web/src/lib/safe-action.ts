@@ -5,6 +5,7 @@ import { checkRateLimit, getIpFromHeaders, type RateLimitConfig } from '@/servic
 export const actionClient = createSafeActionClient({
   defaultValidationErrorsShape: 'flattened',
   handleServerError: (e) => {
+    console.error('Server action error:', e.message, e.stack)
     return e.message
   },
 })

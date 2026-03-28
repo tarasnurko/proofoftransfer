@@ -53,6 +53,7 @@ export class BlockchainService {
         decimals: decimals as number,
       }
     } catch (error) {
+      console.error("BlockchainService.getTokenMetadata failed:", { tokenAddress, chainId, error })
       if (error instanceof ContractFunctionExecutionError) {
         const msg = error.message
         if (msg.includes('returned no data') || msg.includes('is not a contract')) {

@@ -136,6 +136,7 @@ export async function verifyProofServer(params: VerifyProofServerParams): Promis
 
     return { isValid: verified }
   } catch (error) {
+    console.error('verifyProofServer failed:', error)
     return { isValid: false, error: error instanceof Error ? error.message : String(error) }
   }
 }
@@ -172,7 +173,11 @@ export async function prepareSigningBase(claimId: string) {
 let cachedCircuit: { bytecode: string } | null = null
 async function getCircuit() {
   if (!cachedCircuit) {
-    const raw = await readFile(path.join(process.cwd(), 'public', 'circuit.json'), 'utf-8')
+    const circuitPath = path.join(process.cwd(), 'public', 'circuit.json')
+    const raw = await readFile(circuitPath, 'utf-8').catch((err) => {
+      console.error('Failed to read circuit file:', { circuitPath, error: err })
+      throw err
+    })
     cachedCircuit = JSON.parse(raw)
   }
   return cachedCircuit!
