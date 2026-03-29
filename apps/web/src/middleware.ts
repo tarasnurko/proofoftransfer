@@ -6,7 +6,13 @@ export function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (pathname === '/coming-soon' || pathname.startsWith('/_next') || pathname.startsWith('/favicons') || pathname === '/favicon.ico') {
+  if (
+    pathname === '/coming-soon' ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicons') ||
+    pathname === '/favicon.ico' ||
+    pathname.endsWith('/opengraph-image')
+  ) {
     return NextResponse.next()
   }
 
