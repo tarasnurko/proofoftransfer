@@ -35,7 +35,7 @@ export function TimeRangeCard({ control, watch, error }: TimeRangeCardProps) {
                   value={field.value || undefined}
                   onChange={(date) => field.onChange(date || null)}
                   placeholder="Select start date & time"
-                  maxDate={toDate ? new Date(Math.min(new Date().getTime(), toDate.getTime())) : new Date()}
+                  maxDate={toDate || new Date()}
                   chainId={chainId}
                 />
               )}
@@ -52,7 +52,7 @@ export function TimeRangeCard({ control, watch, error }: TimeRangeCardProps) {
                   value={field.value || undefined}
                   onChange={(date) => field.onChange(date || null)}
                   placeholder="Select end date & time"
-                  maxDate={new Date()}
+                  maxDate={new Date(Date.now() - 5 * 60 * 1000)}
                   chainId={chainId}
                   clearable={false}
                 />

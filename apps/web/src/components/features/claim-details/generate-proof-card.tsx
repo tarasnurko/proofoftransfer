@@ -10,6 +10,7 @@ import { CopyHash } from '@/components/shared/copy-hash'
 import { useCheckNullifierExists } from '@/hooks/queries'
 import type { PreparedProofData } from '@/lib/proof'
 import { useAppKit } from '@reown/appkit/react'
+import { getChainName } from '@/utils/explorer.utils'
 import { Check, Loader2, Shield, Wallet } from 'lucide-react'
 
 function ConnectedAddress({ address, chainId }: { address: string; chainId: number }) {
@@ -32,7 +33,10 @@ interface GenerateProofCardProps {
   transfersLoading?: boolean
   signingClaim: boolean
   generatingProof: boolean
+  walletChainId: number
+  switchingChain: boolean
   onSignClaim: () => void
+  onSwitchChain: () => void
   onGenerateProof: (message?: string) => void
 }
 
@@ -46,7 +50,10 @@ export function GenerateProofCard({
   transfersLoading,
   signingClaim,
   generatingProof,
+  walletChainId,
+  switchingChain,
   onSignClaim,
+  onSwitchChain,
   onGenerateProof,
 }: GenerateProofCardProps) {
   const { open } = useAppKit()
@@ -98,10 +105,17 @@ export function GenerateProofCard({
                 <p className="mb-4 text-sm text-muted-foreground">
                   Sign the EIP-712 claim message to generate your unique nullifier
                 </p>
-                <Button onClick={onSignClaim} disabled={signingClaim} className="border-4 font-bold">
-                  {signingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {signingClaim ? 'Preparing & Signing...' : 'Sign Claim'}
-                </Button>
+                {walletChainId !== chainId ? (
+                  <Button onClick={onSwitchChain} disabled={switchingChain} className="border-4 font-bold">
+                    {switchingChain && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {switchingChain ? 'Switching...' : `Switch to ${getChainName(chainId)}`}
+                  </Button>
+                ) : (
+                  <Button onClick={onSignClaim} disabled={signingClaim} className="border-4 font-bold">
+                    {signingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {signingClaim ? 'Preparing & Signing...' : 'Sign Claim'}
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="border-2 border-destructive p-4 text-center text-sm">

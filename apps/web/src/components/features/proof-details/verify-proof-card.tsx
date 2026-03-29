@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VirtualTransferList } from '@/components/shared/virtual-transfer-list'
 import type { ClaimEntity, EtherscanTransfer, ProofEntity } from '@/types'
 import { mapTransferToDisplayItem } from '@/utils/transfer.utils'
-import { getExplorerBaseUrl, getExplorerName } from '@/utils/explorer.utils'
+import { getExplorerBaseUrl, getExplorerName, getChainName } from '@/utils/explorer.utils'
 import { getExpectedCsvFormat } from '@/lib/etherscan-csv'
 import { Check, Loader2, CheckCircle2, Upload, FileText, X, ExternalLink, Wallet, AlertTriangle, Shield } from 'lucide-react'
 
@@ -37,9 +37,12 @@ interface VerifyProofCardProps {
   signingClaim: boolean
   hasTransfers: boolean
   previousAttempt: PreviousAttempt | null
+  walletChainId: number
+  switchingChain: boolean
   onVerify: () => void
   onConnectWallet: () => void
   onSignClaim: () => void
+  onSwitchChain: () => void
   onFetchTransfers: () => void
   onCsvUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveCsv: (index: number) => void
@@ -60,9 +63,12 @@ export function VerifyProofCard({
   signingClaim,
   hasTransfers,
   previousAttempt,
+  walletChainId,
+  switchingChain,
   onVerify,
   onConnectWallet,
   onSignClaim,
+  onSwitchChain,
   onFetchTransfers,
   onCsvUpload,
   onRemoveCsv,
@@ -127,10 +133,17 @@ export function VerifyProofCard({
           <p className="mb-4 text-sm text-muted-foreground">
             Sign the EIP-712 claim message to derive your verifier identity
           </p>
-          <Button onClick={onSignClaim} disabled={signingClaim} className="border-4 font-bold">
-            {signingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {signingClaim ? 'Signing...' : 'Sign Claim'}
-          </Button>
+          {walletChainId !== claim.chainId ? (
+            <Button onClick={onSwitchChain} disabled={switchingChain} className="border-4 font-bold">
+              {switchingChain && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {switchingChain ? 'Switching...' : `Switch to ${getChainName(claim.chainId)}`}
+            </Button>
+          ) : (
+            <Button onClick={onSignClaim} disabled={signingClaim} className="border-4 font-bold">
+              {signingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {signingClaim ? 'Signing...' : 'Sign Claim'}
+            </Button>
+          )}
         </div>
       )
     }

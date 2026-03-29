@@ -53,6 +53,15 @@ const DATE_RANGE_MESSAGE = {
   path: ['toDate'],
 }
 
+function checkEndDateNotTooRecent(data: { toDate: Date }): boolean {
+  return data.toDate.getTime() <= Date.now() - 5 * 60 * 1000
+}
+
+const END_DATE_TOO_RECENT_MESSAGE = {
+  message: 'End date must be at least 5 minutes in the past',
+  path: ['toDate'],
+}
+
 // -- Schemas --
 
 export const createClaimSchema = z
@@ -73,6 +82,7 @@ export const createClaimSchema = z
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
   .refine(checkCountRange, COUNT_RANGE_MESSAGE)
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
+  .refine(checkEndDateNotTooRecent, END_DATE_TOO_RECENT_MESSAGE)
 
 export type CreateClaimInput = z.infer<typeof createClaimSchema>
 
@@ -94,6 +104,7 @@ export const createClaimClientSchema = z
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
   .refine(checkCountRange, COUNT_RANGE_MESSAGE)
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
+  .refine(checkEndDateNotTooRecent, END_DATE_TOO_RECENT_MESSAGE)
 
 export type CreateClaimClientInput = z.infer<typeof createClaimClientSchema>
 
@@ -108,5 +119,6 @@ export const fetchTransfersSchema = z
     toDate: z.date(),
   })
   .refine(checkDateRange, DATE_RANGE_MESSAGE)
+  .refine(checkEndDateNotTooRecent, END_DATE_TOO_RECENT_MESSAGE)
 
 export type FetchTransfersInput = z.infer<typeof fetchTransfersSchema>

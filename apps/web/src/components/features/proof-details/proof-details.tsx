@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { useConnection, useWalletClient } from 'wagmi'
+import { useConnection, useWalletClient, useChainId, useSwitchChain } from 'wagmi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMounted } from '@/hooks/use-mounted'
 import { useAppKit } from '@reown/appkit/react'
@@ -33,6 +33,8 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
 
   const { isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
+  const walletChainId = useChainId()
+  const { switchChain, isPending: switchingChain } = useSwitchChain()
   const { open } = useAppKit()
   const queryClient = useQueryClient()
   const mounted = useMounted()
@@ -201,9 +203,12 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
           signingClaim={signMutation.isPending}
           hasTransfers={!!allTransfers.length}
           previousAttempt={previousAttempt}
+          walletChainId={walletChainId}
+          switchingChain={switchingChain}
           onVerify={handleVerify}
           onConnectWallet={() => open()}
           onSignClaim={() => signMutation.mutate()}
+          onSwitchChain={() => switchChain({ chainId: claim.chainId })}
           onFetchTransfers={() => fetchTransfersMutation.mutate()}
           onCsvUpload={handleCsvUpload}
           onRemoveCsv={handleRemoveCsv}

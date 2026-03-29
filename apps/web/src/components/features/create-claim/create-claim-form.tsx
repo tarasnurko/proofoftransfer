@@ -51,7 +51,7 @@ export function CreateClaimForm() {
       minTransfersCount: 0,
       maxTransfersCount: 0,
       fromDate: null,
-      toDate: new Date(),
+      toDate: new Date(Date.now() - 5 * 60 * 1000),
     },
   })
 

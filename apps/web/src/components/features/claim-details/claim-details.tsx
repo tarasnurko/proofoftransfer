@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useConnection, useWalletClient } from 'wagmi'
+import { useConnection, useWalletClient, useChainId, useSwitchChain } from 'wagmi'
 import { useMounted } from '@/hooks/use-mounted'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,8 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
   const claimId = claim.id
   const { address: walletAddress, isConnected: rawIsConnected } = useConnection()
   const { data: walletClient } = useWalletClient()
+  const walletChainId = useChainId()
+  const { switchChain, isPending: switchingChain } = useSwitchChain()
   const queryClient = useQueryClient()
   const mounted = useMounted()
   const isConnected = mounted && rawIsConnected
@@ -162,7 +164,10 @@ export function ClaimDetails({ claim, ensName }: ClaimDetailsProps) {
           transfersLoading={transfersLoading}
           signingClaim={signMutation.isPending}
           generatingProof={generateProofMutation.isPending}
+          walletChainId={walletChainId}
+          switchingChain={switchingChain}
           onSignClaim={() => signMutation.mutate()}
+          onSwitchChain={() => switchChain({ chainId: claim.chainId })}
           onGenerateProof={(message) => generateProofMutation.mutate(message)}
         />
 
