@@ -38,7 +38,7 @@ export function CreateClaimForm() {
     setValue,
     formState: { errors },
   } = useForm<CreateClaimClientInput>({
-    resolver: zodResolver(createClaimClientSchema),
+    resolver: zodResolver(createClaimClientSchema as any),
     defaultValues: {
       claimMessage: '',
       chainId: ChainId.ETHEREUM,
