@@ -40,11 +40,10 @@ test('full UI flow: create claim → generate proof → verify → self-verify r
 
     // Intercept load-transfers (Etherscan unavailable for Anvil)
     await page.route('**/api/claims/load-transfers', async (route) => {
-      const transfers = fixtures.tstTransfers.map((t, i) => ({
+      const transfers = fixtures.tstTransfers.map((t) => ({
         id: crypto.randomUUID(),
         chainId: 1,
         txHash: t.hash,
-        logIndex: i,
         blockNumber: Number(t.blockNumber),
         blockTimestamp: Number(t.timeStamp),
         senderAddress: t.from.toLowerCase(),

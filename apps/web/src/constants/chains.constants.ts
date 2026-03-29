@@ -6,9 +6,7 @@ export interface ChainData {
 export const SUPPORTED_CHAINS: ChainData[] = [
   { id: 1, name: 'Ethereum' },
   { id: 10, name: 'Optimism' },
-  { id: 56, name: 'BNB Chain' },
   { id: 137, name: 'Polygon' },
-  { id: 8453, name: 'Base' },
   { id: 42161, name: 'Arbitrum' },
   { id: 534352, name: 'Scroll' },
 ]

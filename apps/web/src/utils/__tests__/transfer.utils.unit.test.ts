@@ -7,7 +7,7 @@ const makeErc20Entity = (overrides: Partial<Erc20TransferEntity> = {}): Erc20Tra
   id: 'test-id',
   chainId: 1,
   txHash: '0xhash123',
-  logIndex: 0,
+
   blockNumber: 1000000,
   blockTimestamp: 1700000000,
   senderAddress: '0xsender',
@@ -22,7 +22,7 @@ const makeErc721Entity = (overrides: Partial<Erc721TransferEntity> = {}): Erc721
   id: 'test-id',
   chainId: 1,
   txHash: '0xhash123',
-  logIndex: 0,
+
   blockNumber: 1000000,
   blockTimestamp: 1700000000,
   senderAddress: '0xsender',

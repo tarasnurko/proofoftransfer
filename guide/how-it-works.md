@@ -424,7 +424,6 @@ No wallet addresses stored. The nullifier is the only identity.
 | id | uuid | Primary key |
 | chainId | integer | Blockchain network |
 | txHash | varchar(66) | Transaction hash |
-| logIndex | integer | Event log index |
 | blockNumber | bigint | Block number |
 | blockTimestamp | bigint | Block timestamp |
 | senderAddress | varchar(42) | Transfer sender |

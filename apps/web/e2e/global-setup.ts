@@ -384,12 +384,10 @@ export default async function globalSetup() {
   proofs.push(singleProof)
 
   // Seed transfers from real Anvil events
-  let logIdx = 0
   for (const t of tstTransfers) {
     await seedTransfer({
       chainId: TST.chainId,
       txHash: t.hash,
-      logIndex: logIdx++,
       blockNumber: Number(t.blockNumber),
       blockTimestamp: Number(t.timeStamp),
       senderAddress: t.from.toLowerCase(),
@@ -402,7 +400,6 @@ export default async function globalSetup() {
     await seedTransfer({
       chainId: USDC.chainId,
       txHash: t.hash,
-      logIndex: logIdx++,
       blockNumber: Number(t.blockNumber),
       blockTimestamp: Number(t.timeStamp),
       senderAddress: t.from.toLowerCase(),

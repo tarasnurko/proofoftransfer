@@ -232,7 +232,6 @@ export const claimsRoutes = new Hono()
       const mapBaseFields = (transfer: { hash: string; transactionIndex: string; blockNumber: string; timeStamp: string; from: string; to: string; contractAddress: string }) => ({
         chainId,
         txHash: transfer.hash,
-        logIndex: parseInt(transfer.transactionIndex, 10),
         blockNumber: parseInt(transfer.blockNumber, 10),
         blockTimestamp: parseInt(transfer.timeStamp, 10),
         senderAddress: transfer.from.toLowerCase(),

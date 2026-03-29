@@ -50,7 +50,6 @@ function buildTransferBase(overrides: Record<string, unknown> = {}) {
   return {
     chainId: 1,
     txHash: '0x' + randomUUID().replace(/-/g, '').padEnd(64, '0'),
-    logIndex: 0,
     blockNumber: 1000000,
     blockTimestamp: Math.floor(Date.now() / 1000),
     senderAddress: '0x' + '3'.repeat(40),

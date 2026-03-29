@@ -29,7 +29,6 @@ CREATE TABLE "erc1155_transfers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"chainId" integer NOT NULL,
 	"txHash" varchar(66) NOT NULL,
-	"logIndex" integer NOT NULL,
 	"blockNumber" bigint NOT NULL,
 	"blockTimestamp" bigint NOT NULL,
 	"senderAddress" varchar(42) NOT NULL,
@@ -38,14 +37,13 @@ CREATE TABLE "erc1155_transfers" (
 	"tokenId" varchar(78) NOT NULL,
 	"amount" varchar(78) NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "erc1155_transfers_chain_tx_log_idx" UNIQUE("chainId","txHash","logIndex")
+	CONSTRAINT "erc1155_transfers_chain_tx_sender_recipient_token_tokenid_amount_idx" UNIQUE("chainId","txHash","senderAddress","recipientAddress","tokenAddress","tokenId","amount")
 );
 --> statement-breakpoint
 CREATE TABLE "erc20_transfers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"chainId" integer NOT NULL,
 	"txHash" varchar(66) NOT NULL,
-	"logIndex" integer NOT NULL,
 	"blockNumber" bigint NOT NULL,
 	"blockTimestamp" bigint NOT NULL,
 	"senderAddress" varchar(42) NOT NULL,
@@ -53,14 +51,13 @@ CREATE TABLE "erc20_transfers" (
 	"tokenAddress" varchar(42) NOT NULL,
 	"amount" varchar(78) NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "erc20_transfers_chain_tx_log_idx" UNIQUE("chainId","txHash","logIndex")
+	CONSTRAINT "erc20_transfers_chain_tx_sender_recipient_token_amount_idx" UNIQUE("chainId","txHash","senderAddress","recipientAddress","tokenAddress","amount")
 );
 --> statement-breakpoint
 CREATE TABLE "erc721_transfers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"chainId" integer NOT NULL,
 	"txHash" varchar(66) NOT NULL,
-	"logIndex" integer NOT NULL,
 	"blockNumber" bigint NOT NULL,
 	"blockTimestamp" bigint NOT NULL,
 	"senderAddress" varchar(42) NOT NULL,
@@ -68,7 +65,7 @@ CREATE TABLE "erc721_transfers" (
 	"tokenAddress" varchar(42) NOT NULL,
 	"tokenId" varchar(78) NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "erc721_transfers_chain_tx_log_idx" UNIQUE("chainId","txHash","logIndex")
+	CONSTRAINT "erc721_transfers_chain_tx_sender_recipient_token_tokenid_idx" UNIQUE("chainId","txHash","senderAddress","recipientAddress","tokenAddress","tokenId")
 );
 --> statement-breakpoint
 CREATE TABLE "proof_verifications" (

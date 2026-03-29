@@ -120,7 +120,7 @@ export async function upsertErc20Transfers(
     .insert(erc20TransfersTable)
     .values(data)
     .onConflictDoUpdate({
-      target: [erc20TransfersTable.chainId, erc20TransfersTable.txHash, erc20TransfersTable.logIndex],
+      target: [erc20TransfersTable.chainId, erc20TransfersTable.txHash, erc20TransfersTable.senderAddress, erc20TransfersTable.recipientAddress, erc20TransfersTable.tokenAddress, erc20TransfersTable.amount],
       set: { createdAt: erc20TransfersTable.createdAt },
     })
     .returning()
@@ -136,7 +136,7 @@ export async function upsertErc721Transfers(
     .insert(erc721TransfersTable)
     .values(data)
     .onConflictDoUpdate({
-      target: [erc721TransfersTable.chainId, erc721TransfersTable.txHash, erc721TransfersTable.logIndex],
+      target: [erc721TransfersTable.chainId, erc721TransfersTable.txHash, erc721TransfersTable.senderAddress, erc721TransfersTable.recipientAddress, erc721TransfersTable.tokenAddress, erc721TransfersTable.tokenId],
       set: { createdAt: erc721TransfersTable.createdAt },
     })
     .returning()
@@ -152,7 +152,7 @@ export async function upsertErc1155Transfers(
     .insert(erc1155TransfersTable)
     .values(data)
     .onConflictDoUpdate({
-      target: [erc1155TransfersTable.chainId, erc1155TransfersTable.txHash, erc1155TransfersTable.logIndex],
+      target: [erc1155TransfersTable.chainId, erc1155TransfersTable.txHash, erc1155TransfersTable.senderAddress, erc1155TransfersTable.recipientAddress, erc1155TransfersTable.tokenAddress, erc1155TransfersTable.tokenId, erc1155TransfersTable.amount],
       set: { createdAt: erc1155TransfersTable.createdAt },
     })
     .returning()

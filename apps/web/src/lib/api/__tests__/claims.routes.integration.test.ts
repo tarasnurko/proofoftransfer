@@ -52,7 +52,7 @@ describe('claims routes (Hono)', () => {
       const counterpartyAddress = '0x' + 'b'.repeat(40)
 
       await upsertErc20Transfers([
-        buildErc20TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '1'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, txHash: '0x' + '1'.repeat(64) }),
       ])
 
       const claim = await createClaim(buildClaimSeed({
@@ -79,7 +79,7 @@ describe('claims routes (Hono)', () => {
       const counterpartyAddress = '0x' + 'd'.repeat(40)
 
       await upsertErc721Transfers([
-        buildErc721TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '4'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, txHash: '0x' + '4'.repeat(64) }),
       ])
 
       const claim = await createClaim(buildClaimSeed({
@@ -104,7 +104,7 @@ describe('claims routes (Hono)', () => {
       const counterpartyAddress = '0x' + 'f'.repeat(40)
 
       await upsertErc1155Transfers([
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, logIndex: 0, txHash: '0x' + '5'.repeat(64) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress: counterpartyAddress, chainId: 1, txHash: '0x' + '5'.repeat(64) }),
       ])
 
       const claim = await createClaim(buildClaimSeed({

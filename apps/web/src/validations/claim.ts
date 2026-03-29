@@ -68,7 +68,7 @@ export const createClaimSchema = z
     maxTransfersCount: z.number().int().min(0).default(0),
     fromDate: z.date().optional(),
     toDate: z.date(),
-    chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
+    chainId: z.nativeEnum(ChainId).default(ChainId.ETHEREUM),
   })
   .refine(checkAmountRange, AMOUNT_RANGE_MESSAGE)
   .refine(checkCountRange, COUNT_RANGE_MESSAGE)
@@ -99,7 +99,7 @@ export type CreateClaimClientInput = z.infer<typeof createClaimClientSchema>
 
 export const fetchTransfersSchema = z
   .object({
-    chainId: z.nativeEnum(ChainId).default(ChainId.BASE),
+    chainId: z.nativeEnum(ChainId).default(ChainId.ETHEREUM),
     tokenAddress: ethereumAddressLowercaseSchema,
     counterpartyAddress: ethereumAddressLowercaseSchema,
     isProverSender: z.boolean().default(true),

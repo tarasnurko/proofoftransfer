@@ -10,8 +10,8 @@ describe('transfers queries', () => {
   describe('upsertErc20Transfers', () => {
     it('inserts new transfers', async () => {
       const transfers = [
-        buildErc20TransferSeed({ logIndex: 0, txHash: '0x' + 'a'.repeat(64) }),
-        buildErc20TransferSeed({ logIndex: 1, txHash: '0x' + 'b'.repeat(64) }),
+        buildErc20TransferSeed({ txHash: '0x' + 'a'.repeat(64) }),
+        buildErc20TransferSeed({ txHash: '0x' + 'b'.repeat(64) }),
       ]
 
       const result = await upsertErc20Transfers(transfers)
@@ -19,7 +19,7 @@ describe('transfers queries', () => {
       expect(result[0]!.id).toBeDefined()
     })
 
-    it('upserts on conflict (same chain + txHash + logIndex)', async () => {
+    it('upserts on conflict (same unique key)', async () => {
       const seed = buildErc20TransferSeed()
       await upsertErc20Transfers([seed])
       const result = await upsertErc20Transfers([seed])
@@ -44,7 +44,6 @@ describe('transfers queries', () => {
           recipientAddress,
           chainId: 1,
           blockTimestamp: 1000,
-          logIndex: 0,
           txHash: '0x' + '1'.repeat(64),
         }),
         buildErc20TransferSeed({
@@ -52,14 +51,12 @@ describe('transfers queries', () => {
           recipientAddress,
           chainId: 1,
           blockTimestamp: 2000,
-          logIndex: 0,
           txHash: '0x' + '2'.repeat(64),
         }),
         buildErc20TransferSeed({
           tokenAddress: '0x' + 'c'.repeat(40),
           recipientAddress,
           chainId: 1,
-          logIndex: 0,
           txHash: '0x' + '3'.repeat(64),
         }),
       ])
@@ -78,9 +75,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'b'.repeat(40)
 
       await upsertErc20Transfers([
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, logIndex: 0, txHash: '0x' + '1'.repeat(64) }),
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, logIndex: 0, txHash: '0x' + '2'.repeat(64) }),
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, logIndex: 0, txHash: '0x' + '3'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, txHash: '0x' + '1'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, txHash: '0x' + '2'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, txHash: '0x' + '3'.repeat(64) }),
       ])
 
       const result = await getErc20Transfers({
@@ -100,9 +97,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'b'.repeat(40)
 
       await upsertErc20Transfers([
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 3000, chainId: 1, logIndex: 0, txHash: '0x' + '1'.repeat(64) }),
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1000, chainId: 1, logIndex: 0, txHash: '0x' + '2'.repeat(64) }),
-        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2000, chainId: 1, logIndex: 0, txHash: '0x' + '3'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 3000, chainId: 1, txHash: '0x' + '1'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1000, chainId: 1, txHash: '0x' + '2'.repeat(64) }),
+        buildErc20TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2000, chainId: 1, txHash: '0x' + '3'.repeat(64) }),
       ])
 
       const result = await getErc20Transfers({
@@ -120,8 +117,8 @@ describe('transfers queries', () => {
   describe('upsertErc721Transfers', () => {
     it('inserts new transfers', async () => {
       const transfers = [
-        buildErc721TransferSeed({ logIndex: 0, txHash: '0x' + 'a'.repeat(64) }),
-        buildErc721TransferSeed({ logIndex: 1, txHash: '0x' + 'b'.repeat(64) }),
+        buildErc721TransferSeed({ txHash: '0x' + 'a'.repeat(64) }),
+        buildErc721TransferSeed({ txHash: '0x' + 'b'.repeat(64) }),
       ]
 
       const result = await upsertErc721Transfers(transfers)
@@ -129,7 +126,7 @@ describe('transfers queries', () => {
       expect(result[0]!.id).toBeDefined()
     })
 
-    it('upserts on conflict (same chain + txHash + logIndex)', async () => {
+    it('upserts on conflict (same unique key)', async () => {
       const seed = buildErc721TransferSeed()
       await upsertErc721Transfers([seed])
       const result = await upsertErc721Transfers([seed])
@@ -149,9 +146,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'e'.repeat(40)
 
       await upsertErc721Transfers([
-        buildErc721TransferSeed({ tokenAddress, recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + '4'.repeat(64) }),
-        buildErc721TransferSeed({ tokenAddress, recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + '5'.repeat(64) }),
-        buildErc721TransferSeed({ tokenAddress: '0x' + 'f'.repeat(40), recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + '6'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress, chainId: 1, txHash: '0x' + '4'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress, chainId: 1, txHash: '0x' + '5'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress: '0x' + 'f'.repeat(40), recipientAddress, chainId: 1, txHash: '0x' + '6'.repeat(64) }),
       ])
 
       const result = await getErc721Transfers({ chainId: 1, tokenAddress, recipientAddress })
@@ -163,9 +160,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'e'.repeat(40)
 
       await upsertErc721Transfers([
-        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, logIndex: 0, txHash: '0x' + '7'.repeat(64) }),
-        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, logIndex: 0, txHash: '0x' + '8'.repeat(64) }),
-        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, logIndex: 0, txHash: '0x' + '9'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, txHash: '0x' + '7'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, txHash: '0x' + '8'.repeat(64) }),
+        buildErc721TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, txHash: '0x' + '9'.repeat(64) }),
       ])
 
       const result = await getErc721Transfers({
@@ -184,8 +181,8 @@ describe('transfers queries', () => {
   describe('upsertErc1155Transfers', () => {
     it('inserts new transfers', async () => {
       const transfers = [
-        buildErc1155TransferSeed({ logIndex: 0, txHash: '0x' + 'a'.repeat(64) }),
-        buildErc1155TransferSeed({ logIndex: 1, txHash: '0x' + 'b'.repeat(64) }),
+        buildErc1155TransferSeed({ txHash: '0x' + 'a'.repeat(64) }),
+        buildErc1155TransferSeed({ txHash: '0x' + 'b'.repeat(64) }),
       ]
 
       const result = await upsertErc1155Transfers(transfers)
@@ -193,7 +190,7 @@ describe('transfers queries', () => {
       expect(result[0]!.id).toBeDefined()
     })
 
-    it('upserts on conflict (same chain + txHash + logIndex)', async () => {
+    it('upserts on conflict (same unique key)', async () => {
       const seed = buildErc1155TransferSeed()
       await upsertErc1155Transfers([seed])
       const result = await upsertErc1155Transfers([seed])
@@ -213,9 +210,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'b1'.repeat(20)
 
       await upsertErc1155Transfers([
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + 'c1'.repeat(32) }),
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + 'd1'.repeat(32) }),
-        buildErc1155TransferSeed({ tokenAddress: '0x' + 'e1'.repeat(20), recipientAddress, chainId: 1, logIndex: 0, txHash: '0x' + 'f1'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress, chainId: 1, txHash: '0x' + 'c1'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress, chainId: 1, txHash: '0x' + 'd1'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress: '0x' + 'e1'.repeat(20), recipientAddress, chainId: 1, txHash: '0x' + 'f1'.repeat(32) }),
       ])
 
       const result = await getErc1155Transfers({ chainId: 1, tokenAddress, recipientAddress })
@@ -227,9 +224,9 @@ describe('transfers queries', () => {
       const recipientAddress = '0x' + 'b1'.repeat(20)
 
       await upsertErc1155Transfers([
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, logIndex: 0, txHash: '0x' + 'a2'.repeat(32) }),
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, logIndex: 0, txHash: '0x' + 'b2'.repeat(32) }),
-        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, logIndex: 0, txHash: '0x' + 'c2'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 500, chainId: 1, txHash: '0x' + 'a2'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 1500, chainId: 1, txHash: '0x' + 'b2'.repeat(32) }),
+        buildErc1155TransferSeed({ tokenAddress, recipientAddress, blockTimestamp: 2500, chainId: 1, txHash: '0x' + 'c2'.repeat(32) }),
       ])
 
       const result = await getErc1155Transfers({

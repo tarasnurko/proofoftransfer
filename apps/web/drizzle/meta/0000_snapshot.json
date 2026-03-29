@@ -1,5 +1,5 @@
 {
-  "id": "6ab6a1f2-2897-4977-918d-c00523f3a721",
+  "id": "ca22191c-0606-4d77-bb7b-32edd1d58dbd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -241,12 +241,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "logIndex": {
-          "name": "logIndex",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
         "blockNumber": {
           "name": "blockNumber",
           "type": "bigint",
@@ -344,13 +338,17 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "erc1155_transfers_chain_tx_log_idx": {
-          "name": "erc1155_transfers_chain_tx_log_idx",
+        "erc1155_transfers_chain_tx_sender_recipient_token_tokenid_amount_idx": {
+          "name": "erc1155_transfers_chain_tx_sender_recipient_token_tokenid_amount_idx",
           "nullsNotDistinct": false,
           "columns": [
             "chainId",
             "txHash",
-            "logIndex"
+            "senderAddress",
+            "recipientAddress",
+            "tokenAddress",
+            "tokenId",
+            "amount"
           ]
         }
       },
@@ -378,12 +376,6 @@
         "txHash": {
           "name": "txHash",
           "type": "varchar(66)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logIndex": {
-          "name": "logIndex",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -478,13 +470,16 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "erc20_transfers_chain_tx_log_idx": {
-          "name": "erc20_transfers_chain_tx_log_idx",
+        "erc20_transfers_chain_tx_sender_recipient_token_amount_idx": {
+          "name": "erc20_transfers_chain_tx_sender_recipient_token_amount_idx",
           "nullsNotDistinct": false,
           "columns": [
             "chainId",
             "txHash",
-            "logIndex"
+            "senderAddress",
+            "recipientAddress",
+            "tokenAddress",
+            "amount"
           ]
         }
       },
@@ -512,12 +507,6 @@
         "txHash": {
           "name": "txHash",
           "type": "varchar(66)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logIndex": {
-          "name": "logIndex",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -612,13 +601,16 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "erc721_transfers_chain_tx_log_idx": {
-          "name": "erc721_transfers_chain_tx_log_idx",
+        "erc721_transfers_chain_tx_sender_recipient_token_tokenid_idx": {
+          "name": "erc721_transfers_chain_tx_sender_recipient_token_tokenid_idx",
           "nullsNotDistinct": false,
           "columns": [
             "chainId",
             "txHash",
-            "logIndex"
+            "senderAddress",
+            "recipientAddress",
+            "tokenAddress",
+            "tokenId"
           ]
         }
       },

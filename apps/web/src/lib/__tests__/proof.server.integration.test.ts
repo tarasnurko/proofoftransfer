@@ -60,7 +60,7 @@ describe('proof.server', () => {
         id: 'test-id',
         chainId: 1,
         txHash: '0xhash',
-        logIndex: 0,
+
         blockNumber: 1000000,
         blockTimestamp: 1700000000,
         senderAddress: '0xsender',
@@ -86,7 +86,7 @@ describe('proof.server', () => {
         id: 'test-id',
         chainId: 1,
         txHash: '0xhash',
-        logIndex: 0,
+
         blockNumber: 1000000,
         blockTimestamp: 1700000000,
         senderAddress: '0xsender',

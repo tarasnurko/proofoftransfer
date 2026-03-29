@@ -96,7 +96,6 @@ export const erc20TransfersTable = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     chainId: integer().notNull(),
     txHash: varchar({ length: 66 }).notNull(),
-    logIndex: integer().notNull(),
     blockNumber: bigint({ mode: 'number' }).notNull(),
     blockTimestamp: bigint({ mode: 'number' }).notNull(),
     senderAddress: varchar({ length: 42 }).notNull(),
@@ -106,7 +105,7 @@ export const erc20TransfersTable = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
-    unique('erc20_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    unique('erc20_transfers_chain_tx_sender_recipient_token_amount_idx').on(table.chainId, table.txHash, table.senderAddress, table.recipientAddress, table.tokenAddress, table.amount),
     index('erc20_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
     index('erc20_transfers_timestamp_idx').on(table.blockTimestamp),
   ]
@@ -118,7 +117,6 @@ export const erc721TransfersTable = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     chainId: integer().notNull(),
     txHash: varchar({ length: 66 }).notNull(),
-    logIndex: integer().notNull(),
     blockNumber: bigint({ mode: 'number' }).notNull(),
     blockTimestamp: bigint({ mode: 'number' }).notNull(),
     senderAddress: varchar({ length: 42 }).notNull(),
@@ -128,7 +126,7 @@ export const erc721TransfersTable = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
-    unique('erc721_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    unique('erc721_transfers_chain_tx_sender_recipient_token_tokenid_idx').on(table.chainId, table.txHash, table.senderAddress, table.recipientAddress, table.tokenAddress, table.tokenId),
     index('erc721_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
     index('erc721_transfers_timestamp_idx').on(table.blockTimestamp),
   ]
@@ -140,7 +138,6 @@ export const erc1155TransfersTable = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     chainId: integer().notNull(),
     txHash: varchar({ length: 66 }).notNull(),
-    logIndex: integer().notNull(),
     blockNumber: bigint({ mode: 'number' }).notNull(),
     blockTimestamp: bigint({ mode: 'number' }).notNull(),
     senderAddress: varchar({ length: 42 }).notNull(),
@@ -151,7 +148,7 @@ export const erc1155TransfersTable = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
-    unique('erc1155_transfers_chain_tx_log_idx').on(table.chainId, table.txHash, table.logIndex),
+    unique('erc1155_transfers_chain_tx_sender_recipient_token_tokenid_amount_idx').on(table.chainId, table.txHash, table.senderAddress, table.recipientAddress, table.tokenAddress, table.tokenId, table.amount),
     index('erc1155_transfers_recipient_token_idx').on(table.recipientAddress, table.tokenAddress, table.chainId),
     index('erc1155_transfers_timestamp_idx').on(table.blockTimestamp),
   ]
