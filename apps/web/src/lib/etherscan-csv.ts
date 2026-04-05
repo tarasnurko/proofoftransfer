@@ -89,7 +89,7 @@ export function parseEtherscanCsv({
       }
     }
 
-    const rawQuantity = row['quantity'] || ''
+    const rawQuantity = (row['quantity'] || '').replace(/,/g, '')
     const rawValue = rawQuantity.includes('.')
       ? parseUnits(rawQuantity, tokenDecimals).toString()
       : rawQuantity
