@@ -161,7 +161,15 @@ export function ProofDetails({ claim, proof: initialProof }: ProofDetailsProps) 
         tokenDecimals: claim.token?.decimals ?? 18,
         tokenType: claim.tokenType,
       })
-      setCsvFiles(prev => [...prev, { name: file.name, transfers: parsed }])
+      const filtered = parsed.filter((t) => {
+        const addr = claim.isProverSender ? t.to : t.from
+        if (addr.toLowerCase() !== claim.counterpartyAddress.toLowerCase()) return false
+        const ts = parseInt(t.timeStamp)
+        if (claim.fromBlockTimestamp && ts < claim.fromBlockTimestamp) return false
+        if (ts > claim.toBlockTimestamp) return false
+        return true
+      })
+      setCsvFiles(prev => [...prev, { name: file.name, transfers: filtered }])
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to parse CSV')
     } finally {
